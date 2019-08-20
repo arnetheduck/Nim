@@ -543,7 +543,7 @@ type
       trace*: string
     else:
       trace*: seq[StackTraceEntry]
-    up: ref Exception # used for stacking exceptions. Not exported!
+    up*: ref Exception # used for stacking exceptions. Not exported!
 
   Defect* = object of Exception ## \
     ## Abstract base class for all exceptions that Nim's runtime raises
@@ -1897,6 +1897,9 @@ when notJSnotNims:
   when defined(memtracker):
     include "system/memtracker"
 
+  when defined(nlvm):
+    import nlvm_system
+
   when hostOS == "standalone":
     include "system/embedded"
   else:
@@ -2259,7 +2262,6 @@ when not defined(js):
   elif not defined(nogc) and not defined(nimscript):
     when not defined(useNimRtl) and not defined(createNimRtl): initStackBottom()
     when declared(initGC): initGC()
-
 
 when not defined(js):
   # this is a hack: without this when statement, you would get:
