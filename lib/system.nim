@@ -2316,6 +2316,9 @@ when notJSnotNims:
   when defined(memtracker):
     include "system/memtracker"
 
+  when defined(nlvm):
+    import nlvm_system
+
   when hostOS == "standalone":
     include "system/embedded"
   else:
