@@ -543,7 +543,7 @@ type
       trace*: string
     else:
       trace*: seq[StackTraceEntry]
-    up: ref Exception # used for stacking exceptions. Not exported!
+    up*: ref Exception # used for stacking exceptions. Not exported!
 
   Defect* = object of Exception ## \
     ## Abstract base class for all exceptions that Nim's runtime raises
@@ -2223,6 +2223,9 @@ when notJSnotNims:
   {.push stackTrace: off, profiler: off.}
   when defined(memtracker):
     include "system/memtracker"
+
+  when defined(nlvm):
+    import nlvm_system
 
   when hostOS == "standalone":
     include "system/embedded"
