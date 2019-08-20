@@ -3726,6 +3726,9 @@ when not defined(JS): #and not defined(nimscript):
     when defined(memtracker):
       include "system/memtracker"
 
+    when defined(nlvm):
+      import nlvm_system
+
     when hostOS == "standalone":
       include "system/embedded"
     else:
