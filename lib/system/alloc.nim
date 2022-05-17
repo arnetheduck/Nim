@@ -67,6 +67,7 @@ type
     freeList: ptr FreeCell
     free: int            # how many bytes remain
     acc: int             # accumulator for small object allocation
+    dummy: int  # TODO(nlvm): align
     when defined(nimAlignPragma):
       data {.align: MemAlign.}: UncheckedArray[byte]      # start of usable memory
     else:
