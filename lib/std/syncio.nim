@@ -15,13 +15,11 @@ import std/formatfloat
 when defined(windows):
   import std/widestrs
 
-from system/ansi_c import c_memchr
+from system/ansi_c import CFilePtr, c_memchr
 
 # ----------------- IO Part ------------------------------------------------
 type
-  CFile {.importc: "FILE", header: "<stdio.h>",
-          incompleteStruct.} = object
-  File* = ptr CFile ## The type representing a file handle.
+  File* = CFilePtr ## The type representing a file handle.
 
   FileMode* = enum       ## The file mode when opening a file.
     fmRead,              ## Open the file for read access only.
