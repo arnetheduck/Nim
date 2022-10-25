@@ -14,11 +14,11 @@ include inclrtl
 import std/private/since
 import formatfloat
 
+from ansi_c import CFilePtr
+
 # ----------------- IO Part ------------------------------------------------
 type
-  CFile {.importc: "FILE", header: "<stdio.h>",
-          incompleteStruct.} = object
-  File* = ptr CFile ## The type representing a file handle.
+  File* = CFilePtr ## The type representing a file handle.
 
   FileMode* = enum           ## The file mode when opening a file.
     fmRead,                   ## Open the file for read access only.
