@@ -30,6 +30,7 @@ import std/oserrors
 when defined(nimPreviewSlimSystem):
   import std/[syncio, assertions]
 
+from system/ansi_c import c_memchr
 
 proc newEIO(msg: string): ref IOError =
   new(result)
@@ -445,8 +446,6 @@ iterator memSlices*(mfile: MemFile, delim = '\l', eat = '\r'): MemSlice {.inline
   ##       inc(count)
   ##   echo count
 
-  proc c_memchr(cstr: pointer, c: char, n: csize_t): pointer {.
-       importc: "memchr", header: "<string.h>".}
   proc `-!`(p, q: pointer): int {.inline.} = return cast[int](p) -% cast[int](q)
   var ms: MemSlice
   var ending: pointer
