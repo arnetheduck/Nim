@@ -23,6 +23,7 @@ else:
   {.error: "the memfiles module is not supported on your operating system!".}
 
 import os, streams
+from system/ansi_c import c_memchr
 
 proc newEIO(msg: string): ref IOError =
   new(result)
@@ -447,15 +448,14 @@ iterator memSlices*(mfile: MemFile, delim = '\l', eat = '\r'): MemSlice {.inline
   ##       inc(count)
   ##   echo count
 
-  proc c_memchr(cstr: pointer, c: char, n: csize): pointer {.
-       importc: "memchr", header: "<string.h>".}
+
   proc `-!`(p, q: pointer): int {.inline.} = return cast[int](p) -% cast[int](q)
   var ms: MemSlice
   var ending: pointer
   ms.data = mfile.mem
   var remaining = mfile.size
   while remaining > 0:
-    ending = c_memchr(ms.data, delim, remaining)
+    ending = c_memchr(ms.data, cint(delim), csize_t(remaining))
     if ending == nil: # unterminated final slice
       ms.size = remaining # Weird case..check eat?
       yield ms
