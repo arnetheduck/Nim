@@ -14,7 +14,8 @@ include inclrtl
 import std/private/since
 import formatfloat
 
-from ansi_c import CFilePtr
+from ansi_c import
+  CFilePtr, c_memchr
 
 # ----------------- IO Part ------------------------------------------------
 type
@@ -381,9 +382,6 @@ proc readLine*(f: File, line: var string): bool {.tags: [ReadIOEffect],
   ## character(s) are not part of the returned string. Returns `false`
   ## if the end of the file has been reached, `true` otherwise. If
   ## `false` is returned `line` contains no new data.
-  proc c_memchr(s: pointer, c: cint, n: csize_t): pointer {.
-    importc: "memchr", header: "<string.h>".}
-
   when defined(windows) and not defined(useWinAnsi):
     proc readConsole(hConsoleInput: FileHandle, lpBuffer: pointer,
                      nNumberOfCharsToRead: int32,
