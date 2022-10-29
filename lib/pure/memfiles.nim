@@ -24,12 +24,17 @@ elif defined(posix):
 else:
   {.error: "the memfiles module is not supported on your operating system!".}
 
+<<<<<<< HEAD
 import streams
 import std/oserrors
 
 when defined(nimPreviewSlimSystem):
   import std/[syncio, assertions]
 
+=======
+import os, streams
+from system/ansi_c import c_memchr
+>>>>>>> ab6aaef70 (fix c_memchr, c_strstr definitions)
 
 proc newEIO(msg: string): ref IOError =
   new(result)
@@ -419,6 +424,8 @@ proc `$`*(ms: MemSlice): string {.inline.} =
   result.setLen(ms.size)
   copyMem(addr(result[0]), ms.data, ms.size)
 
+from system/ansi_c import c_memchr
+
 iterator memSlices*(mfile: MemFile, delim = '\l', eat = '\r'): MemSlice {.inline.} =
   ## Iterates over \[optional `eat`] `delim`-delimited slices in MemFile `mfile`.
   ##
@@ -451,8 +458,6 @@ iterator memSlices*(mfile: MemFile, delim = '\l', eat = '\r'): MemSlice {.inline
   ##       inc(count)
   ##   echo count
 
-  proc c_memchr(cstr: pointer, c: char, n: csize_t): pointer {.
-       importc: "memchr", header: "<string.h>".}
   proc `-!`(p, q: pointer): int {.inline.} = return cast[int](p) -% cast[int](q)
   var ms: MemSlice
   var ending: pointer
