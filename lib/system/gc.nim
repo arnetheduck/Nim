@@ -166,7 +166,7 @@ template gcAssert(cond: bool, msg: string) =
       #echo x[]
       rawQuit 1
 
-proc addZCT(s: var CellSeq, c: PCell) {.noinline.} =
+proc addZCT(s: var CellSeq, c: PCell) =
   if (c.refcount and ZctFlag) == 0:
     c.refcount = c.refcount or ZctFlag
     add(s, c)

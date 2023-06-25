@@ -58,7 +58,7 @@ when declared(IntsPerTrunk):
 else:
   include bitmasks
 
-proc raiseOutOfMem() {.noinline.} =
+proc raiseOutOfMem() {.noinline, noreturn.} =
   if outOfMemHook != nil: outOfMemHook()
   cstderr.rawWrite("out of memory\n")
   rawQuit(1)
