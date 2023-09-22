@@ -47,6 +47,9 @@ proc isPartOfAux(n: PNode, b: PType, marker: var IntSet): TAnalysisResult =
 proc isPartOfAux(a, b: PType, marker: var IntSet): TAnalysisResult =
   result = arNo
   if a == nil or b == nil: return
+  let
+    a = a.skipTypes(skipPtrs)
+    b = b.skipTypes(skipPtrs)
   if containsOrIncl(marker, a.id): return
   if compareTypes(a, b, dcEqIgnoreDistinct): return arYes
   case a.kind
