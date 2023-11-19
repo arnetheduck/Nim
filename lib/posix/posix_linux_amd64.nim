@@ -329,13 +329,14 @@ type
     si_errno*: cint    ## If non-zero, an errno value associated with
                        ## this signal, as defined in <errno.h>.
     si_code*: cint     ## Signal code.
+    pad0 {.importc: "__pad0".}: cint
     si_pid*: Pid       ## Sending process ID.
     si_uid*: Uid       ## Real user ID of sending process.
-    si_addr*: pointer  ## Address of faulting instruction.
     si_status*: cint   ## Exit value or signal.
-    si_band*: int      ## Band event for SIGPOLL.
     si_value*: SigVal  ## Signal value.
-    pad {.importc: "_pad".}: array[128 - 56, uint8]
+    si_band*: clong    ## Band event for SIGPOLL.
+    si_addr*: pointer  ## Address of faulting instruction.
+    pad {.importc: "_pad".}: array[128 - 48, uint8]
 
 template sa_sigaction*(v: Sigaction): proc (x: cint, y: ptr SigInfo, z: pointer) {.noconv.} =
   cast[proc (x: cint, y: ptr SigInfo, z: pointer) {.noconv.}](v.sa_handler)
