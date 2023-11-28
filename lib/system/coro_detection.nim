@@ -1,4 +1,5 @@
 ## Coroutine detection logic
+{.used.}
 
 template coroutinesSupportedPlatform(): bool =
   when defined(sparc) or defined(ELATE) or defined(boehmgc) or defined(gogc) or
