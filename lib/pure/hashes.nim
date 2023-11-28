@@ -243,7 +243,7 @@ proc hash*[T](x: ptr[T]): Hash {.inline.} =
 when defined(nimPreviewHashRef) or defined(nimdoc):
   proc hash*[T](x: ref[T]): Hash {.inline.} =
     ## Efficient `hash` overload.
-    ## 
+    ##
     ## .. important:: Use `-d:nimPreviewHashRef` to
     ##    enable hashing `ref`s. It is expected that this behavior
     ##    becomes the new default in upcoming versions.
@@ -361,7 +361,7 @@ proc murmurHash(x: openArray[byte]): Hash =
   h1 = h1 xor (h1 shr 13)
   h1 = imul(h1, m2)
   h1 = h1 xor (h1 shr 16)
-  return cast[Hash](h1)
+  return Hash(h1)
 
 proc hashVmImpl(x: cstring, sPos, ePos: int): Hash =
   doAssert false, "implementation override in compiler/vmops.nim"
