@@ -366,7 +366,7 @@ proc murmurHash(x: openArray[byte]): Hash =
   h1 = h1 xor (h1 shr 13)
   h1 = imul(h1, m2)
   h1 = h1 xor (h1 shr 16)
-  return cast[Hash](h1)
+  return Hash(h1)
 
 proc hashVmImpl(x: cstring, sPos, ePos: int): Hash =
   raiseAssert "implementation override in compiler/vmops.nim"
