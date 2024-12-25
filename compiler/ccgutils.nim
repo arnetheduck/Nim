@@ -171,8 +171,6 @@ proc encodeSym*(m: BModule; s: PSym; makeUnique: bool = false): string =
     name = makeUnique(m, s, name)
   "N" & encodeName(s.skipGenericOwner.name.s) & encodeName(name) & "E"
 
-proc elementType*(n: PType): PType {.inline.} = n.sons[^1]
-
 proc encodeType*(m: BModule; t: PType): string =
   result = ""
   var kindName = ($t.kind)[2..^1]
