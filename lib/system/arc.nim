@@ -237,12 +237,12 @@ proc nimDecRefIsLast(p: pointer): bool {.compilerRtl, inl.} =
         when traceCollector:
           cprintf("[DECREF] %p\n", cell)
 
-proc GC_unref*[T](x: ref T) =
+proc GC_unref*[T](x: ref T) {.raises: [].} =
   ## New runtime only supports this operation for 'ref T'.
   var y {.cursor.} = x
   `=destroy`(y)
 
-proc GC_ref*[T](x: ref T) =
+proc GC_ref*[T](x: ref T) {.raises: [].} =
   ## New runtime only supports this operation for 'ref T'.
   if x != nil: nimIncRef(cast[pointer](x))
 
