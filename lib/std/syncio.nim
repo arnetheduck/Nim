@@ -164,9 +164,16 @@ proc raiseEOF() {.noinline, noreturn.} =
 proc strerror(errnum: cint): cstring {.importc, header: "<string.h>".}
 
 when not defined(nimscript):
-  var
-    errno {.importc, header: "<errno.h>".}: cint ## error variable
-    EINTR {.importc: "EINTR", header: "<errno.h>".}: cint
+  when defined(posix) and defined(amd64):
+    var errno {.importc, header: "<errno.h>".}: cint ## error variable
+    const EINTR = 4
+  elif defined(windows):
+    var errno {.importc, header: "<errno.h>".}: cint ## error variable
+    const EINTR = 4
+  else:
+    var
+      errno {.importc, header: "<errno.h>".}: cint ## error variable
+      EINTR {.importc: "EINTR", header: "<errno.h>".}: cint
 
 proc checkErr(f: File) =
   when not defined(nimscript):
@@ -281,9 +288,14 @@ when defined(nimscript):
       IOFBF = cint(0)
       IONBF = cint(2)
 else:
-  var
-    IOFBF {.importc: "_IOFBF", nodecl.}: cint
-    IONBF {.importc: "_IONBF", nodecl.}: cint
+  when defined(windows):
+    const
+      IOFBF = cint(0)
+      IONBF = cint(4)
+  else:
+    var
+      IOFBF {.importc: "_IOFBF", nodecl.}: cint
+      IONBF {.importc: "_IONBF", nodecl.}: cint
 
 const SupportIoctlInheritCtl = (defined(linux) or defined(bsd)) and
                               not defined(nimscript)
@@ -825,8 +837,9 @@ when defined(windows) and not defined(nimscript) and not defined(js):
   proc c_setmode(handle, mode: cint) {.
     importc: when defined(bcc): "setmode" else: "_setmode",
     header: "<io.h>".}
-  var
-    O_BINARY {.importc: "_O_BINARY", header: "<fcntl.h>".}: cint
+
+  # https://github.com/mingw-w64/mingw-w64/blob/8d02d610f707b5f6af74653c6ebb0cdfa4df9212/mingw-w64-headers/crt/fcntl.h#L21
+  const O_BINARY = 0x8000
 
   # we use binary mode on Windows:
   c_setmode(c_fileno(stdin), O_BINARY)
