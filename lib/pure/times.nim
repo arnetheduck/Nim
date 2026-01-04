@@ -2824,8 +2824,13 @@ when not defined(js):
   proc getClock(): Clock
       {.importc: "clock", header: "<time.h>", tags: [TimeEffect], used, sideEffect.}
 
-  var
-    clocksPerSec {.importc: "CLOCKS_PER_SEC", nodecl, used.}: int
+  when defined(windows):
+    const clocksPerSec {.used.} = 1000
+  elif defined(linux) and defined(amd64):
+    const clocksPerSec {.used.} = 1000000
+  else:
+    var
+      clocksPerSec {.importc: "CLOCKS_PER_SEC", nodecl, used.}: int
 
   proc cpuTime*(): float {.tags: [TimeEffect].} =
     ## Gets time spent that the CPU spent to run the current process in
