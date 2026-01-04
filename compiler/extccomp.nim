@@ -335,7 +335,7 @@ proc isVSCompatible*(conf: ConfigRef): bool =
           conf.cCompiler == ccClangCl or
           (conf.cCompiler == ccIcl and conf.target.hostOS in osDos..osWindows)
 
-proc getConfigVar(conf: ConfigRef; c: TSystemCC, suffix: string): string =
+proc getConfigVar*(conf: ConfigRef; c: TSystemCC, suffix: string): string =
   # use ``cpu.os.cc`` for cross compilation, unless ``--compileOnly`` is given
   # for niminst support
   var fullSuffix = suffix
@@ -352,7 +352,6 @@ proc getConfigVar(conf: ConfigRef; c: TSystemCC, suffix: string): string =
     let fullCCname = platform.CPU[conf.target.targetCPU].name & '.' &
                      platform.OS[conf.target.targetOS].name & '.' &
                      CC[c].name & fullSuffix
-    result = getConfigVar(conf, fullCCname)
     if existsConfigVar(conf, fullCCname):
       result = getConfigVar(conf, fullCCname)
     else:
@@ -572,7 +571,7 @@ proc ccHasSaneOverflow*(conf: ConfigRef): bool =
   else:
     result = conf.cCompiler == ccCLang
 
-proc getLinkerExe(conf: ConfigRef; compiler: TSystemCC): string =
+proc getLinkerExe*(conf: ConfigRef; compiler: TSystemCC): string =
   result = if CC[compiler].linkerExe.len > 0: CC[compiler].linkerExe
            else: getCompilerExe(conf, compiler, optMixedMode in conf.globalOptions or conf.backend == backendCpp)
 
