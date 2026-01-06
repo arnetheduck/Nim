@@ -47,9 +47,10 @@ type
     passPP                    # preprocessor called processCommand()
 
 const
-  HelpMessage = "Nim Compiler Version $1 [$2: $3]\n" &
+  HelpMessage = "nlvm Compiler Version $1 [$2: $3]\n" &
       "Compiled at $4\n" &
-      "Copyright (c) 2006-" & copyrightYear & " by Andreas Rumpf\n"
+      "Copyright (c) 2006-" & copyrightYear & " by Jacek Sieka\n" &
+      "Nim: Copyright (c) 2006-" & copyrightYear & " by Andreas Rumpf\n"
 
 proc genFeatureDesc[T: enum](t: typedesc[T]): string {.compileTime.} =
   result = ""
