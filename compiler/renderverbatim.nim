@@ -5,7 +5,6 @@ import ast, options, msgs
 when defined(nimPreviewSlimSystem):
   import std/assertions
 
-
 const isDebug = false
 when isDebug:
   import renderer
@@ -13,7 +12,8 @@ when isDebug:
 
 proc lastNodeRec(n: PNode): PNode =
   result = n
-  while result.safeLen > 0: result = result[^1]
+  while result.safeLen > 0:
+    result = result[^1]
 
 proc isInIndentationBlock(src: string, indent: int): bool =
   #[
@@ -22,9 +22,11 @@ proc isInIndentationBlock(src: string, indent: int): bool =
   practical route and require a runnableExamples to keep its code (including non
   doc comments) to its indentation level.
   ]#
-  for j in 0..<indent:
-    if src.len <= j: return true
-    if src[j] != ' ': return false
+  for j in 0 ..< indent:
+    if src.len <= j:
+      return true
+    if src[j] != ' ':
+      return false
   return true
 
 type LineData = object
@@ -51,9 +53,10 @@ proc tripleStrLitStartsAtNextLine(conf: ConfigRef, n: PNode): bool =
     if src.len <= i:
       doAssert src.len == i
       return onlySpace
-    elif src.continuesWith(tripleQuote, i) and (src.len == i+3 or src[i+3] != '\"'):
+    elif src.continuesWith(tripleQuote, i) and (src.len == i + 3 or src[i + 3] != '\"'):
       return false # triple lit is in 1 line
-    elif src[i] != ' ': onlySpace = false
+    elif src[i] != ' ':
+      onlySpace = false
     i.inc
 
 proc visitMultilineStrings(ldata: var LineData, n: PNode) =
@@ -61,7 +64,8 @@ proc visitMultilineStrings(ldata: var LineData, n: PNode) =
 
   template setLine() =
     let index = cline - ldata.lineFirst
-    if ldata.lines.len < index+1: ldata.lines.setLen index+1
+    if ldata.lines.len < index + 1:
+      ldata.lines.setLen index + 1
     ldata.lines[index] = true
 
   case n.kind
@@ -78,17 +82,20 @@ proc visitMultilineStrings(ldata: var LineData, n: PNode) =
       of '\n':
         cline.inc
         setLine()
-      else: discard
+      else:
+        discard
   else:
-    for i in 0..<n.safeLen:
+    for i in 0 ..< n.safeLen:
       visitMultilineStrings(ldata, n[i])
 
 proc startOfLineInsideTriple(ldata: LineData, line: int): bool =
   let index = line - ldata.lineFirst
-  if index >= ldata.lines.len: false
-  else: ldata.lines[index]
+  if index >= ldata.lines.len:
+    false
+  else:
+    ldata.lines[index]
 
-proc extractRunnableExamplesSource*(conf: ConfigRef; n: PNode, indent = 0): string =
+proc extractRunnableExamplesSource*(conf: ConfigRef, n: PNode, indent = 0): string =
   ## TLineInfo.offsetA,offsetB would be cleaner but it's only enabled for nimpretty,
   ## we'd need to check performance impact to enable it for nimdoc.
   var first = n.lastSon.info
@@ -115,23 +122,24 @@ proc extractRunnableExamplesSource*(conf: ConfigRef; n: PNode, indent = 0): stri
   visitMultilineStrings(ldata, n[^1])
   when isDebug:
     debug(n)
-    for i in 0..<ldata.lines.len:
-      echo (i+ldata.lineFirst, ldata.lines[i])
+    for i in 0 ..< ldata.lines.len:
+      echo (i + ldata.lineFirst, ldata.lines[i])
 
   result = ""
-  for line in first.line..numLines: # bugfix, see `testNimDocTrailingExample`
+  for line in first.line .. numLines: # bugfix, see `testNimDocTrailingExample`
     info.line = line
     let src = sourceLine(conf, info)
     let special = startOfLineInsideTriple(ldata, line.int)
     if line > last.line and not special and not isInIndentationBlock(src, indent2):
       break
-    if line > first.line: result.add "\n"
+    if line > first.line:
+      result.add "\n"
     if special:
       result.add src
       lastNonemptyPos = result.len
     elif src.len > indent2:
-      for i in 0..<indent: result.add ' '
-      result.add src[indent2..^1]
+      for i in 0 ..< indent:
+        result.add ' '
+      result.add src[indent2 ..^ 1]
       lastNonemptyPos = result.len
   result.setLen lastNonemptyPos
-

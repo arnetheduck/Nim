@@ -11,19 +11,19 @@
 
 import std/[macros, strutils, asyncfutures]
 
-type
-  Context = ref object
-    inTry: int
-    hasRet: bool
+type Context = ref object
+  inTry: int
+  hasRet: bool
 
 # TODO: Ref https://github.com/nim-lang/Nim/issues/5617
 # TODO: Add more line infos
-proc newCallWithLineInfo(fromNode: NimNode; theProc: NimNode, args: varargs[NimNode]): NimNode =
+proc newCallWithLineInfo(
+    fromNode: NimNode, theProc: NimNode, args: varargs[NimNode]
+): NimNode =
   result = newCall(theProc, args)
   result.copyLineInfo(fromNode)
 
-type
-  ClosureIt[T] = iterator(f: Future[T]): owned(FutureBase)
+type ClosureIt[T] = iterator (f: Future[T]): owned(FutureBase)
 
 template createCb(futTyp, strName, identName, futureVarCompletions: untyped) =
   bind finished
@@ -40,12 +40,15 @@ template createCb(futTyp, strName, identName, futureVarCompletions: untyped) =
 
         if next == nil:
           if not fut.finished:
-            let msg = "Async procedure ($1) yielded `nil`, are you await'ing a `nil` Future?"
+            let msg =
+              "Async procedure ($1) yielded `nil`, are you await'ing a `nil` Future?"
             raise newException(AssertionDefect, msg % strName)
         else:
           {.gcsafe.}:
-            next.addCallback(cast[proc() {.closure, gcsafe.}](proc =
-              identName(fut, it)))
+            next.addCallback(
+              cast[proc() {.closure, gcsafe.}](proc() =
+                identName(fut, it))
+            )
     except Exception:
       futureVarCompletions
       if fut.finished:
@@ -54,9 +57,12 @@ template createCb(futTyp, strName, identName, futureVarCompletions: untyped) =
         raise
       else:
         fut.fail(getCurrentException())
+
   {.pop.}
 
-proc createFutureVarCompletions(futureVarIdents: seq[NimNode], fromNode: NimNode): NimNode =
+proc createFutureVarCompletions(
+    futureVarIdents: seq[NimNode], fromNode: NimNode
+): NimNode =
   result = newNimNode(nnkStmtList, fromNode)
   # Add calls to complete each FutureVar parameter.
   for ident in futureVarIdents:
@@ -65,13 +71,16 @@ proc createFutureVarCompletions(futureVarIdents: seq[NimNode], fromNode: NimNode
     #result.add(newCall(newIdentNode("echo"), newStrLitNode(fromNode.lineinfo)))
     result.add newIfStmt(
       (
-        newCall(newIdentNode("not"),
-                newDotExpr(ident, newIdentNode("finished"))),
-        newCallWithLineInfo(fromNode, newIdentNode("complete"), ident)
+        newCall(newIdentNode("not"), newDotExpr(ident, newIdentNode("finished"))),
+        newCallWithLineInfo(fromNode, newIdentNode("complete"), ident),
       )
     )
 
-proc processBody(ctx: Context; node, needsCompletionSym, retFutParamSym: NimNode, futureVarIdents: seq[NimNode]): NimNode =
+proc processBody(
+    ctx: Context,
+    node, needsCompletionSym, retFutParamSym: NimNode,
+    futureVarIdents: seq[NimNode],
+): NimNode =
   result = node
   case node.kind
   of nnkReturnStmt:
@@ -83,50 +92,63 @@ proc processBody(ctx: Context; node, needsCompletionSym, retFutParamSym: NimNode
     ctx.hasRet = true
     if node[0].kind == nnkEmpty:
       if ctx.inTry == 0:
-        result.add newCallWithLineInfo(node, newIdentNode("complete"), retFutParamSym, newIdentNode("result"))
+        result.add newCallWithLineInfo(
+          node, newIdentNode("complete"), retFutParamSym, newIdentNode("result")
+        )
       else:
         result.add newAssignment(needsCompletionSym, newLit(true))
     else:
-      let x = processBody(ctx, node[0], needsCompletionSym, retFutParamSym, futureVarIdents)
-      if x.kind == nnkYieldStmt: result.add x
+      let x =
+        processBody(ctx, node[0], needsCompletionSym, retFutParamSym, futureVarIdents)
+      if x.kind == nnkYieldStmt:
+        result.add x
       elif ctx.inTry == 0:
-        result.add newCallWithLineInfo(node, newIdentNode("complete"), retFutParamSym, x)
+        result.add newCallWithLineInfo(
+          node, newIdentNode("complete"), retFutParamSym, x
+        )
       else:
         result.add newAssignment(newIdentNode("result"), x)
         result.add newAssignment(needsCompletionSym, newLit(true))
 
     result.add newNimNode(nnkReturnStmt, node).add(newNilLit())
     return # Don't process the children of this return stmt
-  of RoutineNodes-{nnkTemplateDef}:
+  of RoutineNodes - {nnkTemplateDef}:
     # skip all the nested procedure definitions
     return
   of nnkTryStmt:
     if result[^1].kind == nnkFinally:
       inc ctx.inTry
-      result[0] = processBody(ctx, result[0], needsCompletionSym, retFutParamSym, futureVarIdents)
+      result[0] =
+        processBody(ctx, result[0], needsCompletionSym, retFutParamSym, futureVarIdents)
       dec ctx.inTry
       for i in 1 ..< result.len:
-        result[i] = processBody(ctx, result[i], needsCompletionSym, retFutParamSym, futureVarIdents)
+        result[i] = processBody(
+          ctx, result[i], needsCompletionSym, retFutParamSym, futureVarIdents
+        )
       if ctx.inTry == 0 and ctx.hasRet:
         let finallyNode = copyNimNode(result[^1])
         let stmtNode = newNimNode(nnkStmtList)
         for child in result[^1]:
           stmtNode.add child
         stmtNode.add newIfStmt(
-          ( needsCompletionSym,
-            newCallWithLineInfo(node, newIdentNode("complete"), retFutParamSym,
-            newIdentNode("result")
-            )
+          (
+            needsCompletionSym,
+            newCallWithLineInfo(
+              node, newIdentNode("complete"), retFutParamSym, newIdentNode("result")
+            ),
           )
         )
         finallyNode.add stmtNode
         result[^1] = finallyNode
     else:
       for i in 0 ..< result.len:
-        result[i] = processBody(ctx, result[i], needsCompletionSym, retFutParamSym, futureVarIdents)
+        result[i] = processBody(
+          ctx, result[i], needsCompletionSym, retFutParamSym, futureVarIdents
+        )
   else:
     for i in 0 ..< result.len:
-      result[i] = processBody(ctx, result[i], needsCompletionSym, retFutParamSym, futureVarIdents)
+      result[i] =
+        processBody(ctx, result[i], needsCompletionSym, retFutParamSym, futureVarIdents)
 
   # echo result.repr
 
@@ -146,7 +168,7 @@ proc getFutureVarIdents(params: NimNode): seq[NimNode] =
   for i in 1 ..< len(params):
     expectKind(params[i], nnkIdentDefs)
     if params[i][1].kind == nnkBracketExpr and
-       params[i][1][0].eqIdent(FutureVar.astToStr):
+        params[i][1][0].eqIdent(FutureVar.astToStr):
       ## eqIdent: first char is case sensitive!!!
       result.add(params[i][0])
 
@@ -155,8 +177,7 @@ proc isInvalidReturnType(typeName: string): bool =
 
 proc verifyReturnType(typeName: string, node: NimNode = nil) =
   if typeName.isInvalidReturnType:
-    error("Expected return type of 'Future' got '$1'" %
-          typeName, node)
+    error("Expected return type of 'Future' got '$1'" % typeName, node)
 
 template await*(f: typed): untyped {.used.} =
   static:
@@ -165,7 +186,8 @@ template await*(f: typed): untyped {.used.} =
 template await*[T](f: Future[T]): auto {.used.} =
   when not defined(nimHasTemplateRedefinitionPragma):
     {.pragma: redefine.}
-  template yieldFuture {.redefine.} = yield FutureBase()
+  template yieldFuture() {.redefine.} =
+    yield FutureBase()
 
   when compiles(yieldFuture):
     var internalTmpFuture: FutureBase = f
@@ -176,8 +198,10 @@ template await*[T](f: Future[T]): auto {.used.} =
     macro errorAsync(futureError: Future[T]) =
       error(
         "Can only 'await' inside a proc marked as 'async'. Use " &
-        "'waitFor' when calling an 'async' proc in a non-async scope instead",
-        futureError)
+          "'waitFor' when calling an 'async' proc in a non-async scope instead",
+        futureError,
+      )
+
     errorAsync(f)
 
 proc asyncSingleProc(prc: NimNode): NimNode =
@@ -186,7 +210,8 @@ proc asyncSingleProc(prc: NimNode): NimNode =
   if prc.kind == nnkProcTy:
     result = prc
     if prc[0][0].kind == nnkEmpty:
-      result[0][0] = quote do: Future[void]
+      result[0][0] = quote:
+        Future[void]
     return result
 
   if prc.kind in RoutineNodes and prc.name.kind != nnkEmpty:
@@ -194,14 +219,20 @@ proc asyncSingleProc(prc: NimNode): NimNode =
     prc.addPragma(nnkExprColonExpr.newTree(ident"stackTrace", ident"off"))
 
   if prc.kind notin {nnkProcDef, nnkLambda, nnkMethodDef, nnkDo}:
-    error("Cannot transform this node kind into an async proc." &
-          " proc/method definition or lambda node expected.", prc)
+    error(
+      "Cannot transform this node kind into an async proc." &
+        " proc/method definition or lambda node expected.",
+      prc,
+    )
 
   if prc[4].kind != nnkEmpty:
     for prag in prc[4]:
       if prag.eqIdent("discardable"):
-        error("Cannot make async proc discardable. Futures have to be " &
-          "checked with `asyncCheck` instead of discarded", prag)
+        error(
+          "Cannot make async proc discardable. Futures have to be " &
+            "checked with `asyncCheck` instead of discarded",
+          prag,
+        )
 
   let prcName = prc.name.getName
 
@@ -234,8 +265,10 @@ proc asyncSingleProc(prc: NimNode): NimNode =
   let body2 = extractDocCommentsAndRunnables(prc.body)
 
   var subRetType =
-    if returnType.kind == nnkEmpty: newIdentNode("void")
-    else: baseType
+    if returnType.kind == nnkEmpty:
+      newIdentNode("void")
+    else:
+      baseType
   let retFutParamSym = genSym(nskParam, "retFutParamSym")
 
   # -> iterator nameIter(retFutParam: Future[T]): FutureBase {.closure.} =
@@ -247,7 +280,8 @@ proc asyncSingleProc(prc: NimNode): NimNode =
   var iteratorNameSym = genSym(nskIterator, $prcName & " (Async)")
   var needsCompletionSym = genSym(nskVar, "needsCompletion")
   var ctx = Context()
-  var procBody = processBody(ctx, prc.body, needsCompletionSym, retFutParamSym, futureVarIdents)
+  var procBody =
+    processBody(ctx, prc.body, needsCompletionSym, retFutParamSym, futureVarIdents)
   # don't do anything with forward bodies (empty)
   if procBody.kind != nnkEmpty:
     # fix #13899, defer should not escape its original scope
@@ -261,22 +295,34 @@ proc asyncSingleProc(prc: NimNode): NimNode =
       else:
         `resultIdent` = `blockStmt`
     procBody.add(createFutureVarCompletions(futureVarIdents, nil))
-    procBody.insert(0): quote do:
-      {.push warning[resultshadowed]: off.}
-      when `subRetType` isnot void:
-        var `resultIdent`: `subRetType`
-      else:
-        var `resultIdent`: Future[void]
-      {.pop.}
+    procBody.insert(0):
+      quote:
+        {.push warning[resultshadowed]: off.}
+        when `subRetType` isnot void:
+          var `resultIdent`: `subRetType`
+        else:
+          var `resultIdent`: Future[void]
+        {.pop.}
 
-      var `needsCompletionSym` = false
+        var `needsCompletionSym` = false
     procBody.add quote do:
       complete(`retFutParamSym`, `resultIdent`)
 
-    var retFutureTyp = newNimNode(nnkBracketExpr, prc).add(newIdentNode("Future")).add(subRetType)
-    var retFutureParam = newNimNode(nnkIdentDefs, prc).add(retFutParamSym).add(retFutureTyp).add(newEmptyNode())
-    var closureIterator = newProc(iteratorNameSym, [quote do: owned(FutureBase), retFutureParam],
-                                  procBody, nnkIteratorDef)
+    var retFutureTyp =
+      newNimNode(nnkBracketExpr, prc).add(newIdentNode("Future")).add(subRetType)
+    var retFutureParam = newNimNode(nnkIdentDefs, prc)
+      .add(retFutParamSym)
+      .add(retFutureTyp)
+      .add(newEmptyNode())
+    var closureIterator = newProc(
+      iteratorNameSym,
+      [
+        quote do:
+          owned(FutureBase), retFutureParam,
+      ],
+      procBody,
+      nnkIteratorDef,
+    )
     closureIterator.pragma = newNimNode(nnkPragma, lineInfoFrom = prc.body)
     closureIterator.addPragma(newIdentNode("closure"))
 
@@ -293,19 +339,23 @@ proc asyncSingleProc(prc: NimNode): NimNode =
       subRetType,
       newStrLitNode(prcName),
       cbName,
-      createFutureVarCompletions(futureVarIdents, nil)
+      createFutureVarCompletions(futureVarIdents, nil),
     )
     outerProcBody.add procCb
 
     # -> var retFuture = newFuture[T]()
     let retFutureSym = genSym(nskVar, "retFuture")
     outerProcBody.add(
-      newVarStmt(retFutureSym,
+      newVarStmt(
+        retFutureSym,
         newCall(
           newNimNode(nnkBracketExpr, prc.body).add(
-            newIdentNode("newFuture"),
-            subRetType),
-        newLit(prcName)))) # Get type from return type of this proc
+            newIdentNode("newFuture"), subRetType
+          ),
+          newLit(prcName),
+        ),
+      )
+    ) # Get type from return type of this proc
 
     # -> cb(retFuture, nameIter)
     outerProcBody.add newCall(cbName, retFutureSym, iteratorNameSym)
@@ -317,7 +367,8 @@ proc asyncSingleProc(prc: NimNode): NimNode =
   # Add discardable pragma.
   if returnType.kind == nnkEmpty:
     # xxx consider removing `owned`? it's inconsistent with non-void case
-    result.params[0] = quote do: owned(Future[void])
+    result.params[0] = quote:
+      owned(Future[void])
 
   # based on the yglukhov's patch to chronos: https://github.com/status-im/nim-chronos/pull/47
   if procBody.kind != nnkEmpty:
@@ -369,7 +420,7 @@ proc splitProc(prc: NimNode): (NimNode, NimNode) =
   for i in 1 ..< result[0][3].len:
     # Sync proc (0) -> FormalParams (3) -> IdentDefs, the parameter (i) ->
     # parameter type (1).
-    result[0][3][i][1] = splitParamType(result[0][3][i][1], async=false)
+    result[0][3][i][1] = splitParamType(result[0][3][i][1], async = false)
   var multisyncAwait = quote:
     template await(value: typed): untyped =
       value

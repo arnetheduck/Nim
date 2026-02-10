@@ -17,33 +17,38 @@ const MAX_POLL_EVENTS = 64
 const hasEventFds = defined(zephyr) or defined(nimPollHasEventFds)
 
 when hasEventFds:
-  proc eventfd(count: cuint, flags: cint): cint
-     {.cdecl, importc: "eventfd", header: "<sys/eventfd.h>".}
+  proc eventfd(
+    count: cuint, flags: cint
+  ): cint {.cdecl, importc: "eventfd", header: "<sys/eventfd.h>".}
 
 when hasThreadSupport:
   type
     SelectorImpl[T] = object
-      maxFD : int
+      maxFD: int
       pollcnt: int
       fds: ptr SharedArray[SelectorKey[T]]
       pollfds: ptr SharedArray[TPollFd]
       count*: int
       lock: Lock
+
     Selector*[T] = ptr SelectorImpl[T]
+
 else:
   type
     SelectorImpl[T] = object
-      maxFD : int
+      maxFD: int
       pollcnt: int
       fds: seq[SelectorKey[T]]
       pollfds: seq[TPollFd]
       count*: int
+
     Selector*[T] = ref SelectorImpl[T]
 
 type
   SelectEventImpl = object
     rfd: cint
     wfd: cint
+
   SelectEvent* = ptr SelectEventImpl
 
 when hasThreadSupport:
@@ -54,6 +59,7 @@ when hasThreadSupport:
         body
       finally:
         release(s.lock)
+
 else:
   template withPollLock(s, body: untyped) =
     body
@@ -86,8 +92,10 @@ proc close*[T](s: Selector[T]) =
 template pollAdd[T](s: Selector[T], sock: cint, events: set[Event]) =
   withPollLock(s):
     var pollev: cshort = 0
-    if Event.Read in events: pollev = pollev or POLLIN
-    if Event.Write in events: pollev = pollev or POLLOUT
+    if Event.Read in events:
+      pollev = pollev or POLLIN
+    if Event.Write in events:
+      pollev = pollev or POLLOUT
     s.pollfds[s.pollcnt].fd = cint(sock)
     s.pollfds[s.pollcnt].events = pollev
     inc(s.count)
@@ -97,16 +105,19 @@ template pollUpdate[T](s: Selector[T], sock: cint, events: set[Event]) =
   withPollLock(s):
     var i = 0
     var pollev: cshort = 0
-    if Event.Read in events: pollev = pollev or POLLIN
-    if Event.Write in events: pollev = pollev or POLLOUT
+    if Event.Read in events:
+      pollev = pollev or POLLIN
+    if Event.Write in events:
+      pollev = pollev or POLLOUT
 
     while i < s.pollcnt:
       if s.pollfds[i].fd == sock:
         s.pollfds[i].events = pollev
         break
       inc(i)
-    doAssert(i < s.pollcnt,
-             "Descriptor [" & $sock & "] is not registered in the queue!")
+    doAssert(
+      i < s.pollcnt, "Descriptor [" & $sock & "] is not registered in the queue!"
+    )
 
 template pollRemove[T](s: Selector[T], sock: cint) =
   withPollLock(s):
@@ -131,23 +142,28 @@ template checkFd(s, f) =
   if f >= s.maxFD:
     raiseIOSelectorsError("Maximum number of descriptors is exhausted!")
 
-proc registerHandle*[T](s: Selector[T], fd: int | SocketHandle,
-                        events: set[Event], data: T) =
+proc registerHandle*[T](
+    s: Selector[T], fd: int | SocketHandle, events: set[Event], data: T
+) =
   var fdi = int(fd)
   s.checkFd(fdi)
   doAssert(s.fds[fdi].ident == InvalidIdent)
   setKey(s, fdi, events, 0, data)
-  if events != {}: s.pollAdd(fdi.cint, events)
+  if events != {}:
+    s.pollAdd(fdi.cint, events)
 
-proc updateHandle*[T](s: Selector[T], fd: int | SocketHandle,
-                      events: set[Event]) =
-  let maskEvents = {Event.Timer, Event.Signal, Event.Process, Event.Vnode,
-                    Event.User, Event.Oneshot, Event.Error}
+proc updateHandle*[T](s: Selector[T], fd: int | SocketHandle, events: set[Event]) =
+  let maskEvents = {
+    Event.Timer, Event.Signal, Event.Process, Event.Vnode, Event.User, Event.Oneshot,
+    Event.Error,
+  }
   let fdi = int(fd)
   s.checkFd(fdi)
   var pkey = addr(s.fds[fdi])
-  doAssert(pkey.ident != InvalidIdent,
-           "Descriptor [" & $fdi & "] is not registered in the queue!")
+  doAssert(
+    pkey.ident != InvalidIdent,
+    "Descriptor [" & $fdi & "] is not registered in the queue!",
+  )
   doAssert(pkey.events * maskEvents == {})
 
   if pkey.events != events:
@@ -162,18 +178,22 @@ proc updateHandle*[T](s: Selector[T], fd: int | SocketHandle,
 
 proc registerEvent*[T](s: Selector[T], ev: SelectEvent, data: T) =
   var fdi = int(ev.rfd)
-  doAssert(s.fds[fdi].ident == InvalidIdent, "Event is already registered in the queue!")
+  doAssert(
+    s.fds[fdi].ident == InvalidIdent, "Event is already registered in the queue!"
+  )
   var events = {Event.User}
   setKey(s, fdi, events, 0, data)
   events.incl(Event.Read)
   s.pollAdd(fdi.cint, events)
 
-proc unregister*[T](s: Selector[T], fd: int|SocketHandle) =
+proc unregister*[T](s: Selector[T], fd: int | SocketHandle) =
   let fdi = int(fd)
   s.checkFd(fdi)
   var pkey = addr(s.fds[fdi])
-  doAssert(pkey.ident != InvalidIdent,
-           "Descriptor [" & $fdi & "] is not registered in the queue!")
+  doAssert(
+    pkey.ident != InvalidIdent,
+    "Descriptor [" & $fdi & "] is not registered in the queue!",
+  )
   pkey.ident = InvalidIdent
   if pkey.events != {}:
     pkey.events = {}
@@ -190,7 +210,7 @@ proc unregister*[T](s: Selector[T], ev: SelectEvent) =
   s.pollRemove(fdi.cint)
 
 proc newSelectEvent*(): SelectEvent =
-  when not hasEventFds: 
+  when not hasEventFds:
     var fds: array[2, cint]
     if posix.pipe(fds) != 0:
       raiseIOSelectorsError(osLastError())
@@ -199,7 +219,7 @@ proc newSelectEvent*(): SelectEvent =
     result = cast[SelectEvent](allocShared0(sizeof(SelectEventImpl)))
     result.rfd = fds[0]
     result.wfd = fds[1]
-  else: 
+  else:
     let fdci = eventfd(0, posix.O_NONBLOCK)
     if fdci == -1:
       raiseIOSelectorsError(osLastError())
@@ -214,23 +234,26 @@ proc trigger*(ev: SelectEvent) =
 
 proc close*(ev: SelectEvent) =
   let res1 = posix.close(ev.rfd)
-  let res2 = 
-    when  hasEventFds: 0
-    else: posix.close(ev.wfd)
+  let res2 =
+    when hasEventFds:
+      0
+    else:
+      posix.close(ev.wfd)
 
   deallocShared(cast[pointer](ev))
   if res1 != 0 or res2 != 0:
     raiseIOSelectorsError(osLastError())
 
-proc selectInto*[T](s: Selector[T], timeout: int,
-                    results: var openArray[ReadyKey]): int =
+proc selectInto*[T](
+    s: Selector[T], timeout: int, results: var openArray[ReadyKey]
+): int =
   var maxres = MAX_POLL_EVENTS
   if maxres > len(results):
     maxres = len(results)
 
   verifySelectParams(timeout)
 
-  s.withPollLock():
+  s.withPollLock:
     let count = posix.poll(addr(s.pollfds[0]), Tnfds(s.pollcnt), cint(timeout))
     if count < 0:
       result = 0
@@ -266,7 +289,7 @@ proc selectInto*[T](s: Selector[T], timeout: int,
           if (revents and POLLOUT) != 0:
             rkey.events.incl(Event.Write)
           if (revents and POLLERR) != 0 or (revents and POLLHUP) != 0 or
-             (revents and POLLNVAL) != 0:
+              (revents and POLLNVAL) != 0:
             rkey.events.incl(Event.Error)
           results[rindex] = rkey
           s.pollfds[i].revents = 0
@@ -283,24 +306,23 @@ proc select*[T](s: Selector[T], timeout: int): seq[ReadyKey] =
 template isEmpty*[T](s: Selector[T]): bool =
   (s.count == 0)
 
-proc contains*[T](s: Selector[T], fd: SocketHandle|int): bool {.inline.} =
+proc contains*[T](s: Selector[T], fd: SocketHandle | int): bool {.inline.} =
   return s.fds[fd.int].ident != InvalidIdent
 
-proc getData*[T](s: Selector[T], fd: SocketHandle|int): var T =
+proc getData*[T](s: Selector[T], fd: SocketHandle | int): var T =
   let fdi = int(fd)
   s.checkFd(fdi)
   if fdi in s:
     result = s.fds[fdi].data
 
-proc setData*[T](s: Selector[T], fd: SocketHandle|int, data: T): bool =
+proc setData*[T](s: Selector[T], fd: SocketHandle | int, data: T): bool =
   let fdi = int(fd)
   s.checkFd(fdi)
   if fdi in s:
     s.fds[fdi].data = data
     result = true
 
-template withData*[T](s: Selector[T], fd: SocketHandle|int, value,
-                        body: untyped) =
+template withData*[T](s: Selector[T], fd: SocketHandle | int, value, body: untyped) =
   mixin checkFd
   let fdi = int(fd)
   s.checkFd(fdi)
@@ -308,8 +330,9 @@ template withData*[T](s: Selector[T], fd: SocketHandle|int, value,
     var value = addr(s.getData(fdi))
     body
 
-template withData*[T](s: Selector[T], fd: SocketHandle|int, value, body1,
-                        body2: untyped) =
+template withData*[T](
+    s: Selector[T], fd: SocketHandle | int, value, body1, body2: untyped
+) =
   mixin checkFd
   let fdi = int(fd)
   s.checkFd(fdi)
@@ -318,7 +341,6 @@ template withData*[T](s: Selector[T], fd: SocketHandle|int, value, body1,
     body1
   else:
     body2
-
 
 proc getFd*[T](s: Selector[T]): int =
   return -1

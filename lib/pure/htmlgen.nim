@@ -40,22 +40,24 @@
 ##     <h1><a href="https://nim-lang.org">Nim</a></h1>
 ##
 
-import
-  std/[macros, strutils]
+import std/[macros, strutils]
 
 const
-  coreAttr* = " accesskey class contenteditable dir hidden id lang " &
+  coreAttr* =
+    " accesskey class contenteditable dir hidden id lang " &
     "spellcheck style tabindex title translate " ## HTML DOM Core Attributes
-  eventAttr* = "onabort onblur oncancel oncanplay oncanplaythrough onchange " &
+  eventAttr* =
+    "onabort onblur oncancel oncanplay oncanplaythrough onchange " &
     "onclick oncuechange ondblclick ondurationchange onemptied onended " &
     "onerror onfocus oninput oninvalid onkeydown onkeypress onkeyup onload " &
     "onloadeddata onloadedmetadata onloadstart onmousedown onmouseenter " &
     "onmouseleave onmousemove onmouseout onmouseover onmouseup onmousewheel " &
     "onpause onplay onplaying onprogress onratechange onreset onresize " &
     "onscroll onseeked onseeking onselect onshow onstalled onsubmit " &
-    "onsuspend ontimeupdate ontoggle onvolumechange onwaiting " ## HTML DOM Event Attributes
-  ariaAttr* = " role "                           ## HTML DOM Aria Attributes
-  commonAttr* = coreAttr & eventAttr & ariaAttr  ## HTML DOM Common Attributes
+    "onsuspend ontimeupdate ontoggle onvolumechange onwaiting "
+    ## HTML DOM Event Attributes
+  ariaAttr* = " role " ## HTML DOM Aria Attributes
+  commonAttr* = coreAttr & eventAttr & ariaAttr ## HTML DOM Common Attributes
 
 proc getIdent(e: NimNode): string =
   case e.kind
@@ -63,22 +65,24 @@ proc getIdent(e: NimNode): string =
     result = e.strVal.normalize
   of nnkAccQuoted:
     result = getIdent(e[0])
-    for i in 1 .. e.len-1:
+    for i in 1 .. e.len - 1:
       result.add getIdent(e[i])
-  else: error("cannot extract identifier from node: " & toStrLit(e).strVal, e)
+  else:
+    error("cannot extract identifier from node: " & toStrLit(e).strVal, e)
 
 proc delete[T](s: var seq[T], attr: T): bool =
   var idx = find(s, attr)
   if idx >= 0:
     var L = s.len
-    s[idx] = s[L-1]
-    setLen(s, L-1)
+    s[idx] = s[L - 1]
+    setLen(s, L - 1)
     result = true
   else:
     result = false
 
-proc xmlCheckedTag*(argsList: NimNode, tag: string, optAttr = "", reqAttr = "",
-    isLeaf = false): NimNode =
+proc xmlCheckedTag*(
+    argsList: NimNode, tag: string, optAttr = "", reqAttr = "", isLeaf = false
+): NimNode =
   ## use this procedure to define a new XML tag
 
   # copy the attributes; when iterating over them these lists
@@ -112,7 +116,8 @@ proc xmlCheckedTag*(argsList: NimNode, tag: string, optAttr = "", reqAttr = "",
     result.add(newStrLitNode(">"))
     # second pass over elements:
     for i in 0 ..< argsList.len:
-      if argsList[i].kind != nnkExprEqExpr: result.add(argsList[i])
+      if argsList[i].kind != nnkExprEqExpr:
+        result.add(argsList[i])
     result.add(newStrLitNode("</"))
     result.add(newStrLitNode(tag))
     result.add(newStrLitNode(">"))
@@ -120,8 +125,7 @@ proc xmlCheckedTag*(argsList: NimNode, tag: string, optAttr = "", reqAttr = "",
 
 macro a*(e: varargs[untyped]): untyped =
   ## Generates the HTML `a` element.
-  result = xmlCheckedTag(e, "a", "href target download rel hreflang type " &
-    commonAttr)
+  result = xmlCheckedTag(e, "a", "href target download rel hreflang type " & commonAttr)
 
 macro abbr*(e: varargs[untyped]): untyped =
   ## Generates the HTML `abbr` element.
@@ -133,8 +137,13 @@ macro address*(e: varargs[untyped]): untyped =
 
 macro area*(e: varargs[untyped]): untyped =
   ## Generates the HTML `area` element.
-  result = xmlCheckedTag(e, "area", "coords download href hreflang rel " &
-    "shape target type" & commonAttr, "alt", true)
+  result = xmlCheckedTag(
+    e,
+    "area",
+    "coords download href hreflang rel " & "shape target type" & commonAttr,
+    "alt",
+    true,
+  )
 
 macro article*(e: varargs[untyped]): untyped =
   ## Generates the HTML `article` element.
@@ -146,8 +155,11 @@ macro aside*(e: varargs[untyped]): untyped =
 
 macro audio*(e: varargs[untyped]): untyped =
   ## Generates the HTML `audio` element.
-  result = xmlCheckedTag(e, "audio", "src crossorigin preload " &
-    "autoplay mediagroup loop muted controls" & commonAttr)
+  result = xmlCheckedTag(
+    e,
+    "audio",
+    "src crossorigin preload " & "autoplay mediagroup loop muted controls" & commonAttr,
+  )
 
 macro b*(e: varargs[untyped]): untyped =
   ## Generates the HTML `b` element.
@@ -175,9 +187,13 @@ macro blockquote*(e: varargs[untyped]): untyped =
 
 macro body*(e: varargs[untyped]): untyped =
   ## Generates the HTML `body` element.
-  result = xmlCheckedTag(e, "body", "onafterprint onbeforeprint " &
-    "onbeforeunload onhashchange onmessage onoffline ononline onpagehide " &
-    "onpageshow onpopstate onstorage onunload" & commonAttr)
+  result = xmlCheckedTag(
+    e,
+    "body",
+    "onafterprint onbeforeprint " &
+      "onbeforeunload onhashchange onmessage onoffline ononline onpagehide " &
+      "onpageshow onpopstate onstorage onunload" & commonAttr,
+  )
 
 macro br*(e: varargs[untyped]): untyped =
   ## Generates the HTML `br` element.
@@ -185,9 +201,13 @@ macro br*(e: varargs[untyped]): untyped =
 
 macro button*(e: varargs[untyped]): untyped =
   ## Generates the HTML `button` element.
-  result = xmlCheckedTag(e, "button", "autofocus disabled form formaction " &
-    "formenctype formmethod formnovalidate formtarget menu name type value" &
-    commonAttr)
+  result = xmlCheckedTag(
+    e,
+    "button",
+    "autofocus disabled form formaction " &
+      "formenctype formmethod formnovalidate formtarget menu name type value" &
+      commonAttr,
+  )
 
 macro canvas*(e: varargs[untyped]): untyped =
   ## Generates the HTML `canvas` element.
@@ -263,8 +283,7 @@ macro em*(e: varargs[untyped]): untyped =
 
 macro embed*(e: varargs[untyped]): untyped =
   ## Generates the HTML `embed` element.
-  result = xmlCheckedTag(e, "embed", "src type height width" &
-    commonAttr, "", true)
+  result = xmlCheckedTag(e, "embed", "src type height width" & commonAttr, "", true)
 
 macro fieldset*(e: varargs[untyped]): untyped =
   ## Generates the HTML `fieldset` element.
@@ -284,8 +303,12 @@ macro footer*(e: varargs[untyped]): untyped =
 
 macro form*(e: varargs[untyped]): untyped =
   ## Generates the HTML `form` element.
-  result = xmlCheckedTag(e, "form", "accept-charset action autocomplete " &
-    "enctype method name novalidate target" & commonAttr)
+  result = xmlCheckedTag(
+    e,
+    "form",
+    "accept-charset action autocomplete " & "enctype method name novalidate target" &
+      commonAttr,
+  )
 
 macro h1*(e: varargs[untyped]): untyped =
   ## Generates the HTML `h1` element.
@@ -333,21 +356,33 @@ macro i*(e: varargs[untyped]): untyped =
 
 macro iframe*(e: varargs[untyped]): untyped =
   ## Generates the HTML `iframe` element.
-  result = xmlCheckedTag(e, "iframe", "src srcdoc name sandbox width height loading" &
-    commonAttr)
+  result = xmlCheckedTag(
+    e, "iframe", "src srcdoc name sandbox width height loading" & commonAttr
+  )
 
 macro img*(e: varargs[untyped]): untyped =
   ## Generates the HTML `img` element.
-  result = xmlCheckedTag(e, "img", "crossorigin usemap ismap height width loading" &
-    commonAttr, "src alt", true)
+  result = xmlCheckedTag(
+    e,
+    "img",
+    "crossorigin usemap ismap height width loading" & commonAttr,
+    "src alt",
+    true,
+  )
 
 macro input*(e: varargs[untyped]): untyped =
   ## Generates the HTML `input` element.
-  result = xmlCheckedTag(e, "input", "accept alt autocomplete autofocus " &
-    "checked dirname disabled form formaction formenctype formmethod " &
-    "formnovalidate formtarget height inputmode list max maxlength min " &
-    "minlength multiple name pattern placeholder readonly required size " &
-    "src step type value width" & commonAttr, "", true)
+  result = xmlCheckedTag(
+    e,
+    "input",
+    "accept alt autocomplete autofocus " &
+      "checked dirname disabled form formaction formenctype formmethod " &
+      "formnovalidate formtarget height inputmode list max maxlength min " &
+      "minlength multiple name pattern placeholder readonly required size " &
+      "src step type value width" & commonAttr,
+    "",
+    true,
+  )
 
 macro ins*(e: varargs[untyped]): untyped =
   ## Generates the HTML `ins` element.
@@ -359,8 +394,9 @@ macro kbd*(e: varargs[untyped]): untyped =
 
 macro keygen*(e: varargs[untyped]): untyped =
   ## Generates the HTML `keygen` element.
-  result = xmlCheckedTag(e, "keygen", "autofocus challenge disabled " &
-    "form keytype name" & commonAttr)
+  result = xmlCheckedTag(
+    e, "keygen", "autofocus challenge disabled " & "form keytype name" & commonAttr
+  )
 
 macro label*(e: varargs[untyped]): untyped =
   ## Generates the HTML `label` element.
@@ -376,8 +412,13 @@ macro li*(e: varargs[untyped]): untyped =
 
 macro link*(e: varargs[untyped]): untyped =
   ## Generates the HTML `link` element.
-  result = xmlCheckedTag(e, "link", "href crossorigin rel media hreflang " &
-    "type sizes" & commonAttr, "", true)
+  result = xmlCheckedTag(
+    e,
+    "link",
+    "href crossorigin rel media hreflang " & "type sizes" & commonAttr,
+    "",
+    true,
+  )
 
 macro main*(e: varargs[untyped]): untyped =
   ## Generates the HTML `main` element.
@@ -393,19 +434,21 @@ macro mark*(e: varargs[untyped]): untyped =
 
 macro marquee*(e: varargs[untyped]): untyped =
   ## Generates the HTML `marquee` element.
-  result = xmlCheckedTag(e, "marquee", coreAttr &
-    "behavior bgcolor direction height hspace loop scrollamount " &
-    "scrolldelay truespeed vspace width onbounce onfinish onstart")
+  result = xmlCheckedTag(
+    e,
+    "marquee",
+    coreAttr & "behavior bgcolor direction height hspace loop scrollamount " &
+      "scrolldelay truespeed vspace width onbounce onfinish onstart",
+  )
 
 macro meta*(e: varargs[untyped]): untyped =
   ## Generates the HTML `meta` element.
-  result = xmlCheckedTag(e, "meta", "name http-equiv content charset" &
-    commonAttr, "", true)
+  result =
+    xmlCheckedTag(e, "meta", "name http-equiv content charset" & commonAttr, "", true)
 
 macro meter*(e: varargs[untyped]): untyped =
   ## Generates the HTML `meter` element.
-  result = xmlCheckedTag(e, "meter", "value min max low high optimum" &
-    commonAttr)
+  result = xmlCheckedTag(e, "meter", "value min max low high optimum" & commonAttr)
 
 macro nav*(e: varargs[untyped]): untyped =
   ## Generates the HTML `nav` element.
@@ -417,8 +460,11 @@ macro noscript*(e: varargs[untyped]): untyped =
 
 macro `object`*(e: varargs[untyped]): untyped =
   ## Generates the HTML `object` element.
-  result = xmlCheckedTag(e, "object", "data type typemustmatch name usemap " &
-    "form width height" & commonAttr)
+  result = xmlCheckedTag(
+    e,
+    "object",
+    "data type typemustmatch name usemap " & "form width height" & commonAttr,
+  )
 
 macro ol*(e: varargs[untyped]): untyped =
   ## Generates the HTML `ol` element.
@@ -430,8 +476,7 @@ macro optgroup*(e: varargs[untyped]): untyped =
 
 macro option*(e: varargs[untyped]): untyped =
   ## Generates the HTML `option` element.
-  result = xmlCheckedTag(e, "option", "disabled label selected value" &
-    commonAttr)
+  result = xmlCheckedTag(e, "option", "disabled label selected value" & commonAttr)
 
 macro output*(e: varargs[untyped]): untyped =
   ## Generates the HTML `output` element.
@@ -491,8 +536,9 @@ macro samp*(e: varargs[untyped]): untyped =
 
 macro script*(e: varargs[untyped]): untyped =
   ## Generates the HTML `script` element.
-  result = xmlCheckedTag(e, "script", "src type charset async defer " &
-    "crossorigin" & commonAttr)
+  result = xmlCheckedTag(
+    e, "script", "src type charset async defer " & "crossorigin" & commonAttr
+  )
 
 macro section*(e: varargs[untyped]): untyped =
   ## Generates the HTML `section` element.
@@ -500,8 +546,9 @@ macro section*(e: varargs[untyped]): untyped =
 
 macro select*(e: varargs[untyped]): untyped =
   ## Generates the HTML `select` element.
-  result = xmlCheckedTag(e, "select", "autofocus disabled form multiple " &
-    "name required size" & commonAttr)
+  result = xmlCheckedTag(
+    e, "select", "autofocus disabled form multiple " & "name required size" & commonAttr
+  )
 
 macro slot*(e: varargs[untyped]): untyped =
   ## Generates the HTML `slot` element.
@@ -557,9 +604,13 @@ macro `template`*(e: varargs[untyped]): untyped =
 
 macro textarea*(e: varargs[untyped]): untyped =
   ## Generates the HTML `textarea` element.
-  result = xmlCheckedTag(e, "textarea", "autocomplete autofocus cols " &
-    "dirname disabled form inputmode maxlength minlength name placeholder " &
-    "readonly required rows wrap" & commonAttr)
+  result = xmlCheckedTag(
+    e,
+    "textarea",
+    "autocomplete autofocus cols " &
+      "dirname disabled form inputmode maxlength minlength name placeholder " &
+      "readonly required rows wrap" & commonAttr,
+  )
 
 macro tfoot*(e: varargs[untyped]): untyped =
   ## Generates the HTML `tfoot` element.
@@ -567,8 +618,9 @@ macro tfoot*(e: varargs[untyped]): untyped =
 
 macro th*(e: varargs[untyped]): untyped =
   ## Generates the HTML `th` element.
-  result = xmlCheckedTag(e, "th", "colspan rowspan headers abbr scope axis" &
-    " sorted" & commonAttr)
+  result = xmlCheckedTag(
+    e, "th", "colspan rowspan headers abbr scope axis" & " sorted" & commonAttr
+  )
 
 macro thead*(e: varargs[untyped]): untyped =
   ## Generates the HTML `thead` element.
@@ -588,8 +640,8 @@ macro tr*(e: varargs[untyped]): untyped =
 
 macro track*(e: varargs[untyped]): untyped =
   ## Generates the HTML `track` element.
-  result = xmlCheckedTag(e, "track", "kind srclang label default" &
-    commonAttr, "src", true)
+  result =
+    xmlCheckedTag(e, "track", "kind srclang label default" & commonAttr, "src", true)
 
 macro tt*(e: varargs[untyped]): untyped =
   ## Generates the HTML `tt` element.
@@ -609,8 +661,12 @@ macro `var`*(e: varargs[untyped]): untyped =
 
 macro video*(e: varargs[untyped]): untyped =
   ## Generates the HTML `video` element.
-  result = xmlCheckedTag(e, "video", "src crossorigin poster preload " &
-    "autoplay mediagroup loop muted controls width height" & commonAttr)
+  result = xmlCheckedTag(
+    e,
+    "video",
+    "src crossorigin poster preload " &
+      "autoplay mediagroup loop muted controls width height" & commonAttr,
+  )
 
 macro wbr*(e: varargs[untyped]): untyped =
   ## Generates the HTML `wbr` element.
@@ -618,13 +674,14 @@ macro wbr*(e: varargs[untyped]): untyped =
 
 macro portal*(e: varargs[untyped]): untyped =
   ## Generates the HTML `portal` element.
-  result = xmlCheckedTag(e, "portal", "width height type src disabled" & commonAttr, "", false)
-
+  result =
+    xmlCheckedTag(e, "portal", "width height type src disabled" & commonAttr, "", false)
 
 macro math*(e: varargs[untyped]): untyped =
   ## Generates the HTML `math` element. MathML https://wikipedia.org/wiki/MathML
   ## https://developer.mozilla.org/en-US/docs/Web/MathML/Element/math#Examples
-  result = xmlCheckedTag(e, "math", "mathbackground mathcolor href overflow" & commonAttr)
+  result =
+    xmlCheckedTag(e, "math", "mathbackground mathcolor href overflow" & commonAttr)
 
 macro maction*(e: varargs[untyped]): untyped =
   ## Generates the HTML `maction` element. MathML https://wikipedia.org/wiki/MathML
@@ -634,7 +691,8 @@ macro maction*(e: varargs[untyped]): untyped =
 macro menclose*(e: varargs[untyped]): untyped =
   ## Generates the HTML `menclose` element. MathML https://wikipedia.org/wiki/MathML
   ## https://developer.mozilla.org/en-US/docs/Web/MathML/Element/menclose
-  result = xmlCheckedTag(e, "menclose", "mathbackground mathcolor href notation" & commonAttr)
+  result =
+    xmlCheckedTag(e, "menclose", "mathbackground mathcolor href notation" & commonAttr)
 
 macro merror*(e: varargs[untyped]): untyped =
   ## Generates the HTML `merror` element. MathML https://wikipedia.org/wiki/MathML
@@ -644,53 +702,77 @@ macro merror*(e: varargs[untyped]): untyped =
 macro mfenced*(e: varargs[untyped]): untyped =
   ## Generates the HTML `mfenced` element. MathML https://wikipedia.org/wiki/MathML
   ## https://developer.mozilla.org/en-US/docs/Web/MathML/Element/mfenced
-  result = xmlCheckedTag(e, "mfenced", "mathbackground mathcolor href open separators" & commonAttr)
+  result = xmlCheckedTag(
+    e, "mfenced", "mathbackground mathcolor href open separators" & commonAttr
+  )
 
 macro mfrac*(e: varargs[untyped]): untyped =
   ## Generates the HTML `mfrac` element. MathML https://wikipedia.org/wiki/MathML
   ## https://developer.mozilla.org/en-US/docs/Web/MathML/Element/mfrac
-  result = xmlCheckedTag(e, "mfrac", "mathbackground mathcolor href linethickness numalign" & commonAttr)
+  result = xmlCheckedTag(
+    e, "mfrac", "mathbackground mathcolor href linethickness numalign" & commonAttr
+  )
 
 macro mglyph*(e: varargs[untyped]): untyped =
   ## Generates the HTML `mglyph` element. MathML https://wikipedia.org/wiki/MathML
   ## https://developer.mozilla.org/en-US/docs/Web/MathML/Element/mglyph
-  result = xmlCheckedTag(e, "mglyph", "mathbackground mathcolor href src valign" & commonAttr)
+  result =
+    xmlCheckedTag(e, "mglyph", "mathbackground mathcolor href src valign" & commonAttr)
 
 macro mi*(e: varargs[untyped]): untyped =
   ## Generates the HTML `mi` element. MathML https://wikipedia.org/wiki/MathML
   ## https://developer.mozilla.org/en-US/docs/Web/MathML/Element/mi
-  result = xmlCheckedTag(e, "mi", "mathbackground mathcolor href mathsize mathvariant" & commonAttr)
+  result = xmlCheckedTag(
+    e, "mi", "mathbackground mathcolor href mathsize mathvariant" & commonAttr
+  )
 
 macro mlabeledtr*(e: varargs[untyped]): untyped =
   ## Generates the HTML `mlabeledtr` element. MathML https://wikipedia.org/wiki/MathML
   ## https://developer.mozilla.org/en-US/docs/Web/MathML/Element/mlabeledtr
-  result = xmlCheckedTag(e, "mlabeledtr", "mathbackground mathcolor href columnalign groupalign rowalign" & commonAttr)
+  result = xmlCheckedTag(
+    e,
+    "mlabeledtr",
+    "mathbackground mathcolor href columnalign groupalign rowalign" & commonAttr,
+  )
 
 macro mmultiscripts*(e: varargs[untyped]): untyped =
   ## Generates the HTML `mmultiscripts` element. MathML https://wikipedia.org/wiki/MathML
   ## https://developer.mozilla.org/en-US/docs/Web/MathML/Element/mmultiscripts
-  result = xmlCheckedTag(e, "mmultiscripts", "mathbackground mathcolor href subscriptshift superscriptshift" & commonAttr)
+  result = xmlCheckedTag(
+    e,
+    "mmultiscripts",
+    "mathbackground mathcolor href subscriptshift superscriptshift" & commonAttr,
+  )
 
 macro mn*(e: varargs[untyped]): untyped =
   ## Generates the HTML `mn` element. MathML https://wikipedia.org/wiki/MathML
   ## https://developer.mozilla.org/en-US/docs/Web/MathML/Element/mn
-  result = xmlCheckedTag(e, "mn", "mathbackground mathcolor href mathsize mathvariant" & commonAttr)
+  result = xmlCheckedTag(
+    e, "mn", "mathbackground mathcolor href mathsize mathvariant" & commonAttr
+  )
 
 macro mo*(e: varargs[untyped]): untyped =
   ## Generates the HTML `mo` element. MathML https://wikipedia.org/wiki/MathML
   ## https://developer.mozilla.org/en-US/docs/Web/MathML/Element/mo
-  result = xmlCheckedTag(e, "mo",
-    "mathbackground mathcolor fence form largeop lspace mathsize mathvariant movablelimits rspace separator stretchy symmetric" & commonAttr)
+  result = xmlCheckedTag(
+    e,
+    "mo",
+    "mathbackground mathcolor fence form largeop lspace mathsize mathvariant movablelimits rspace separator stretchy symmetric" &
+      commonAttr,
+  )
 
 macro mover*(e: varargs[untyped]): untyped =
   ## Generates the HTML `mover` element. MathML https://wikipedia.org/wiki/MathML
   ## https://developer.mozilla.org/en-US/docs/Web/MathML/Element/mover
-  result = xmlCheckedTag(e, "mover", "mathbackground mathcolor accent href" & commonAttr)
+  result =
+    xmlCheckedTag(e, "mover", "mathbackground mathcolor accent href" & commonAttr)
 
 macro mpadded*(e: varargs[untyped]): untyped =
   ## Generates the HTML `mpadded` element. MathML https://wikipedia.org/wiki/MathML
   ## https://developer.mozilla.org/en-US/docs/Web/MathML/Element/mpadded
-  result = xmlCheckedTag(e, "mpadded", "mathbackground mathcolor depth href lspace voffset" & commonAttr)
+  result = xmlCheckedTag(
+    e, "mpadded", "mathbackground mathcolor depth href lspace voffset" & commonAttr
+  )
 
 macro mphantom*(e: varargs[untyped]): untyped =
   ## Generates the HTML `mphantom` element. MathML https://wikipedia.org/wiki/MathML
@@ -710,12 +792,17 @@ macro mrow*(e: varargs[untyped]): untyped =
 macro ms*(e: varargs[untyped]): untyped =
   ## Generates the HTML `ms` element. MathML https://wikipedia.org/wiki/MathML
   ## https://developer.mozilla.org/en-US/docs/Web/MathML/Element/ms
-  result = xmlCheckedTag(e, "ms", "mathbackground mathcolor href lquote mathsize mathvariant rquote" & commonAttr)
+  result = xmlCheckedTag(
+    e,
+    "ms",
+    "mathbackground mathcolor href lquote mathsize mathvariant rquote" & commonAttr,
+  )
 
 macro mspace*(e: varargs[untyped]): untyped =
   ## Generates the HTML `mspace` element. MathML https://wikipedia.org/wiki/MathML
   ## https://developer.mozilla.org/en-US/docs/Web/MathML/Element/mspace
-  result = xmlCheckedTag(e, "mspace", "mathbackground mathcolor href linebreak" & commonAttr)
+  result =
+    xmlCheckedTag(e, "mspace", "mathbackground mathcolor href linebreak" & commonAttr)
 
 macro msqrt*(e: varargs[untyped]): untyped =
   ## Generates the HTML `msqrt` element. MathML https://wikipedia.org/wiki/MathML
@@ -725,90 +812,125 @@ macro msqrt*(e: varargs[untyped]): untyped =
 macro mstyle*(e: varargs[untyped]): untyped =
   ## Generates the HTML `mstyle` element. MathML https://wikipedia.org/wiki/MathML
   ## https://developer.mozilla.org/en-US/docs/Web/MathML/Element/mstyle
-  result = xmlCheckedTag(e, "mstyle", ("mathbackground mathcolor href decimalpoint displaystyle " &
-    "infixlinebreakstyle scriptlevel scriptminsize scriptsizemultiplier" & commonAttr))
+  result = xmlCheckedTag(
+    e,
+    "mstyle",
+    (
+      "mathbackground mathcolor href decimalpoint displaystyle " &
+      "infixlinebreakstyle scriptlevel scriptminsize scriptsizemultiplier" & commonAttr
+    ),
+  )
 
 macro msub*(e: varargs[untyped]): untyped =
   ## Generates the HTML `msub` element. MathML https://wikipedia.org/wiki/MathML
   ## https://developer.mozilla.org/en-US/docs/Web/MathML/Element/msub
-  result = xmlCheckedTag(e, "msub", "mathbackground mathcolor href subscriptshift" & commonAttr)
+  result = xmlCheckedTag(
+    e, "msub", "mathbackground mathcolor href subscriptshift" & commonAttr
+  )
 
 macro msubsup*(e: varargs[untyped]): untyped =
   ## Generates the HTML `msubsup` element. MathML https://wikipedia.org/wiki/MathML
   ## https://developer.mozilla.org/en-US/docs/Web/MathML/Element/msubsup
-  result = xmlCheckedTag(e, "msubsup", "mathbackground mathcolor href subscriptshift superscriptshift" & commonAttr)
+  result = xmlCheckedTag(
+    e,
+    "msubsup",
+    "mathbackground mathcolor href subscriptshift superscriptshift" & commonAttr,
+  )
 
 macro msup*(e: varargs[untyped]): untyped =
   ## Generates the HTML `msup` element. MathML https://wikipedia.org/wiki/MathML
   ## https://developer.mozilla.org/en-US/docs/Web/MathML/Element/msup
-  result = xmlCheckedTag(e, "msup", "mathbackground mathcolor href superscriptshift" & commonAttr)
+  result = xmlCheckedTag(
+    e, "msup", "mathbackground mathcolor href superscriptshift" & commonAttr
+  )
 
 macro mtable*(e: varargs[untyped]): untyped =
   ## Generates the HTML `mtable` element. MathML https://wikipedia.org/wiki/MathML
   ## https://developer.mozilla.org/en-US/docs/Web/MathML/Element/mtable
-  result = xmlCheckedTag(e, "mtable", ("mathbackground mathcolor href align " &
-    "alignmentscope columnalign columnlines columnspacing columnwidth " &
-    "displaystyle equalcolumns equalrows frame framespacing groupalign " &
-    "rowalign rowlines rowspacing side width" & commonAttr))
+  result = xmlCheckedTag(
+    e,
+    "mtable",
+    (
+      "mathbackground mathcolor href align " &
+      "alignmentscope columnalign columnlines columnspacing columnwidth " &
+      "displaystyle equalcolumns equalrows frame framespacing groupalign " &
+      "rowalign rowlines rowspacing side width" & commonAttr
+    ),
+  )
 
 macro mtd*(e: varargs[untyped]): untyped =
   ## Generates the HTML `mtd` element. MathML https://wikipedia.org/wiki/MathML
   ## https://developer.mozilla.org/en-US/docs/Web/MathML/Element/mtd
-  result = xmlCheckedTag(e, "mtd",
-    "mathbackground mathcolor href columnalign columnspan groupalign rowalign rowspan" & commonAttr)
+  result = xmlCheckedTag(
+    e,
+    "mtd",
+    "mathbackground mathcolor href columnalign columnspan groupalign rowalign rowspan" &
+      commonAttr,
+  )
 
 macro mtext*(e: varargs[untyped]): untyped =
   ## Generates the HTML `mtext` element. MathML https://wikipedia.org/wiki/MathML
   ## https://developer.mozilla.org/en-US/docs/Web/MathML/Element/mtext
-  result = xmlCheckedTag(e, "mtext", "mathbackground mathcolor href mathsize mathvariant" & commonAttr)
+  result = xmlCheckedTag(
+    e, "mtext", "mathbackground mathcolor href mathsize mathvariant" & commonAttr
+  )
 
 macro munder*(e: varargs[untyped]): untyped =
   ## Generates the HTML `munder` element. MathML https://wikipedia.org/wiki/MathML
   ## https://developer.mozilla.org/en-US/docs/Web/MathML/Element/munder
-  result = xmlCheckedTag(e, "munder", "mathbackground mathcolor href accentunder align" & commonAttr)
+  result = xmlCheckedTag(
+    e, "munder", "mathbackground mathcolor href accentunder align" & commonAttr
+  )
 
 macro munderover*(e: varargs[untyped]): untyped =
   ## Generates the HTML `munderover` element. MathML https://wikipedia.org/wiki/MathML
   ## https://developer.mozilla.org/en-US/docs/Web/MathML/Element/munderover
-  result = xmlCheckedTag(e, "munderover", "mathbackground mathcolor href accentunder accent align" & commonAttr)
+  result = xmlCheckedTag(
+    e,
+    "munderover",
+    "mathbackground mathcolor href accentunder accent align" & commonAttr,
+  )
 
 macro semantics*(e: varargs[untyped]): untyped =
   ## Generates the HTML `semantics` element. MathML https://wikipedia.org/wiki/MathML
   ## https://developer.mozilla.org/en-US/docs/Web/MathML/Element/semantics
-  result = xmlCheckedTag(e, "semantics", "mathbackground mathcolor href definitionURL encoding cd src" & commonAttr)
+  result = xmlCheckedTag(
+    e,
+    "semantics",
+    "mathbackground mathcolor href definitionURL encoding cd src" & commonAttr,
+  )
 
 macro annotation*(e: varargs[untyped]): untyped =
   ## Generates the HTML `annotation` element. MathML https://wikipedia.org/wiki/MathML
   ## https://developer.mozilla.org/en-US/docs/Web/MathML/Element/semantics
-  result = xmlCheckedTag(e, "annotation", "mathbackground mathcolor href definitionURL encoding cd src" & commonAttr)
+  result = xmlCheckedTag(
+    e,
+    "annotation",
+    "mathbackground mathcolor href definitionURL encoding cd src" & commonAttr,
+  )
 
-macro `annotation-xml`*(e: varargs[untyped]): untyped =
+macro `annotation - xml`*(e: varargs[untyped]): untyped =
   ## Generates the HTML `annotation-xml` element. MathML https://wikipedia.org/wiki/MathML
   ## https://developer.mozilla.org/en-US/docs/Web/MathML/Element/semantics
-  result = xmlCheckedTag(e, "annotation", "mathbackground mathcolor href definitionURL encoding cd src" & commonAttr)
-
+  result = xmlCheckedTag(
+    e,
+    "annotation",
+    "mathbackground mathcolor href definitionURL encoding cd src" & commonAttr,
+  )
 
 runnableExamples:
   let nim = "Nim"
   assert h1(a(href = "https://nim-lang.org", nim)) ==
     """<h1><a href="https://nim-lang.org">Nim</a></h1>"""
-  assert form(action = "test", `accept-charset` = "Content-Type") ==
+  assert form(action = "test", `accept - charset` = "Content-Type") ==
     """<form action="test" accept-charset="Content-Type"></form>"""
 
-
-  assert math(
-    semantics(
-      mrow(
-        msup(
-          mi("x"),
-          mn("42")
-        )
-      )
-    )
-  ) == "<math><semantics><mrow><msup><mi>x</mi><mn>42</mn></msup></mrow></semantics></math>"
+  assert math(semantics(mrow(msup(mi("x"), mn("42"))))) ==
+    "<math><semantics><mrow><msup><mi>x</mi><mn>42</mn></msup></mrow></semantics></math>"
 
   assert math(
     semantics(
       annotation(encoding = "application/x-tex", title = "Latex on Web", r"x^{2} + y")
     )
-  ) == """<math><semantics><annotation encoding="application/x-tex" title="Latex on Web">x^{2} + y</annotation></semantics></math>"""
+  ) ==
+    """<math><semantics><annotation encoding="application/x-tex" title="Latex on Web">x^{2} + y</annotation></semantics></math>"""

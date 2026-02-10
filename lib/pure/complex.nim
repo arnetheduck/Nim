@@ -39,34 +39,40 @@ type
   Complex*[T: SomeFloat] = object
     ## A complex number, consisting of a real and an imaginary part.
     re*, im*: T
-  Complex64* = Complex[float64]
-    ## Alias for a complex number using 64-bit floats.
-  Complex32* = Complex[float32]
-    ## Alias for a complex number using 32-bit floats.
 
-func complex*[T: SomeFloat](re: T; im: T = 0.0): Complex[T] =
+  Complex64* = Complex[float64] ## Alias for a complex number using 64-bit floats.
+  Complex32* = Complex[float32] ## Alias for a complex number using 32-bit floats.
+
+func complex*[T: SomeFloat](re: T, im: T = 0.0): Complex[T] =
   ## Returns a `Complex[T]` with real part `re` and imaginary part `im`.
   result.re = re
   result.im = im
 
-func complex32*(re: float32; im: float32 = 0.0): Complex32 =
+func complex32*(re: float32, im: float32 = 0.0): Complex32 =
   ## Returns a `Complex32` with real part `re` and imaginary part `im`.
   result.re = re
   result.im = im
 
-func complex64*(re: float64; im: float64 = 0.0): Complex64 =
+func complex64*(re: float64, im: float64 = 0.0): Complex64 =
   ## Returns a `Complex64` with real part `re` and imaginary part `im`.
   result.re = re
   result.im = im
 
-template im*(arg: typedesc[float32]): Complex32 = complex32(0, 1)
+template im*(arg: typedesc[float32]): Complex32 =
   ## Returns the imaginary unit (`complex32(0, 1)`).
-template im*(arg: typedesc[float64]): Complex64 = complex64(0, 1)
+  complex32(0, 1)
+
+template im*(arg: typedesc[float64]): Complex64 =
   ## Returns the imaginary unit (`complex64(0, 1)`).
-template im*(arg: float32): Complex32 = complex32(0, arg)
+  complex64(0, 1)
+
+template im*(arg: float32): Complex32 =
   ## Returns `arg` as an imaginary number (`complex32(0, arg)`).
-template im*(arg: float64): Complex64 = complex64(0, arg)
+  complex32(0, arg)
+
+template im*(arg: float64): Complex64 =
   ## Returns `arg` as an imaginary number (`complex64(0, arg)`).
+  complex64(0, arg)
 
 func abs*[T](z: Complex[T]): T =
   ## Returns the absolute value of `z`,
@@ -99,12 +105,12 @@ func `==`*[T](x, y: Complex[T]): bool =
   ## Compares two complex numbers for equality.
   result = x.re == y.re and x.im == y.im
 
-func `+`*[T](x: T; y: Complex[T]): Complex[T] =
+func `+`*[T](x: T, y: Complex[T]): Complex[T] =
   ## Adds a real number to a complex number.
   result.re = x + y.re
   result.im = y.im
 
-func `+`*[T](x: Complex[T]; y: T): Complex[T] =
+func `+`*[T](x: Complex[T], y: T): Complex[T] =
   ## Adds a complex number to a real number.
   result.re = x.re + y
   result.im = x.im
@@ -119,12 +125,12 @@ func `-`*[T](z: Complex[T]): Complex[T] =
   result.re = -z.re
   result.im = -z.im
 
-func `-`*[T](x: T; y: Complex[T]): Complex[T] =
+func `-`*[T](x: T, y: Complex[T]): Complex[T] =
   ## Subtracts a complex number from a real number.
   result.re = x - y.re
   result.im = -y.im
 
-func `-`*[T](x: Complex[T]; y: T): Complex[T] =
+func `-`*[T](x: Complex[T], y: T): Complex[T] =
   ## Subtracts a real number from a complex number.
   result.re = x.re - y
   result.im = x.im
@@ -134,12 +140,12 @@ func `-`*[T](x, y: Complex[T]): Complex[T] =
   result.re = x.re - y.re
   result.im = x.im - y.im
 
-func `*`*[T](x: T; y: Complex[T]): Complex[T] =
+func `*`*[T](x: T, y: Complex[T]): Complex[T] =
   ## Multiplies a real number with a complex number.
   result.re = x * y.re
   result.im = x * y.im
 
-func `*`*[T](x: Complex[T]; y: T): Complex[T] =
+func `*`*[T](x: Complex[T], y: T): Complex[T] =
   ## Multiplies a complex number with a real number.
   result.re = x.re * y
   result.im = x.im * y
@@ -149,12 +155,12 @@ func `*`*[T](x, y: Complex[T]): Complex[T] =
   result.re = x.re * y.re - x.im * y.im
   result.im = x.im * y.re + x.re * y.im
 
-func `/`*[T](x: Complex[T]; y: T): Complex[T] =
+func `/`*[T](x: Complex[T], y: T): Complex[T] =
   ## Divides a complex number by a real number.
   result.re = x.re / y
   result.im = x.im / y
 
-func `/`*[T](x: T; y: Complex[T]): Complex[T] =
+func `/`*[T](x: T, y: Complex[T]): Complex[T] =
   ## Divides a real number by a complex number.
   result = x * inv(y)
 
@@ -162,26 +168,25 @@ func `/`*[T](x, y: Complex[T]): Complex[T] =
   ## Divides two complex numbers.
   x * conjugate(y) / abs2(y)
 
-func `+=`*[T](x: var Complex[T]; y: Complex[T]) =
+func `+=`*[T](x: var Complex[T], y: Complex[T]) =
   ## Adds `y` to `x`.
   x.re += y.re
   x.im += y.im
 
-func `-=`*[T](x: var Complex[T]; y: Complex[T]) =
+func `-=`*[T](x: var Complex[T], y: Complex[T]) =
   ## Subtracts `y` from `x`.
   x.re -= y.re
   x.im -= y.im
 
-func `*=`*[T](x: var Complex[T]; y: Complex[T]) =
+func `*=`*[T](x: var Complex[T], y: Complex[T]) =
   ## Multiplies `x` by `y`.
   let im = x.im * y.re + x.re * y.im
   x.re = x.re * y.re - x.im * y.im
   x.im = im
 
-func `/=`*[T](x: var Complex[T]; y: Complex[T]) =
+func `/=`*[T](x: var Complex[T], y: Complex[T]) =
   ## Divides `x` by `y` in place.
   x = x / y
-
 
 func sqrt*[T](z: Complex[T]): Complex[T] =
   ## Computes the
@@ -205,7 +210,11 @@ func sqrt*[T](z: Complex[T]): Complex[T] =
       result.re = w
       result.im = z.im / (w * 2.0)
     else:
-      result.im = if z.im >= 0.0: w else: -w
+      result.im =
+        if z.im >= 0.0:
+          w
+        else:
+          -w
       result.re = z.im / (result.im + result.im)
 
 func exp*[T](z: Complex[T]): Complex[T] =
@@ -269,8 +278,8 @@ func pow*[T](x, y: Complex[T]): Complex[T] =
       result.re = s * cos(r)
       result.im = s * sin(r)
   elif x.im == 0.0 and x.re == E:
-   # Special case Euler's formula
-   result = exp(y)
+    # Special case Euler's formula
+    result = exp(y)
   else:
     let
       rho = abs(x)
@@ -280,10 +289,9 @@ func pow*[T](x, y: Complex[T]): Complex[T] =
     result.re = s * cos(r)
     result.im = s * sin(r)
 
-func pow*[T](x: Complex[T]; y: T): Complex[T] =
+func pow*[T](x: Complex[T], y: T): Complex[T] =
   ## The complex number `x` raised to the power of the real number `y`.
   pow(x, complex[T](y))
-
 
 func sin*[T](z: Complex[T]): Complex[T] =
   ## Returns the sine of `z`.
@@ -292,7 +300,7 @@ func sin*[T](z: Complex[T]): Complex[T] =
 
 func arcsin*[T](z: Complex[T]): Complex[T] =
   ## Returns the inverse sine of `z`.
-  result = -im(T) * ln(im(T) * z + sqrt(T(1.0) - z*z))
+  result = -im(T) * ln(im(T) * z + sqrt(T(1.0) - z * z))
 
 func cos*[T](z: Complex[T]): Complex[T] =
   ## Returns the cosine of `z`.
@@ -301,7 +309,7 @@ func cos*[T](z: Complex[T]): Complex[T] =
 
 func arccos*[T](z: Complex[T]): Complex[T] =
   ## Returns the inverse cosine of `z`.
-  result = -im(T) * ln(z + sqrt(z*z - T(1.0)))
+  result = -im(T) * ln(z + sqrt(z * z - T(1.0)))
 
 func tan*[T](z: Complex[T]): Complex[T] =
   ## Returns the tangent of `z`.
@@ -309,15 +317,15 @@ func tan*[T](z: Complex[T]): Complex[T] =
 
 func arctan*[T](z: Complex[T]): Complex[T] =
   ## Returns the inverse tangent of `z`.
-  result = T(0.5)*im(T) * (ln(T(1.0) - im(T)*z) - ln(T(1.0) + im(T)*z))
+  result = T(0.5) * im(T) * (ln(T(1.0) - im(T) * z) - ln(T(1.0) + im(T) * z))
 
 func cot*[T](z: Complex[T]): Complex[T] =
   ## Returns the cotangent of `z`.
-  result = cos(z)/sin(z)
+  result = cos(z) / sin(z)
 
 func arccot*[T](z: Complex[T]): Complex[T] =
   ## Returns the inverse cotangent of `z`.
-  result = T(0.5)*im(T) * (ln(T(1.0) - im(T)/z) - ln(T(1.0) + im(T)/z))
+  result = T(0.5) * im(T) * (ln(T(1.0) - im(T) / z) - ln(T(1.0) + im(T) / z))
 
 func sec*[T](z: Complex[T]): Complex[T] =
   ## Returns the secant of `z`.
@@ -325,7 +333,7 @@ func sec*[T](z: Complex[T]): Complex[T] =
 
 func arcsec*[T](z: Complex[T]): Complex[T] =
   ## Returns the inverse secant of `z`.
-  result = -im(T) * ln(im(T) * sqrt(1.0 - 1.0/(z*z)) + T(1.0)/z)
+  result = -im(T) * ln(im(T) * sqrt(1.0 - 1.0 / (z * z)) + T(1.0) / z)
 
 func csc*[T](z: Complex[T]): Complex[T] =
   ## Returns the cosecant of `z`.
@@ -333,7 +341,7 @@ func csc*[T](z: Complex[T]): Complex[T] =
 
 func arccsc*[T](z: Complex[T]): Complex[T] =
   ## Returns the inverse cosecant of `z`.
-  result = -im(T) * ln(sqrt(T(1.0) - T(1.0)/(z*z)) + im(T)/z)
+  result = -im(T) * ln(sqrt(T(1.0) - T(1.0) / (z * z)) + im(T) / z)
 
 func sinh*[T](z: Complex[T]): Complex[T] =
   ## Returns the hyperbolic sine of `z`.
@@ -341,7 +349,7 @@ func sinh*[T](z: Complex[T]): Complex[T] =
 
 func arcsinh*[T](z: Complex[T]): Complex[T] =
   ## Returns the inverse hyperbolic sine of `z`.
-  result = ln(z + sqrt(z*z + 1.0))
+  result = ln(z + sqrt(z * z + 1.0))
 
 func cosh*[T](z: Complex[T]): Complex[T] =
   ## Returns the hyperbolic cosine of `z`.
@@ -349,7 +357,7 @@ func cosh*[T](z: Complex[T]): Complex[T] =
 
 func arccosh*[T](z: Complex[T]): Complex[T] =
   ## Returns the inverse hyperbolic cosine of `z`.
-  result = ln(z + sqrt(z*z - T(1.0)))
+  result = ln(z + sqrt(z * z - T(1.0)))
 
 func tanh*[T](z: Complex[T]): Complex[T] =
   ## Returns the hyperbolic tangent of `z`.
@@ -357,7 +365,7 @@ func tanh*[T](z: Complex[T]): Complex[T] =
 
 func arctanh*[T](z: Complex[T]): Complex[T] =
   ## Returns the inverse hyperbolic tangent of `z`.
-  result = T(0.5) * (ln((T(1.0)+z) / (T(1.0)-z)))
+  result = T(0.5) * (ln((T(1.0) + z) / (T(1.0) - z)))
 
 func coth*[T](z: Complex[T]): Complex[T] =
   ## Returns the hyperbolic cotangent of `z`.
@@ -365,7 +373,7 @@ func coth*[T](z: Complex[T]): Complex[T] =
 
 func arccoth*[T](z: Complex[T]): Complex[T] =
   ## Returns the inverse hyperbolic cotangent of `z`.
-  result = T(0.5) * (ln(T(1.0) + T(1.0)/z) - ln(T(1.0) - T(1.0)/z))
+  result = T(0.5) * (ln(T(1.0) + T(1.0) / z) - ln(T(1.0) - T(1.0) / z))
 
 func sech*[T](z: Complex[T]): Complex[T] =
   ## Returns the hyperbolic secant of `z`.
@@ -373,7 +381,7 @@ func sech*[T](z: Complex[T]): Complex[T] =
 
 func arcsech*[T](z: Complex[T]): Complex[T] =
   ## Returns the inverse hyperbolic secant of `z`.
-  result = ln(1.0/z + sqrt(T(1.0)/z+T(1.0)) * sqrt(T(1.0)/z-T(1.0)))
+  result = ln(1.0 / z + sqrt(T(1.0) / z + T(1.0)) * sqrt(T(1.0) / z - T(1.0)))
 
 func csch*[T](z: Complex[T]): Complex[T] =
   ## Returns the hyperbolic cosecant of `z`.
@@ -381,7 +389,7 @@ func csch*[T](z: Complex[T]): Complex[T] =
 
 func arccsch*[T](z: Complex[T]): Complex[T] =
   ## Returns the inverse hyperbolic cosecant of `z`.
-  result = ln(T(1.0)/z + sqrt(T(1.0)/(z*z) + T(1.0)))
+  result = ln(T(1.0) / z + sqrt(T(1.0) / (z * z) + T(1.0)))
 
 func phase*[T](z: Complex[T]): T =
   ## Returns the phase (or argument) of `z`, that is the angle in polar representation.
@@ -409,7 +417,7 @@ func rect*[T](r, phi: T): Complex[T] =
   ## * `polar func<#polar,Complex[T]>`_ for the inverse operation
   complex(r * cos(phi), r * sin(phi))
 
-func almostEqual*[T: SomeFloat](x, y: Complex[T]; unitsInLastPlace: Natural = 4): bool =
+func almostEqual*[T: SomeFloat](x, y: Complex[T], unitsInLastPlace: Natural = 4): bool =
   ## Checks if two complex values are almost equal, using the
   ## [machine epsilon](https://en.wikipedia.org/wiki/Machine_epsilon).
   ##
@@ -426,7 +434,7 @@ func almostEqual*[T: SomeFloat](x, y: Complex[T]; unitsInLastPlace: Natural = 4)
   ## and multiplied by the desired precision in ULPs unless the difference is
   ## subnormal.
   almostEqual(x.re, y.re, unitsInLastPlace = unitsInLastPlace) and
-  almostEqual(x.im, y.im, unitsInLastPlace = unitsInLastPlace)
+    almostEqual(x.im, y.im, unitsInLastPlace = unitsInLastPlace)
 
 func `$`*(z: Complex): string =
   ## Returns `z`'s string representation as `"(re, im)"`.
@@ -435,7 +443,7 @@ func `$`*(z: Complex): string =
 
   result = "(" & $z.re & ", " & $z.im & ")"
 
-proc formatValueAsTuple(result: var string; value: Complex; specifier: string) =
+proc formatValueAsTuple(result: var string, value: Complex, specifier: string) =
   ## Format implementation for `Complex` representing the value as a (real, imaginary) tuple.
   result.add "("
   formatValue(result, value.re, specifier)
@@ -443,10 +451,11 @@ proc formatValueAsTuple(result: var string; value: Complex; specifier: string) =
   formatValue(result, value.im, specifier)
   result.add ")"
 
-proc formatValueAsComplexNumber(result: var string; value: Complex; specifier: string) =
+proc formatValueAsComplexNumber(result: var string, value: Complex, specifier: string) =
   ## Format implementation for `Complex` representing the value as a (RE+IMj) number
   ## By default, the real and imaginary parts are formatted using the general ('g') format
-  let specifier = if specifier.contains({'e', 'E', 'f', 'F', 'g', 'G'}):
+  let specifier =
+    if specifier.contains({'e', 'E', 'f', 'F', 'g', 'G'}):
       specifier.replace("j")
     else:
       specifier.replace('j', 'g')
@@ -457,7 +466,7 @@ proc formatValueAsComplexNumber(result: var string; value: Complex; specifier: s
   formatValue(result, value.im, specifier)
   result.add "j)"
 
-proc formatValue*(result: var string; value: Complex; specifier: string) =
+proc formatValue*(result: var string, value: Complex, specifier: string) =
   ## Standard format implementation for `Complex`. It makes little
   ## sense to call this directly, but it is required to exist
   ## by the `&` macro.

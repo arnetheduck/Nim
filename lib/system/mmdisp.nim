@@ -11,15 +11,16 @@
 # native Nim GC. The native Nim GC is the default.
 
 #{.push checks:on, assertions:on.}
-{.push checks:off.}
+{.push checks: off.}
 
 const
   debugGC = false # we wish to debug the GC...
   logGC = false
   traceGC = false # extensive debugging
   alwaysCycleGC = defined(nimSmokeCycles)
-  alwaysGC = defined(nimFulldebug) # collect after every memory
-                                # allocation (for debugging)
+  alwaysGC = defined(nimFulldebug)
+    # collect after every memory
+    # allocation (for debugging)
   leakDetector = defined(nimLeakDetector)
   overwriteFree = defined(nimBurnFree) # overwrite memory with 0xFF before free
   trackAllocationSource = leakDetector
@@ -44,22 +45,23 @@ else:
   include bitmasks
 
 proc raiseOutOfMem() {.noinline.} =
-  if outOfMemHook != nil: outOfMemHook()
+  if outOfMemHook != nil:
+    outOfMemHook()
   cstderr.rawWrite("out of memory\n")
   rawQuit(1)
 
 when defined(boehmgc):
-  include system / mm / boehm
-
+  include system/mm/boehm
 elif defined(gogc):
-  include system / mm / go
-
+  include system/mm/go
 elif (defined(nogc) or defined(gcDestructors)) and defined(useMalloc):
   when not defined(useNimRtl):
-    include system / mm / malloc
+    include system/mm/malloc
 
   when defined(nogc):
-    proc GC_getStatistics(): string = ""
+    proc GC_getStatistics(): string =
+      ""
+
     proc newObj(typ: PNimType, size: int): pointer {.compilerproc, raises: [].} =
       result = alloc0(size)
 
@@ -69,8 +71,7 @@ elif (defined(nogc) or defined(gcDestructors)) and defined(useMalloc):
       cast[PGenericSeq](result).reserved = len
 
 elif defined(nogc):
-  include system / mm / none
-
+  include system/mm/none
 else:
   when not defined(gcRegions):
     include "system/alloc"
@@ -98,16 +99,21 @@ when not declared(nimNewSeqOfCap) and not defined(nimSeqsV2):
   {.push overflowChecks: on.}
   proc nimNewSeqOfCap(typ: PNimType, cap: int): pointer {.compilerproc.} =
     when defined(gcRegions):
-      let s = cap * typ.base.size  # newStr already adds GenericSeqSize
+      let s = cap * typ.base.size # newStr already adds GenericSeqSize
       result = newStr(typ, s, ntfNoRefs notin typ.base.flags)
     else:
       let s = align(GenericSeqSize, typ.base.align) + cap * typ.base.size
       when declared(newObjNoInit):
-        result = if ntfNoRefs in typ.base.flags: newObjNoInit(typ, s) else: newObj(typ, s)
+        result =
+          if ntfNoRefs in typ.base.flags:
+            newObjNoInit(typ, s)
+          else:
+            newObj(typ, s)
       else:
         result = newObj(typ, s)
       cast[PGenericSeq](result).len = 0
       cast[PGenericSeq](result).reserved = cap
+
   {.pop.}
 
 {.pop.}
@@ -116,6 +122,11 @@ when not declared(ForeignCell):
   type ForeignCell* = object
     data*: pointer
 
-  proc protect*(x: pointer): ForeignCell = ForeignCell(data: x)
-  proc dispose*(x: ForeignCell) = discard
-  proc isNotForeign*(x: ForeignCell): bool = false
+  proc protect*(x: pointer): ForeignCell =
+    ForeignCell(data: x)
+
+  proc dispose*(x: ForeignCell) =
+    discard
+
+  proc isNotForeign*(x: ForeignCell): bool =
+    false

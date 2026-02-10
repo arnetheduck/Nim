@@ -3,17 +3,14 @@
 include system/inclrtl
 import std/oserrors
 
-
 import ospaths2, osfiles
 import oscommon
 import std/staticos
 when supportedSystem:
   export dirExists, PathComponent
 
-
 when defined(nimPreviewSlimSystem):
   import std/[syncio, assertions, widestrs]
-
 
 when weirdTarget:
   discard
@@ -22,16 +19,19 @@ elif defined(windows):
 elif defined(posix):
   import std/[posix, times]
 
-
 when weirdTarget:
-  {.pragma: noWeirdTarget, error: "this proc is not available on the NimScript/js target".}
+  {.
+    pragma: noWeirdTarget,
+    error: "this proc is not available on the NimScript/js target"
+  .}
 else:
   {.pragma: noWeirdTarget.}
 
-
 when defined(nimscript):
   # for procs already defined in scriptconfig.nim
-  template noNimJs(body): untyped = discard
+  template noNimJs(body): untyped =
+    discard
+
 elif defined(js):
   {.pragma: noNimJs, error: "this proc is not available on the js target".}
 else:
@@ -41,11 +41,14 @@ else:
 when defined(windows) and not weirdTarget:
   template isDir(f: WIN32_FIND_DATA): bool =
     (f.dwFileAttributes and FILE_ATTRIBUTE_DIRECTORY) != 0'i32
+
   template isFile(f: WIN32_FIND_DATA): bool =
     not isDir(f)
+
 else:
   template isDir(f: string): bool {.dirty.} =
     dirExists(f)
+
   template isFile(f: string): bool {.dirty.} =
     fileExists(f)
 
@@ -63,7 +66,8 @@ template walkCommon(pattern: string, filter) =
       res: int
     res = findFirstFile(pattern, f)
     if res != -1:
-      defer: findClose(res)
+      defer:
+        findClose(res)
       let dotPos = searchExtPos(pattern)
       while true:
         if not skipFindData(f) and filter(f):
@@ -72,12 +76,14 @@ template walkCommon(pattern: string, filter) =
           let ff = getFilename(f)
           let idx = ff.len - pattern.len + dotPos
           if dotPos < 0 or idx >= ff.len or (idx >= 0 and ff[idx] == '.') or
-              (dotPos >= 0 and dotPos+1 < pattern.len and pattern[dotPos+1] == '*'):
+              (dotPos >= 0 and dotPos + 1 < pattern.len and pattern[dotPos + 1] == '*'):
             yield splitFile(pattern).dir / extractFilename(ff)
         if findNextFile(res, f) == 0'i32:
           let errCode = getLastError()
-          if errCode == ERROR_NO_MORE_FILES: break
-          else: raiseOSError(errCode.OSErrorCode)
+          if errCode == ERROR_NO_MORE_FILES:
+            break
+          else:
+            raiseOSError(errCode.OSErrorCode)
   else: # here we use glob
     var
       f: Glob
@@ -86,15 +92,18 @@ template walkCommon(pattern: string, filter) =
     f.gl_pathc = 0
     f.gl_pathv = nil
     res = glob(pattern, 0, nil, addr(f))
-    defer: globfree(addr(f))
+    defer:
+      globfree(addr(f))
     if res == 0:
-      for i in 0.. f.gl_pathc - 1:
+      for i in 0 .. f.gl_pathc - 1:
         assert(f.gl_pathv[i] != nil)
         let path = $f.gl_pathv[i]
         if filter(path):
           yield path
 
-iterator walkPattern*(pattern: string): string {.tags: [ReadDirEffect], noWeirdTarget.} =
+iterator walkPattern*(
+    pattern: string
+): string {.tags: [ReadDirEffect], noWeirdTarget.} =
   ## Iterate over all the files and directories that match the `pattern`.
   ##
   ## On POSIX this uses the `glob`:idx: call.
@@ -129,7 +138,8 @@ iterator walkFiles*(pattern: string): string {.tags: [ReadDirEffect], noWeirdTar
   runnableExamples:
     import std/os
     import std/sequtils
-    assert "lib/pure/os.nim".unixToNativePath in toSeq(walkFiles("lib/pure/*.nim")) # works on Windows too
+    assert "lib/pure/os.nim".unixToNativePath in toSeq(walkFiles("lib/pure/*.nim"))
+      # works on Windows too
   walkCommon(pattern, isFile)
 
 iterator walkDirs*(pattern: string): string {.tags: [ReadDirEffect], noWeirdTarget.} =
@@ -151,9 +161,9 @@ iterator walkDirs*(pattern: string): string {.tags: [ReadDirEffect], noWeirdTarg
     assert "lib/pure/concurrency".unixToNativePath in paths
   walkCommon(pattern, isDir)
 
-iterator walkDir*(dir: string; relative = false, checkDir = false,
-                  skipSpecial = false):
-  tuple[kind: PathComponent, path: string] {.tags: [ReadDirEffect].} =
+iterator walkDir*(
+    dir: string, relative = false, checkDir = false, skipSpecial = false
+): tuple[kind: PathComponent, path: string] {.tags: [ReadDirEffect].} =
   ## Walks over the directory `dir` and yields for each directory or file in
   ## `dir`. The component type and full path for each item are returned.
   ##
@@ -181,8 +191,11 @@ iterator walkDir*(dir: string; relative = false, checkDir = false,
     import std/[strutils, sugar]
     # note: order is not guaranteed
     # this also works at compile time
-    assert collect(for k in walkDir("dirA"): k.path).join(" ") ==
-                          "dirA/dirB dirA/dirC dirA/fileA2.txt dirA/fileA1.txt"
+    assert collect(
+      for k in walkDir("dirA"):
+        k.path
+    )
+      .join(" ") == "dirA/dirB dirA/dirC dirA/fileA2.txt dirA/fileA1.txt"
   ## See also:
   ## * `walkPattern iterator`_
   ## * `walkFiles iterator`_
@@ -203,7 +216,8 @@ iterator walkDir*(dir: string; relative = false, checkDir = false,
         if checkDir:
           raiseOSError(osLastError(), dir)
       else:
-        defer: findClose(h)
+        defer:
+          findClose(h)
         while true:
           var k = pcFile
           if not skipFindData(f):
@@ -211,23 +225,30 @@ iterator walkDir*(dir: string; relative = false, checkDir = false,
               k = pcDir
             if (f.dwFileAttributes and FILE_ATTRIBUTE_REPARSE_POINT) != 0'i32:
               k = succ(k)
-            let xx = if relative: extractFilename(getFilename(f))
-                     else: dir / extractFilename(getFilename(f))
+            let xx =
+              if relative:
+                extractFilename(getFilename(f))
+              else:
+                dir / extractFilename(getFilename(f))
             yield (k, xx)
           if findNextFile(h, f) == 0'i32:
             let errCode = getLastError()
-            if errCode == ERROR_NO_MORE_FILES: break
-            else: raiseOSError(errCode.OSErrorCode)
+            if errCode == ERROR_NO_MORE_FILES:
+              break
+            else:
+              raiseOSError(errCode.OSErrorCode)
     else:
       var d = opendir(dir)
       if d == nil:
         if checkDir:
           raiseOSError(osLastError(), dir)
       else:
-        defer: discard closedir(d)
+        defer:
+          discard closedir(d)
         while true:
           var x = readdir(d)
-          if x == nil: break
+          if x == nil:
+            break
           var y = $cast[cstring](addr x.d_name)
           if y != "." and y != "..":
             var s: Stat
@@ -239,36 +260,46 @@ iterator walkDir*(dir: string; relative = false, checkDir = false,
             template resolveSymlink() =
               var isSpecial: bool
               (k, isSpecial) = getSymlinkFileKind(path)
-              if skipSpecial and isSpecial: continue
+              if skipSpecial and isSpecial:
+                continue
 
-            template kSetGeneric() =  # pure Posix component `k` resolution
-              if lstat(path.cstring, s) < 0'i32: continue  # don't yield
+            template kSetGeneric() = # pure Posix component `k` resolution
+              if lstat(path.cstring, s) < 0'i32:
+                continue # don't yield
               elif S_ISDIR(s.st_mode):
                 k = pcDir
               elif S_ISLNK(s.st_mode):
                 resolveSymlink()
-              elif skipSpecial and not S_ISREG(s.st_mode): continue
+              elif skipSpecial and not S_ISREG(s.st_mode):
+                continue
 
-            when defined(linux) or defined(macosx) or
-                 defined(bsd) or defined(genode) or defined(nintendoswitch):
+            when defined(linux) or defined(macosx) or defined(bsd) or defined(genode) or
+                defined(nintendoswitch):
               case x.d_type
-              of DT_DIR: k = pcDir
+              of DT_DIR:
+                k = pcDir
               of DT_LNK:
                 resolveSymlink()
               of DT_UNKNOWN:
                 kSetGeneric()
               else: # DT_REG or special "files" like FIFOs
-                if skipSpecial and x.d_type != DT_REG: continue
-                else: discard # leave it as pcFile
-            else:  # assuming that field `d_type` is not present
+                if skipSpecial and x.d_type != DT_REG:
+                  continue
+                else:
+                  discard # leave it as pcFile
+            else: # assuming that field `d_type` is not present
               kSetGeneric()
 
             yield (k, y)
 
-iterator walkDirRec*(dir: string,
-                     yieldFilter = {pcFile}, followFilter = {pcDir},
-                     relative = false, checkDir = false, skipSpecial = false):
-                    string {.tags: [ReadDirEffect].} =
+iterator walkDirRec*(
+    dir: string,
+    yieldFilter = {pcFile},
+    followFilter = {pcDir},
+    relative = false,
+    checkDir = false,
+    skipSpecial = false,
+): string {.tags: [ReadDirEffect].} =
   ## Recursively walks over the directory `dir` and yields for each file
   ## or directory in `dir`.
   ##
@@ -307,13 +338,18 @@ iterator walkDirRec*(dir: string,
   var checkDir = checkDir
   while stack.len > 0:
     let d = stack.pop()
-    for k, p in walkDir(dir / d, relative = true, checkDir = checkDir,
-                        skipSpecial = skipSpecial):
+    for k, p in walkDir(
+      dir / d, relative = true, checkDir = checkDir, skipSpecial = skipSpecial
+    ):
       let rel = d / p
       if k in {pcDir, pcLinkToDir} and k in followFilter:
         stack.add rel
       if k in yieldFilter:
-        yield if relative: rel else: dir / rel
+        yield
+          if relative:
+            rel
+          else:
+            dir / rel
     checkDir = false
       # We only check top-level dir, otherwise if a subdir is invalid (eg. wrong
       # permissions), it'll abort iteration and there would be no way to
@@ -324,14 +360,16 @@ proc rawRemoveDir(dir: string) {.noWeirdTarget.} =
   when defined(windows):
     wrapUnary(res, removeDirectoryW, dir)
     let lastError = osLastError()
-    if res == 0'i32 and lastError.int32 != 3'i32 and
-        lastError.int32 != 18'i32 and lastError.int32 != 2'i32:
+    if res == 0'i32 and lastError.int32 != 3'i32 and lastError.int32 != 18'i32 and
+        lastError.int32 != 2'i32:
       raiseOSError(lastError, dir)
   else:
-    if rmdir(dir) != 0'i32 and errno != ENOENT: raiseOSError(osLastError(), dir)
+    if rmdir(dir) != 0'i32 and errno != ENOENT:
+      raiseOSError(osLastError(), dir)
 
-proc removeDir*(dir: string, checkDir = false) {.rtl, extern: "nos$1", tags: [
-  WriteDirEffect, ReadDirEffect], benign, noWeirdTarget.} =
+proc removeDir*(
+    dir: string, checkDir = false
+) {.rtl, extern: "nos$1", tags: [WriteDirEffect, ReadDirEffect], benign, noWeirdTarget.} =
   ## Removes the directory `dir` including all subdirectories and files
   ## in `dir` (recursively).
   ##
@@ -348,8 +386,10 @@ proc removeDir*(dir: string, checkDir = false) {.rtl, extern: "nos$1", tags: [
   ## * `moveDir proc`_
   for kind, path in walkDir(dir, checkDir = checkDir):
     case kind
-    of pcFile, pcLinkToFile, pcLinkToDir: removeFile(path)
-    of pcDir: removeDir(path, true)
+    of pcFile, pcLinkToFile, pcLinkToDir:
+      removeFile(path)
+    of pcDir:
+      removeDir(path, true)
       # for subdirectories there is no benefit in `checkDir = false`
       # (unless perhaps for edge case of concurrent processes also deleting
       # the same files)
@@ -396,8 +436,9 @@ proc rawCreateDir(dir: string): bool {.noWeirdTarget.} =
     else:
       raiseOSError(osLastError(), dir)
 
-proc existsOrCreateDir*(dir: string): bool {.rtl, extern: "nos$1",
-  tags: [WriteDirEffect, ReadDirEffect], noWeirdTarget.} =
+proc existsOrCreateDir*(
+    dir: string
+): bool {.rtl, extern: "nos$1", tags: [WriteDirEffect, ReadDirEffect], noWeirdTarget.} =
   ## Checks if a `directory`:idx: `dir` exists, and creates it otherwise.
   ##
   ## Does not create parent directories (raises `OSError` if parent directories do not exist).
@@ -415,8 +456,9 @@ proc existsOrCreateDir*(dir: string): bool {.rtl, extern: "nos$1",
     if not dirExists(dir):
       raise newException(IOError, "Failed to create '" & dir & "'")
 
-proc createDir*(dir: string) {.rtl, extern: "nos$1",
-  tags: [WriteDirEffect, ReadDirEffect], noWeirdTarget.} =
+proc createDir*(
+    dir: string
+) {.rtl, extern: "nos$1", tags: [WriteDirEffect, ReadDirEffect], noWeirdTarget.} =
   ## Creates the `directory`:idx: `dir`.
   ##
   ## The directory may contain several subdirectories that do not exist yet.
@@ -434,14 +476,21 @@ proc createDir*(dir: string) {.rtl, extern: "nos$1",
   if dir == "":
     return
   var omitNext = isAbsolute(dir)
-  for p in parentDirs(dir, fromRoot=true):
+  for p in parentDirs(dir, fromRoot = true):
     if omitNext:
       omitNext = false
     else:
       discard existsOrCreateDir(p)
 
-proc copyDir*(source, dest: string, skipSpecial = false) {.rtl, extern: "nos$1",
-  tags: [ReadDirEffect, WriteIOEffect, ReadIOEffect], benign, noWeirdTarget.} =
+proc copyDir*(
+    source, dest: string, skipSpecial = false
+) {.
+    rtl,
+    extern: "nos$1",
+    tags: [ReadDirEffect, WriteIOEffect, ReadIOEffect],
+    benign,
+    noWeirdTarget
+.} =
   ## Copies a directory from `source` to `dest`.
   ##
   ## On non-Windows OSes, symlinks are copied as symlinks. On Windows, symlinks
@@ -477,12 +526,15 @@ proc copyDir*(source, dest: string, skipSpecial = false) {.rtl, extern: "nos$1",
     else:
       copyFile(path, dest / noSource, {cfSymlinkAsIs})
 
-
-proc copyDirWithPermissions*(source, dest: string,
-                             ignorePermissionErrors = true,
-                             skipSpecial = false)
-  {.rtl, extern: "nos$1", tags: [ReadDirEffect, WriteIOEffect, ReadIOEffect],
-   benign, noWeirdTarget.} =
+proc copyDirWithPermissions*(
+    source, dest: string, ignorePermissionErrors = true, skipSpecial = false
+) {.
+    rtl,
+    extern: "nos$1",
+    tags: [ReadDirEffect, WriteIOEffect, ReadIOEffect],
+    benign,
+    noWeirdTarget
+.} =
   ## Copies a directory from `source` to `dest` preserving file permissions.
   ##
   ## On non-Windows OSes, symlinks are copied as symlinks. On Windows, symlinks
@@ -516,19 +568,24 @@ proc copyDirWithPermissions*(source, dest: string,
   createDir(dest)
   when not defined(windows):
     try:
-      setFilePermissions(dest, getFilePermissions(source), followSymlinks =
-                         false)
+      setFilePermissions(dest, getFilePermissions(source), followSymlinks = false)
     except:
       if not ignorePermissionErrors:
         raise
   for kind, path in walkDir(source, skipSpecial = skipSpecial):
     var noSource = splitPath(path).tail
     if kind == pcDir:
-      copyDirWithPermissions(path, dest / noSource, ignorePermissionErrors, skipSpecial = skipSpecial)
+      copyDirWithPermissions(
+        path, dest / noSource, ignorePermissionErrors, skipSpecial = skipSpecial
+      )
     else:
-      copyFileWithPermissions(path, dest / noSource, ignorePermissionErrors, {cfSymlinkAsIs})
+      copyFileWithPermissions(
+        path, dest / noSource, ignorePermissionErrors, {cfSymlinkAsIs}
+      )
 
-proc moveDir*(source, dest: string) {.tags: [ReadIOEffect, WriteIOEffect], noWeirdTarget.} =
+proc moveDir*(
+    source, dest: string
+) {.tags: [ReadIOEffect, WriteIOEffect], noWeirdTarget.} =
   ## Moves a directory from `source` to `dest`.
   ##
   ## Symlinks are not followed: if `source` contains symlinks, they themself are
@@ -561,4 +618,5 @@ proc setCurrentDir*(newDir: string) {.inline, tags: [], noWeirdTarget.} =
     if setCurrentDirectoryW(newWideCString(newDir)) == 0'i32:
       raiseOSError(osLastError(), newDir)
   else:
-    if chdir(newDir) != 0'i32: raiseOSError(osLastError(), newDir)
+    if chdir(newDir) != 0'i32:
+      raiseOSError(osLastError(), newDir)

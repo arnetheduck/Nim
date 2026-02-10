@@ -7,12 +7,11 @@
 #    distribution, for details about the copyright.
 #
 
-import ast, renderer, msgs, options, idents, lineinfos,
-  pathutils
+import ast, renderer, msgs, options, idents, lineinfos, pathutils
 
 import std/[strutils, os]
 
-proc getModuleName*(conf: ConfigRef; n: PNode): string =
+proc getModuleName*(conf: ConfigRef, n: PNode): string =
   # This returns a short relative module name without the nim extension
   # e.g. like "system", "importer" or "somepath/module"
   # The proc won't perform any checks that the path is actually valid
@@ -59,7 +58,10 @@ proc getModuleName*(conf: ConfigRef; n: PNode): string =
     # hacky way to implement 'x / y /../ z':
     result = renderTree(n, {renderNoComments}).replace(" ")
   of nkDotExpr:
-    localError(conf, n.info, warnDeprecated, "using '.' instead of '/' in import paths is deprecated")
+    localError(
+      conf, n.info, warnDeprecated,
+      "using '.' instead of '/' in import paths is deprecated",
+    )
     result = renderTree(n, {renderNoComments}).replace(".", "/")
   of nkImportAs:
     result = getModuleName(conf, n[0])
@@ -67,23 +69,28 @@ proc getModuleName*(conf: ConfigRef; n: PNode): string =
     localError(conf, n.info, "invalid module name: '$1'" % n.renderTree)
     result = ""
 
-proc checkModuleName*(conf: ConfigRef; n: PNode; doLocalError=true): FileIndex =
+proc checkModuleName*(conf: ConfigRef, n: PNode, doLocalError = true): FileIndex =
   # This returns the full canonical path for a given module import
   let modulename = getModuleName(conf, n)
   let fullPath = findModule(conf, modulename, toFullPath(conf, n.info))
   if fullPath.isEmpty:
     if doLocalError:
-      let m = if modulename.len > 0: modulename else: $n
+      let m =
+        if modulename.len > 0:
+          modulename
+        else:
+          $n
       localError(conf, n.info, "cannot open file: " & m)
     result = InvalidFileIdx
   else:
     result = fileInfoIdx(conf, fullPath)
 
-type
-  SelectedBase = enum
-    FromProject, FromSearchPath, FromNimblePath
+type SelectedBase = enum
+  FromProject
+  FromSearchPath
+  FromNimblePath
 
-proc mangleModuleName*(conf: ConfigRef; path: AbsoluteFile): string =
+proc mangleModuleName*(conf: ConfigRef, path: AbsoluteFile): string =
   ## Mangle a relative module path to avoid path and symbol collisions.
   ##
   ## Used by backends that need to generate intermediary files from Nim modules.
@@ -109,9 +116,13 @@ proc mangleModuleName*(conf: ConfigRef; path: AbsoluteFile): string =
     of FromSearchPath: "@p"
     of FromNimblePath: "@n"
 
-  prefix & best.multiReplace(
-    {$os.DirSep: "@s", $os.AltSep: "@s", "#": "@h", "@": "@@", ":": "@c"})
+  prefix &
+    best.multiReplace(
+      {$os.DirSep: "@s", $os.AltSep: "@s", "#": "@h", "@": "@@", ":": "@c"}
+    )
 
 proc demangleModuleName*(path: string): string =
   ## Demangle a relative module path.
-  result = path.multiReplace({"@@": "@", "@h": "#", "@s": "/", "@m": "", "@p": "", "@n": "", "@c": ":"})
+  result = path.multiReplace(
+    {"@@": "@", "@h": "#", "@s": "/", "@m": "", "@p": "", "@n": "", "@c": ":"}
+  )

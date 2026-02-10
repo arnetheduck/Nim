@@ -1,21 +1,25 @@
 const
-  trailingZeros100: array[100, int8] = [2'i8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0,
-    0, 0, 0, 0, 0, 0]
+  trailingZeros100: array[100, int8] = [
+    2'i8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  ]
 
-  digits100: array[200, char] = ['0', '0', '0', '1', '0', '2', '0', '3', '0', '4', '0', '5',
-    '0', '6', '0', '7', '0', '8', '0', '9', '1', '0', '1', '1', '1', '2', '1', '3', '1', '4',
-    '1', '5', '1', '6', '1', '7', '1', '8', '1', '9', '2', '0', '2', '1', '2', '2', '2', '3',
-    '2', '4', '2', '5', '2', '6', '2', '7', '2', '8', '2', '9', '3', '0', '3', '1', '3', '2',
-    '3', '3', '3', '4', '3', '5', '3', '6', '3', '7', '3', '8', '3', '9', '4', '0', '4', '1',
-    '4', '2', '4', '3', '4', '4', '4', '5', '4', '6', '4', '7', '4', '8', '4', '9', '5', '0',
-    '5', '1', '5', '2', '5', '3', '5', '4', '5', '5', '5', '6', '5', '7', '5', '8', '5', '9',
-    '6', '0', '6', '1', '6', '2', '6', '3', '6', '4', '6', '5', '6', '6', '6', '7', '6', '8',
-    '6', '9', '7', '0', '7', '1', '7', '2', '7', '3', '7', '4', '7', '5', '7', '6', '7', '7',
-    '7', '8', '7', '9', '8', '0', '8', '1', '8', '2', '8', '3', '8', '4', '8', '5', '8', '6',
-    '8', '7', '8', '8', '8', '9', '9', '0', '9', '1', '9', '2', '9', '3', '9', '4', '9', '5',
-    '9', '6', '9', '7', '9', '8', '9', '9']
+  digits100: array[200, char] = [
+    '0', '0', '0', '1', '0', '2', '0', '3', '0', '4', '0', '5', '0', '6', '0', '7', '0',
+    '8', '0', '9', '1', '0', '1', '1', '1', '2', '1', '3', '1', '4', '1', '5', '1', '6',
+    '1', '7', '1', '8', '1', '9', '2', '0', '2', '1', '2', '2', '2', '3', '2', '4', '2',
+    '5', '2', '6', '2', '7', '2', '8', '2', '9', '3', '0', '3', '1', '3', '2', '3', '3',
+    '3', '4', '3', '5', '3', '6', '3', '7', '3', '8', '3', '9', '4', '0', '4', '1', '4',
+    '2', '4', '3', '4', '4', '4', '5', '4', '6', '4', '7', '4', '8', '4', '9', '5', '0',
+    '5', '1', '5', '2', '5', '3', '5', '4', '5', '5', '5', '6', '5', '7', '5', '8', '5',
+    '9', '6', '0', '6', '1', '6', '2', '6', '3', '6', '4', '6', '5', '6', '6', '6', '7',
+    '6', '8', '6', '9', '7', '0', '7', '1', '7', '2', '7', '3', '7', '4', '7', '5', '7',
+    '6', '7', '7', '7', '8', '7', '9', '8', '0', '8', '1', '8', '2', '8', '3', '8', '4',
+    '8', '5', '8', '6', '8', '7', '8', '8', '8', '9', '9', '0', '9', '1', '9', '2', '9',
+    '3', '9', '4', '9', '5', '9', '6', '9', '7', '9', '8', '9', '9',
+  ]
 
 # Inspired by https://engineering.fb.com/2013/03/15/developer-tools/three-optimization-tips-for-c
 # Generates:
@@ -34,9 +38,11 @@ const
 when not defined(nimHasEnforceNoRaises):
   {.pragma: enforceNoRaises.}
 
-proc utoa2Digits*(buf: var openArray[char]; pos: int; digits: uint32) {.inline, enforceNoRaises.} =
+proc utoa2Digits*(
+    buf: var openArray[char], pos: int, digits: uint32
+) {.inline, enforceNoRaises.} =
   buf[pos] = digits100[2 * digits]
-  buf[pos+1] = digits100[2 * digits + 1]
+  buf[pos + 1] = digits100[2 * digits + 1]
   #copyMem(buf, unsafeAddr(digits100[2 * digits]), 2 * sizeof((char)))
 
 proc trailingZeros2Digits*(digits: uint32): int {.inline, enforceNoRaises.} =
@@ -45,14 +51,20 @@ proc trailingZeros2Digits*(digits: uint32): int {.inline, enforceNoRaises.} =
 when defined(js):
   proc numToString(a: SomeInteger): cstring {.importjs: "((#) + \"\")".}
 
-func addChars[T](result: var string, x: T, start: int, n: int) {.inline, enforceNoRaises.} =
+func addChars[T](
+    result: var string, x: T, start: int, n: int
+) {.inline, enforceNoRaises.} =
   let old = result.len
   result.setLen old + n
-  template impl =
-    for i in 0..<n: result[old + i] = x[start + i]
-  when nimvm: impl
+  template impl() =
+    for i in 0 ..< n:
+      result[old + i] = x[start + i]
+
+  when nimvm:
+    impl
   else:
-    when defined(js) or defined(nimscript): impl
+    when defined(js) or defined(nimscript):
+      impl
     else:
       {.noSideEffect.}:
         copyMem result[old].addr, x[start].unsafeAddr, n
@@ -84,21 +96,22 @@ func addIntImpl(result: var string, x: uint64) {.inline, enforceNoRaises.} =
     dec next
   addChars(result, tmp, next, tmp.len - next)
 
-
 func addInt*(result: var string, x: uint64) {.enforceNoRaises.} =
-  when nimvm: addIntImpl(result, x)
+  when nimvm:
+    addIntImpl(result, x)
   else:
-    when not defined(js): addIntImpl(result, x)
+    when not defined(js):
+      addIntImpl(result, x)
     else:
       addChars(result, numToString(x))
 
-proc addInt*(result: var string; x: int64) {.enforceNoRaises.} =
+proc addInt*(result: var string, x: int64) {.enforceNoRaises.} =
   ## Converts integer to its string representation and appends it to `result`.
   runnableExamples:
     var s = "foo"
     s.addInt(45)
     assert s == "foo45"
-  template impl =
+  template impl() =
     var num: uint64
     if x < 0:
       if x == low(int64):
@@ -109,11 +122,14 @@ proc addInt*(result: var string; x: int64) {.enforceNoRaises.} =
     else:
       num = uint64(x)
     addInt(result, num)
-  when nimvm: impl()
+
+  when nimvm:
+    impl()
   else:
     when defined(js):
       addChars(result, numToString(x))
-    else: impl()
+    else:
+      impl()
 
-proc addInt*(result: var string; x: int) {.inline, enforceNoRaises.} =
+proc addInt*(result: var string, x: int) {.inline, enforceNoRaises.} =
   addInt(result, int64(x))

@@ -35,14 +35,18 @@ export uri.encodeUrl, uri.decodeUrl
 when defined(nimPreviewSlimSystem):
   import std/syncio
 
-
 proc addXmlChar(dest: var string, c: char) {.inline.} =
   case c
-  of '&': add(dest, "&amp;")
-  of '<': add(dest, "&lt;")
-  of '>': add(dest, "&gt;")
-  of '\"': add(dest, "&quot;")
-  else: add(dest, c)
+  of '&':
+    add(dest, "&amp;")
+  of '<':
+    add(dest, "&lt;")
+  of '>':
+    add(dest, "&gt;")
+  of '\"':
+    add(dest, "&quot;")
+  else:
+    add(dest, c)
 
 proc xmlEncode*(s: string): string =
   ## Encodes a value to be XML safe:
@@ -52,14 +56,15 @@ proc xmlEncode*(s: string): string =
   ## * `&` is replaced by `&amp;`
   ## * every other character is carried over.
   result = newStringOfCap(s.len + s.len shr 2)
-  for i in 0..len(s)-1: addXmlChar(result, s[i])
+  for i in 0 .. len(s) - 1:
+    addXmlChar(result, s[i])
 
 type
   CgiError* = object of IOError ## Exception that is raised if a CGI error occurs.
   RequestMethod* = enum ## The used request method.
-    methodNone,         ## no REQUEST_METHOD environment variable
-    methodPost,         ## query uses the POST method
-    methodGet           ## query uses the GET method
+    methodNone ## no REQUEST_METHOD environment variable
+    methodPost ## query uses the POST method
+    methodGet ## query uses the GET method
 
 proc cgiError*(msg: string) {.noreturn.} =
   ## Raises a `CgiError` exception with message `msg`.
@@ -92,8 +97,9 @@ iterator decodeData*(data: string): tuple[key, value: string] =
   for (key, value) in uri.decodeQuery(data):
     yield (key, value)
 
-iterator decodeData*(allowedMethods: set[RequestMethod] =
-       {methodNone, methodPost, methodGet}): tuple[key, value: string] =
+iterator decodeData*(
+    allowedMethods: set[RequestMethod] = {methodNone, methodPost, methodGet}
+): tuple[key, value: string] =
   ## Reads and decodes CGI data and yields the (name, value) pairs the
   ## data consists of. If the client does not use a method listed in the
   ## `allowedMethods` set, a `CgiError` exception is raised.
@@ -101,8 +107,9 @@ iterator decodeData*(allowedMethods: set[RequestMethod] =
   for (key, value) in uri.decodeQuery(data):
     yield (key, value)
 
-proc readData*(allowedMethods: set[RequestMethod] =
-               {methodNone, methodPost, methodGet}): StringTableRef =
+proc readData*(
+    allowedMethods: set[RequestMethod] = {methodNone, methodPost, methodGet}
+): StringTableRef =
   ## Reads CGI data. If the client does not use a method listed in the
   ## `allowedMethods` set, a `CgiError` exception is raised.
   result = newStringTable()
@@ -263,7 +270,7 @@ proc setTestData*(keysvalues: varargs[string]) =
   while i < keysvalues.len:
     add(query, encodeUrl(keysvalues[i]))
     add(query, '=')
-    add(query, encodeUrl(keysvalues[i+1]))
+    add(query, encodeUrl(keysvalues[i + 1]))
     add(query, '&')
     inc(i, 2)
   putEnv("QUERY_STRING", query)
@@ -306,15 +313,16 @@ proc setCookie*(name, value: string) =
   ## Sets a cookie.
   write(stdout, "Set-Cookie: ", name, "=", value, "\n")
 
-var
-  gcookies {.threadvar.}: StringTableRef
+var gcookies {.threadvar.}: StringTableRef
 
 proc getCookie*(name: string): string =
   ## Gets a cookie. If no cookie of `name` exists, "" is returned.
-  if gcookies == nil: gcookies = parseCookies(getHttpCookie())
+  if gcookies == nil:
+    gcookies = parseCookies(getHttpCookie())
   result = gcookies.getOrDefault(name)
 
 proc existsCookie*(name: string): bool =
   ## Checks if a cookie of `name` exists.
-  if gcookies == nil: gcookies = parseCookies(getHttpCookie())
+  if gcookies == nil:
+    gcookies = parseCookies(getHttpCookie())
   result = hasKey(gcookies, name)

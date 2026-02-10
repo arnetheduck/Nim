@@ -11,19 +11,14 @@ import std/private/osappdirs
 
 import std/[pathnorm, hashes, sugar, strutils]
 
-from std/private/ospaths2 import  joinPath, splitPath,
-                                  ReadDirEffect, WriteDirEffect,
-                                  isAbsolute, relativePath,
-                                  normalizePathEnd, isRelativeTo, parentDir,
-                                  tailDir, isRootDir, parentDirs, `/../`,
-                                  extractFilename, lastPathPart,
-                                  changeFileExt, addFileExt, cmpPaths, splitFile,
-                                  unixToNativePath, absolutePath, normalizeExe,
-                                  normalizePath
+from std/private/ospaths2 import
+  joinPath, splitPath, ReadDirEffect, WriteDirEffect, isAbsolute, relativePath,
+  normalizePathEnd, isRelativeTo, parentDir, tailDir, isRootDir, parentDirs, `/../`,
+  extractFilename, lastPathPart, changeFileExt, addFileExt, cmpPaths, splitFile,
+  unixToNativePath, absolutePath, normalizeExe, normalizePath
 export ReadDirEffect, WriteDirEffect
 
-type
-  Path* = distinct string
+type Path* = distinct string
 
 func hash*(x: Path): Hash =
   let x = x.string.dup(normalizePath)
@@ -47,10 +42,11 @@ template endsWith(a: string, b: set[char]): bool =
 
 func add(x: var string, tail: string) =
   var state = 0
-  let trailingSep = tail.endsWith({DirSep, AltSep}) or tail.len == 0 and x.endsWith({DirSep, AltSep})
-  normalizePathEnd(x, trailingSep=false)
+  let trailingSep =
+    tail.endsWith({DirSep, AltSep}) or tail.len == 0 and x.endsWith({DirSep, AltSep})
+  normalizePathEnd(x, trailingSep = false)
   addNormalizePath(tail, x, state, DirSep)
-  normalizePathEnd(x, trailingSep=trailingSep)
+  normalizePathEnd(x, trailingSep = trailingSep)
 
 func add*(x: var Path, y: Path) {.borrow.}
 
@@ -124,7 +120,6 @@ proc isRelativeTo*(path: Path, base: Path): bool {.inline.} =
   ## Returns true if `path` is relative to `base`.
   result = isRelativeTo(path.string, base.string)
 
-
 func parentDir*(path: Path): Path {.inline.} =
   ## Returns the parent directory of `path`.
   ##
@@ -152,7 +147,7 @@ func isRootDir*(path: Path): bool {.inline.} =
   ## Checks whether a given `path` is a root directory.
   result = isRootDir(path.string)
 
-iterator parentDirs*(path: Path, fromRoot=false, inclusive=true): Path =
+iterator parentDirs*(path: Path, fromRoot = false, inclusive = true): Path =
   ## Walks over all parent directories of a given `path`.
   ##
   ## If `fromRoot` is true (default: false), the traversal will start from
@@ -233,7 +228,7 @@ func addFileExt*(filename: Path, ext: string): Path {.inline.} =
   ## * `changeFileExt proc`_
   result = Path(addFileExt(filename.string, ext))
 
-func unixToNativePath*(path: Path, drive=Path("")): Path {.inline.} =
+func unixToNativePath*(path: Path, drive = Path("")): Path {.inline.} =
   ## Converts an UNIX-like path to a native one.
   ##
   ## On an UNIX system this does nothing. Else it converts
@@ -275,8 +270,7 @@ proc absolutePath*(path: Path, root = getCurrentDir()): Path =
   ## * `normalizePath proc`_
   result = Path(absolutePath(path.string, root.string))
 
-proc expandTildeImpl(path: string): string {.
-  tags: [ReadEnvEffect, ReadIOEffect].} =
+proc expandTildeImpl(path: string): string {.tags: [ReadEnvEffect, ReadIOEffect].} =
   if len(path) == 0 or path[0] != '~':
     result = path
   elif len(path) == 1:
@@ -287,8 +281,7 @@ proc expandTildeImpl(path: string): string {.
     # TODO: handle `~bob` and `~bob/` which means home of bob
     result = path
 
-proc expandTilde*(path: Path): Path {.inline,
-  tags: [ReadEnvEffect, ReadIOEffect].} =
+proc expandTilde*(path: Path): Path {.inline, tags: [ReadEnvEffect, ReadIOEffect].} =
   ## Expands ``~`` or a path starting with ``~/`` to a full path, replacing
   ## ``~`` with `getHomeDir() <appdirs.html#getHomeDir>`_ (otherwise returns ``path`` unmodified).
   ##
@@ -296,7 +289,8 @@ proc expandTilde*(path: Path): Path {.inline,
   ## convention; also, both ``~/`` and ``~\`` are handled.
   runnableExamples:
     import std/appdirs
-    assert expandTilde(Path("~") / Path("appname.cfg")) == getHomeDir() / Path("appname.cfg")
+    assert expandTilde(Path("~") / Path("appname.cfg")) ==
+      getHomeDir() / Path("appname.cfg")
     assert expandTilde(Path("~/foo/bar")) == getHomeDir() / Path("foo/bar")
     assert expandTilde(Path("/foo/bar")) == Path("/foo/bar")
   result = Path(expandTildeImpl(path.string))

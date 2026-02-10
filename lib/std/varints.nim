@@ -12,43 +12,48 @@
 ##
 ## Unstable API.
 
-const
-  maxVarIntLen* = 9 ## the maximal number of bytes a varint can take
+const maxVarIntLen* = 9 ## the maximal number of bytes a varint can take
 
-proc readVu64*(z: openArray[byte]; pResult: var uint64): int =
+proc readVu64*(z: openArray[byte], pResult: var uint64): int =
   if z[0] <= 240:
     pResult = z[0]
     return 1
   if z[0] <= 248:
-    if z.len < 2: return 0
+    if z.len < 2:
+      return 0
     pResult = (uint64 z[0] - 241) * 256 + z[1].uint64 + 240
     return 2
-  if z.len < int(z[0]-246): return 0
+  if z.len < int(z[0] - 246):
+    return 0
   if z[0] == 249:
-    pResult = 2288u64 + 256u64*z[1].uint64 + z[2].uint64
+    pResult = 2288u64 + 256u64 * z[1].uint64 + z[2].uint64
     return 3
   if z[0] == 250:
     pResult = (z[1].uint64 shl 16u64) + (z[2].uint64 shl 8u64) + z[3].uint64
     return 4
-  let x = (z[1].uint64 shl 24) + (z[2].uint64 shl 16) + (z[3].uint64 shl 8) + z[4].uint64
+  let x =
+    (z[1].uint64 shl 24) + (z[2].uint64 shl 16) + (z[3].uint64 shl 8) + z[4].uint64
   if z[0] == 251:
     pResult = x
     return 5
   if z[0] == 252:
-    pResult = (((uint64)x) shl 8) + z[5].uint64
+    pResult = (((uint64) x) shl 8) + z[5].uint64
     return 6
   if z[0] == 253:
-    pResult = (((uint64)x) shl 16) + (z[5].uint64 shl 8) + z[6].uint64
+    pResult = (((uint64) x) shl 16) + (z[5].uint64 shl 8) + z[6].uint64
     return 7
   if z[0] == 254:
-    pResult = (((uint64)x) shl 24) + (z[5].uint64 shl 16) + (z[6].uint64 shl 8) + z[7].uint64
+    pResult =
+      (((uint64) x) shl 24) + (z[5].uint64 shl 16) + (z[6].uint64 shl 8) + z[7].uint64
     return 8
-  pResult = (((uint64)x) shl 32) +
-              (0xffffffff'u64 and ((z[5].uint64 shl 24) +
-              (z[6].uint64 shl 16) + (z[7].uint64 shl 8) + z[8].uint64))
+  pResult =
+    (((uint64) x) shl 32) + (
+      0xffffffff'u64 and
+      ((z[5].uint64 shl 24) + (z[6].uint64 shl 16) + (z[7].uint64 shl 8) + z[8].uint64)
+    )
   return 9
 
-proc varintWrite32(z: var openArray[byte]; y: uint32) =
+proc varintWrite32(z: var openArray[byte], y: uint32) =
   z[0] = cast[uint8](y shr 24)
   z[1] = cast[uint8](y shr 16)
   z[2] = cast[uint8](y shr 8)

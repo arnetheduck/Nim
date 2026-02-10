@@ -43,13 +43,11 @@ runnableExamples:
     mcCounter.inc(3)
     assert mcCounter.value == 3
 
-
 when defined(nimPreviewSlimSystem):
   import std/assertions
 
 type
-  CacheSeq* = distinct string
-    ## Compile-time sequence of `NimNode`s.
+  CacheSeq* = distinct string ## Compile-time sequence of `NimNode`s.
   CacheTable* = distinct string
     ## Compile-time table of key-value pairs.
     ##
@@ -68,7 +66,7 @@ proc value*(c: CacheCounter): int {.magic: "NccValue".} =
       inc counter
       assert counter.value == 1
 
-proc inc*(c: CacheCounter; by = 1) {.magic: "NccInc".} =
+proc inc*(c: CacheCounter, by = 1) {.magic: "NccInc".} =
   ## Increments the counter `c` with the value `by`.
   runnableExamples:
     static:
@@ -78,7 +76,7 @@ proc inc*(c: CacheCounter; by = 1) {.magic: "NccInc".} =
 
       assert counter.value == 6
 
-proc add*(s: CacheSeq; value: NimNode) {.magic: "NcsAdd".} =
+proc add*(s: CacheSeq, value: NimNode) {.magic: "NcsAdd".} =
   ## Adds `value` to `s`.
   runnableExamples:
     import std/macros
@@ -91,7 +89,7 @@ proc add*(s: CacheSeq; value: NimNode) {.magic: "NcsAdd".} =
       assert mySeq.len == 2
       assert mySeq[1].strVal == "hello ic"
 
-proc incl*(s: CacheSeq; value: NimNode) {.magic: "NcsIncl".} =
+proc incl*(s: CacheSeq, value: NimNode) {.magic: "NcsIncl".} =
   ## Adds `value` to `s`.
   ##
   ## .. hint:: This doesn't do anything if `value` is already in `s`.
@@ -120,7 +118,7 @@ proc len*(s: CacheSeq): int {.magic: "NcsLen".} =
       mySeq.add(val)
       assert mySeq.len == 2
 
-proc `[]`*(s: CacheSeq; i: int): NimNode {.magic: "NcsAt".} =
+proc `[]`*(s: CacheSeq, i: int): NimNode {.magic: "NcsAt".} =
   ## Returns the `i`th value from `s`.
   runnableExamples:
     import std/macros
@@ -130,7 +128,7 @@ proc `[]`*(s: CacheSeq; i: int): NimNode {.magic: "NcsAt".} =
       mySeq.add(newLit(42))
       assert mySeq[0].intVal == 42
 
-proc `[]`*(s: CacheSeq; i: BackwardsIndex): NimNode =
+proc `[]`*(s: CacheSeq, i: BackwardsIndex): NimNode =
   ## Returns the `i`th last value from `s`.
   runnableExamples:
     import std/macros
@@ -139,7 +137,7 @@ proc `[]`*(s: CacheSeq; i: BackwardsIndex): NimNode =
     static:
       mySeq &= newLit(42)
       mySeq &= newLit(7)
-      assert mySeq[^1].intVal == 7  # Last item
+      assert mySeq[^1].intVal == 7 # Last item
       assert mySeq[^2].intVal == 42 # Second last item
   s[s.len - int(i)]
 
@@ -157,9 +155,10 @@ iterator items*(s: CacheSeq): NimNode =
         # check that all values in `myseq` are int literals
         assert val.kind == nnkIntLit
 
-  for i in 0 ..< len(s): yield s[i]
+  for i in 0 ..< len(s):
+    yield s[i]
 
-proc `[]=`*(t: CacheTable; key: string, value: NimNode) {.magic: "NctPut".} =
+proc `[]=`*(t: CacheTable, key: string, value: NimNode) {.magic: "NctPut".} =
   ## Inserts a `(key, value)` pair into `t`.
   ##
   ## .. warning:: `key` has to be unique! Assigning `value` to a `key` that is already
@@ -185,7 +184,7 @@ proc len*(t: CacheTable): int {.magic: "NctLen".} =
       dataTable["key"] = newLit(5)
       assert dataTable.len == 1
 
-proc `[]`*(t: CacheTable; key: string): NimNode {.magic: "NctGet".} =
+proc `[]`*(t: CacheTable, key: string): NimNode {.magic: "NctGet".} =
   ## Retrieves the `NimNode` value at `t[key]`.
   runnableExamples:
     import std/macros
@@ -197,7 +196,7 @@ proc `[]`*(t: CacheTable; key: string): NimNode {.magic: "NctGet".} =
       # get the NimNode back
       assert mcTable["toAdd"].kind == nnkStmtList
 
-proc hasKey*(t: CacheTable; key: string): bool =
+proc hasKey*(t: CacheTable, key: string): bool =
   ## Returns true if `key` is in the table `t`.
   ##
   ## See also:
@@ -212,7 +211,7 @@ proc hasKey*(t: CacheTable; key: string): bool =
       assert mcTable.hasKey("foo")
   raiseAssert "implemented in the vmops"
 
-proc contains*(t: CacheTable; key: string): bool {.inline.} =
+proc contains*(t: CacheTable, key: string): bool {.inline.} =
   ## Alias of [hasKey][hasKey(CacheTable, string)] for use with the `in` operator.
   runnableExamples:
     import std/macros
@@ -223,8 +222,8 @@ proc contains*(t: CacheTable; key: string): bool {.inline.} =
       assert "foo" in mcTable
   t.hasKey(key)
 
-proc hasNext(t: CacheTable; iter: int): bool {.magic: "NctHasNext".}
-proc next(t: CacheTable; iter: int): (string, NimNode, int) {.magic: "NctNext".}
+proc hasNext(t: CacheTable, iter: int): bool {.magic: "NctHasNext".}
+proc next(t: CacheTable, iter: int): (string, NimNode, int) {.magic: "NctNext".}
 
 iterator pairs*(t: CacheTable): (string, NimNode) =
   ## Iterates over all `(key, value)` pairs in `t`.

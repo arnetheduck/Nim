@@ -1,7 +1,7 @@
-import sem, cgen, modulegraphs, ast, llstream, parser, msgs,
-       lineinfos, reorder, options, semdata, cgendata, modules, pathutils,
-       packages, syntaxes, depends, vm, pragmas, idents, lookups, wordrecg,
-       liftdestructors
+import
+  sem, cgen, modulegraphs, ast, llstream, parser, msgs, lineinfos, reorder, options,
+  semdata, cgendata, modules, pathutils, packages, syntaxes, depends, vm, pragmas,
+  idents, lookups, wordrecg, liftdestructors
 
 import pipelineutils
 
@@ -14,10 +14,10 @@ import std/[syncio, objectdollar, assertions, tables, strutils, strtabs]
 import renderer
 import ic/replayer
 
-proc setPipeLinePass*(graph: ModuleGraph; pass: PipelinePass) =
+proc setPipeLinePass*(graph: ModuleGraph, pass: PipelinePass) =
   graph.pipelinePass = pass
 
-proc processPipeline(graph: ModuleGraph; semNode: PNode; bModule: PPassContext): PNode =
+proc processPipeline(graph: ModuleGraph, semNode: PNode, bModule: PPassContext): PNode =
   case graph.pipelinePass
   of CgenPass:
     result = semNode
@@ -47,8 +47,15 @@ proc processPipeline(graph: ModuleGraph; semNode: PNode; bModule: PPassContext):
   of NonePass:
     raiseAssert "use setPipeLinePass to set a proper PipelinePass"
 
-proc processImplicitImports*(graph: ModuleGraph; implicits: seq[string], nodeKind: TNodeKind,
-                             m: PSym, ctx: PContext, bModule: PPassContext, idgen: IdGenerator) =
+proc processImplicitImports*(
+    graph: ModuleGraph,
+    implicits: seq[string],
+    nodeKind: TNodeKind,
+    m: PSym,
+    ctx: PContext,
+    bModule: PPassContext,
+    idgen: IdGenerator,
+) =
   # XXX fixme this should actually be relative to the config file!
   let relativeTo = toFullPath(graph.config, m.info)
   for module in items(implicits):
@@ -63,11 +70,15 @@ proc processImplicitImports*(graph: ModuleGraph; implicits: seq[string], nodeKin
       if semNode == nil or processPipeline(graph, semNode, bModule) == nil:
         break
 
-proc prePass*(c: PContext; n: PNode) =
+proc prePass*(c: PContext, n: PNode) =
   for son in n:
     if son.kind == nkPragma:
       for s in son:
-        var key = if s.kind in nkPragmaCallKinds and s.len > 1: s[0] else: s
+        var key =
+          if s.kind in nkPragmaCallKinds and s.len > 1:
+            s[0]
+          else:
+            s
         if key.kind in {nkBracketExpr, nkCast} or key.kind notin nkIdentKinds:
           continue
         let ident = whichKeyword(considerQuotedIdent(c, key))
@@ -91,9 +102,11 @@ proc prePass*(c: PContext; n: PNode) =
         else:
           discard
 
-proc processPipelineModule*(graph: ModuleGraph; module: PSym; idgen: IdGenerator;
-                    stream: PLLStream): bool =
-  if graph.stopCompile(): return true
+proc processPipelineModule*(
+    graph: ModuleGraph, module: PSym, idgen: IdGenerator, stream: PLLStream
+): bool =
+  if graph.stopCompile():
+    return true
   var
     p: Parser = default(Parser)
     s: PLLStream
@@ -147,26 +160,32 @@ proc processPipelineModule*(graph: ModuleGraph; module: PSym; idgen: IdGenerator
   while true:
     syntaxes.openParser(p, fileIdx, s, graph.cache, graph.config)
 
-    if not belongsToStdlib(graph, module) or (belongsToStdlib(graph, module) and module.name.s == "distros"):
+    if not belongsToStdlib(graph, module) or
+        (belongsToStdlib(graph, module) and module.name.s == "distros"):
       # XXX what about caching? no processing then? what if I change the
       # modules to include between compilation runs? we'd need to track that
       # in ROD files. I think we should enable this feature only
       # for the interactive mode.
       if module.name.s != "nimscriptapi":
-        processImplicitImports graph, graph.config.implicitImports, nkImportStmt, module, ctx, bModule, idgen
-        processImplicitImports graph, graph.config.implicitIncludes, nkIncludeStmt, module, ctx, bModule, idgen
+        processImplicitImports graph,
+          graph.config.implicitImports, nkImportStmt, module, ctx, bModule, idgen
+        processImplicitImports graph,
+          graph.config.implicitIncludes, nkIncludeStmt, module, ctx, bModule, idgen
 
     checkFirstLineIndentation(p)
     block processCode:
-      if graph.stopCompile(): break processCode
+      if graph.stopCompile():
+        break processCode
       var n = parseTopLevelStmt(p)
-      if n.kind == nkEmpty: break processCode
+      if n.kind == nkEmpty:
+        break processCode
       # read everything, no streaming possible
       var sl = newNodeI(nkStmtList, n.info)
       sl.add n
       while true:
         var n = parseTopLevelStmt(p)
-        if n.kind == nkEmpty: break
+        if n.kind == nkEmpty:
+          break
         sl.add n
 
       prePass(ctx, sl)
@@ -178,7 +197,8 @@ proc processPipelineModule*(graph: ModuleGraph; module: PSym; idgen: IdGenerator
       discard processPipeline(graph, semNode, bModule)
 
     closeParser(p)
-    if s.kind != llsStdIn: break
+    if s.kind != llsStdIn:
+      break
   let finalNode = closePContext(graph, ctx, nil)
   case graph.pipelinePass
   of CgenPass:
@@ -217,18 +237,24 @@ proc processPipelineModule*(graph: ModuleGraph; module: PSym; idgen: IdGenerator
     closeRodFile(graph, module)
   result = true
 
-proc compilePipelineModule*(graph: ModuleGraph; fileIdx: FileIndex; flags: TSymFlags; fromModule: PSym = nil): PSym =
+proc compilePipelineModule*(
+    graph: ModuleGraph, fileIdx: FileIndex, flags: TSymFlags, fromModule: PSym = nil
+): PSym =
   var flags = flags
-  if fileIdx == graph.config.projectMainIdx2: flags.incl sfMainModule
+  if fileIdx == graph.config.projectMainIdx2:
+    flags.incl sfMainModule
   result = graph.getModule(fileIdx)
 
   template processModuleAux(moduleStatus) =
     onProcessing(graph, fileIdx, moduleStatus, fromModule = fromModule)
     var s: PLLStream = nil
     if sfMainModule in flags:
-      if graph.config.projectIsStdin: s = stdin.llStreamOpen
-      elif graph.config.projectIsCmd: s = llStreamOpen(graph.config.cmdInput)
+      if graph.config.projectIsStdin:
+        s = stdin.llStreamOpen
+      elif graph.config.projectIsCmd:
+        s = llStreamOpen(graph.config.cmdInput)
     discard processPipelineModule(graph, result, idGeneratorFromModule(result), s)
+
   if result == nil:
     var cachedModules: seq[FileIndex] = @[]
     result = moduleFromRodFile(graph, fileIdx, cachedModules)
@@ -265,7 +291,7 @@ proc compilePipelineModule*(graph: ModuleGraph; fileIdx: FileIndex; flags: TSymF
     processModuleAux("import(dirty)")
     graph.markClientsDirty(fileIdx)
 
-proc importPipelineModule(graph: ModuleGraph; s: PSym, fileIdx: FileIndex): PSym =
+proc importPipelineModule(graph: ModuleGraph, s: PSym, fileIdx: FileIndex): PSym =
   # this is called by the semantic checking phase
   assert graph.config != nil
   result = compilePipelineModule(graph, fileIdx, {}, s)
@@ -277,8 +303,10 @@ proc importPipelineModule(graph: ModuleGraph; s: PSym, fileIdx: FileIndex): PSym
   #  localError(result.info, errAttemptToRedefine, result.name.s)
   # restore the notes for outer module:
   graph.config.notes =
-    if graph.config.belongsToProjectPackage(s) or isDefined(graph.config, "booting"): graph.config.mainPackageNotes
-    else: graph.config.foreignPackageNotes
+    if graph.config.belongsToProjectPackage(s) or isDefined(graph.config, "booting"):
+      graph.config.mainPackageNotes
+    else:
+      graph.config.foreignPackageNotes
 
 proc connectPipelineCallbacks*(graph: ModuleGraph) =
   graph.includeFileCallback = modules.includeModule
@@ -287,18 +315,19 @@ proc connectPipelineCallbacks*(graph: ModuleGraph) =
 proc compilePipelineSystemModule*(graph: ModuleGraph) =
   if graph.systemModule == nil:
     connectPipelineCallbacks(graph)
-    graph.config.m.systemFileIdx = fileInfoIdx(graph.config,
-        graph.config.libpath / RelativeFile"system.nim")
+    graph.config.m.systemFileIdx =
+      fileInfoIdx(graph.config, graph.config.libpath / RelativeFile"system.nim")
     discard graph.compilePipelineModule(graph.config.m.systemFileIdx, {sfSystemModule})
 
-proc compilePipelineProject*(graph: ModuleGraph; projectFileIdx = InvalidFileIdx) =
+proc compilePipelineProject*(graph: ModuleGraph, projectFileIdx = InvalidFileIdx) =
   connectPipelineCallbacks(graph)
   let conf = graph.config
   wantMainModule(conf)
   configComplete(graph)
 
   let systemFileIdx = fileInfoIdx(conf, conf.libpath / RelativeFile"system.nim")
-  let projectFile = if projectFileIdx == InvalidFileIdx: conf.projectMainIdx else: projectFileIdx
+  let projectFile =
+    if projectFileIdx == InvalidFileIdx: conf.projectMainIdx else: projectFileIdx
   conf.projectMainIdx2 = projectFile
 
   let packSym = getPackage(graph, projectFile)

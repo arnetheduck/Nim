@@ -37,10 +37,9 @@ when defined(windows) or defined(nimdoc):
 else:
   import std/posix
 
-type
-  AsyncFile* = ref object
-    fd: AsyncFD
-    offset: int64
+type AsyncFile* = ref object
+  fd: AsyncFD
+  offset: int64
 
 when defined(windows) or defined(nimdoc):
   proc getDesiredAccess(mode: FileMode): int32 =
@@ -54,12 +53,10 @@ when defined(windows) or defined(nimdoc):
 
   proc getCreationDisposition(mode: FileMode, filename: string): int32 =
     case mode
-    of fmRead, fmReadWriteExisting:
-      OPEN_EXISTING
-    of fmReadWrite, fmWrite:
-      CREATE_ALWAYS
-    of fmAppend:
-      OPEN_ALWAYS
+    of fmRead, fmReadWriteExisting: OPEN_EXISTING
+    of fmReadWrite, fmWrite: CREATE_ALWAYS
+    of fmAppend: OPEN_ALWAYS
+
 else:
   proc getPosixFlags(mode: FileMode): cint =
     case mode
@@ -102,9 +99,15 @@ proc openAsync*(filename: string, mode = fmRead): AsyncFile =
     let flags = FILE_FLAG_OVERLAPPED or FILE_ATTRIBUTE_NORMAL
     let desiredAccess = getDesiredAccess(mode)
     let creationDisposition = getCreationDisposition(mode, filename)
-    let fd = createFileW(newWideCString(filename), desiredAccess,
-        FILE_SHARE_READ,
-        nil, creationDisposition, flags, 0)
+    let fd = createFileW(
+      newWideCString(filename),
+      desiredAccess,
+      FILE_SHARE_READ,
+      nil,
+      creationDisposition,
+      flags,
+      0,
+    )
 
     if fd == INVALID_HANDLE_VALUE:
       raiseOSError(osLastError())
@@ -113,7 +116,6 @@ proc openAsync*(filename: string, mode = fmRead): AsyncFile =
 
     if mode == fmAppend:
       result.offset = getFileSize(result)
-
   else:
     let flags = getPosixFlags(mode)
     # RW (Owner), RW (Group), R (Other)
@@ -134,8 +136,9 @@ proc readBuffer*(f: AsyncFile, buf: pointer, size: int): Future[int] =
 
   when defined(windows) or defined(nimdoc):
     var ol = newCustom()
-    ol.data = CompletionData(fd: f.fd, cb:
-      proc (fd: AsyncFD, bytesCount: DWORD, errcode: OSErrorCode) =
+    ol.data = CompletionData(
+      fd: f.fd,
+      cb: proc(fd: AsyncFD, bytesCount: DWORD, errcode: OSErrorCode) =
         if not retFuture.finished:
           if errcode == OSErrorCode(-1):
             assert bytesCount > 0
@@ -147,13 +150,13 @@ proc readBuffer*(f: AsyncFile, buf: pointer, size: int): Future[int] =
               retFuture.complete(0)
             else:
               retFuture.fail(newOSError(errcode))
+      ,
     )
     ol.offset = DWORD(f.offset and 0xffffffff)
     ol.offsetHigh = DWORD(f.offset shr 32)
 
     # According to MSDN we're supposed to pass nil to lpNumberOfBytesRead.
-    let ret = readFile(f.fd.Handle, buf, size.int32, nil,
-                       cast[POVERLAPPED](ol))
+    let ret = readFile(f.fd.Handle, buf, size.int32, nil, cast[POVERLAPPED](ol))
     if not ret.bool:
       let err = osLastError()
       if err.int32 != ERROR_IO_PENDING:
@@ -166,8 +169,9 @@ proc readBuffer*(f: AsyncFile, buf: pointer, size: int): Future[int] =
     else:
       # Request completed immediately.
       var bytesRead: DWORD
-      let overlappedRes = getOverlappedResult(f.fd.Handle,
-          cast[POVERLAPPED](ol), bytesRead, false.WINBOOL)
+      let overlappedRes = getOverlappedResult(
+        f.fd.Handle, cast[POVERLAPPED](ol), bytesRead, false.WINBOOL
+      )
       if not overlappedRes.bool:
         let err = osLastError()
         if err.int32 == ERROR_HANDLE_EOF:
@@ -214,8 +218,9 @@ proc read*(f: AsyncFile, size: int): Future[string] =
     var buffer = alloc0(size)
 
     var ol = newCustom()
-    ol.data = CompletionData(fd: f.fd, cb:
-      proc (fd: AsyncFD, bytesCount: DWORD, errcode: OSErrorCode) =
+    ol.data = CompletionData(
+      fd: f.fd,
+      cb: proc(fd: AsyncFD, bytesCount: DWORD, errcode: OSErrorCode) =
         if not retFuture.finished:
           if errcode == OSErrorCode(-1):
             assert bytesCount > 0
@@ -232,13 +237,13 @@ proc read*(f: AsyncFile, size: int): Future[string] =
         if buffer != nil:
           dealloc buffer
           buffer = nil
+      ,
     )
     ol.offset = DWORD(f.offset and 0xffffffff)
     ol.offsetHigh = DWORD(f.offset shr 32)
 
     # According to MSDN we're supposed to pass nil to lpNumberOfBytesRead.
-    let ret = readFile(f.fd.Handle, buffer, size.int32, nil,
-                       cast[POVERLAPPED](ol))
+    let ret = readFile(f.fd.Handle, buffer, size.int32, nil, cast[POVERLAPPED](ol))
     if not ret.bool:
       let err = osLastError()
       if err.int32 != ERROR_IO_PENDING:
@@ -255,8 +260,9 @@ proc read*(f: AsyncFile, size: int): Future[string] =
     else:
       # Request completed immediately.
       var bytesRead: DWORD
-      let overlappedRes = getOverlappedResult(f.fd.Handle,
-          cast[POVERLAPPED](ol), bytesRead, false.WINBOOL)
+      let overlappedRes = getOverlappedResult(
+        f.fd.Handle, cast[POVERLAPPED](ol), bytesRead, false.WINBOOL
+      )
       if not overlappedRes.bool:
         let err = osLastError()
         if err.int32 == ERROR_HANDLE_EOF:
@@ -343,14 +349,16 @@ proc writeBuffer*(f: AsyncFile, buf: pointer, size: int): Future[void] =
   var retFuture = newFuture[void]("asyncfile.writeBuffer")
   when defined(windows) or defined(nimdoc):
     var ol = newCustom()
-    ol.data = CompletionData(fd: f.fd, cb:
-      proc (fd: AsyncFD, bytesCount: DWORD, errcode: OSErrorCode) =
+    ol.data = CompletionData(
+      fd: f.fd,
+      cb: proc(fd: AsyncFD, bytesCount: DWORD, errcode: OSErrorCode) =
         if not retFuture.finished:
           if errcode == OSErrorCode(-1):
             assert bytesCount == size.int32
             retFuture.complete()
           else:
             retFuture.fail(newOSError(errcode))
+      ,
     )
     # passing -1 here should work according to MSDN, but doesn't. For more
     # information see
@@ -361,8 +369,7 @@ proc writeBuffer*(f: AsyncFile, buf: pointer, size: int): Future[void] =
     f.offset.inc(size)
 
     # According to MSDN we're supposed to pass nil to lpNumberOfBytesWritten.
-    let ret = writeFile(f.fd.Handle, buf, size.int32, nil,
-                       cast[POVERLAPPED](ol))
+    let ret = writeFile(f.fd.Handle, buf, size.int32, nil, cast[POVERLAPPED](ol))
     if not ret.bool:
       let err = osLastError()
       if err.int32 != ERROR_IO_PENDING:
@@ -371,8 +378,9 @@ proc writeBuffer*(f: AsyncFile, buf: pointer, size: int): Future[void] =
     else:
       # Request completed immediately.
       var bytesWritten: DWORD
-      let overlappedRes = getOverlappedResult(f.fd.Handle,
-          cast[POVERLAPPED](ol), bytesWritten, false.WINBOOL)
+      let overlappedRes = getOverlappedResult(
+        f.fd.Handle, cast[POVERLAPPED](ol), bytesWritten, false.WINBOOL
+      )
       if not overlappedRes.bool:
         retFuture.fail(newOSError(osLastError()))
       else:
@@ -416,8 +424,9 @@ proc write*(f: AsyncFile, data: string): Future[void] =
     copyMem(buffer, copy.cstring, data.len)
 
     var ol = newCustom()
-    ol.data = CompletionData(fd: f.fd, cb:
-      proc (fd: AsyncFD, bytesCount: DWORD, errcode: OSErrorCode) =
+    ol.data = CompletionData(
+      fd: f.fd,
+      cb: proc(fd: AsyncFD, bytesCount: DWORD, errcode: OSErrorCode) =
         if not retFuture.finished:
           if errcode == OSErrorCode(-1):
             assert bytesCount == data.len.int32
@@ -427,14 +436,14 @@ proc write*(f: AsyncFile, data: string): Future[void] =
         if buffer != nil:
           dealloc buffer
           buffer = nil
+      ,
     )
     ol.offset = cast[DWORD](f.offset and 0xffffffff)
     ol.offsetHigh = DWORD(f.offset shr 32)
     f.offset.inc(data.len)
 
     # According to MSDN we're supposed to pass nil to lpNumberOfBytesWritten.
-    let ret = writeFile(f.fd.Handle, buffer, data.len.int32, nil,
-                       cast[POVERLAPPED](ol))
+    let ret = writeFile(f.fd.Handle, buffer, data.len.int32, nil, cast[POVERLAPPED](ol))
     if not ret.bool:
       let err = osLastError()
       if err.int32 != ERROR_IO_PENDING:
@@ -446,8 +455,9 @@ proc write*(f: AsyncFile, data: string): Future[void] =
     else:
       # Request completed immediately.
       var bytesWritten: DWORD
-      let overlappedRes = getOverlappedResult(f.fd.Handle,
-          cast[POVERLAPPED](ol), bytesWritten, false.WINBOOL)
+      let overlappedRes = getOverlappedResult(
+        f.fd.Handle, cast[POVERLAPPED](ol), bytesWritten, false.WINBOOL
+      )
       if not overlappedRes.bool:
         retFuture.fail(newOSError(osLastError()))
       else:
@@ -488,8 +498,7 @@ proc write*(f: AsyncFile, data: string): Future[void] =
 proc setFileSize*(f: AsyncFile, length: int64) =
   ## Set a file length.
   when defined(windows) or defined(nimdoc):
-    var
-      high = (length shr 32).DWORD
+    var high = (length shr 32).DWORD
     let
       low = (length and 0xffffffff).DWORD
       status = setFilePointer(f.fd.Handle, low, addr high, 0)

@@ -21,12 +21,12 @@ when not compileOption("threads") and not defined(nimdoc):
 import std/private/syslocks
 
 type
-  Lock* = SysLock ## Nim lock; whether this is re-entrant
-                  ## or not is unspecified!
+  Lock* = SysLock
+    ## Nim lock; whether this is re-entrant
+    ## or not is unspecified!
   Cond* = SysCond ## Nim condition variable
 
 {.push stackTrace: off.}
-
 
 proc `$`*(lock: Lock): string =
   # workaround bug #14873
@@ -54,7 +54,6 @@ proc release*(lock: var Lock) {.inline.} =
   ## Releases the given lock.
   when not defined(js):
     releaseSys(lock)
-
 
 proc initCond*(cond: var Cond) {.inline.} =
   ## Initializes the given condition variable.

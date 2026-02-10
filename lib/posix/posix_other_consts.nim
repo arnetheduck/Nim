@@ -136,7 +136,8 @@ when defined(nuttx):
   var O_NOATIME* {.importc: "O_NOATIME", header: "<fcntl.h>".}: cint
   var O_TMPFILE* {.importc: "O_TMPFILE", header: "<fcntl.h>".}: cint
 var POSIX_FADV_NORMAL* {.importc: "POSIX_FADV_NORMAL", header: "<fcntl.h>".}: cint
-var POSIX_FADV_SEQUENTIAL* {.importc: "POSIX_FADV_SEQUENTIAL", header: "<fcntl.h>".}: cint
+var POSIX_FADV_SEQUENTIAL* {.importc: "POSIX_FADV_SEQUENTIAL", header: "<fcntl.h>".}:
+  cint
 var POSIX_FADV_RANDOM* {.importc: "POSIX_FADV_RANDOM", header: "<fcntl.h>".}: cint
 var POSIX_FADV_WILLNEED* {.importc: "POSIX_FADV_WILLNEED", header: "<fcntl.h>".}: cint
 var POSIX_FADV_DONTNEED* {.importc: "POSIX_FADV_DONTNEED", header: "<fcntl.h>".}: cint
@@ -317,15 +318,19 @@ var IPPROTO_RAW* {.importc: "IPPROTO_RAW", header: "<netinet/in.h>".}: cint
 var IPPROTO_TCP* {.importc: "IPPROTO_TCP", header: "<netinet/in.h>".}: cint
 var IPPROTO_UDP* {.importc: "IPPROTO_UDP", header: "<netinet/in.h>".}: cint
 var INADDR_ANY* {.importc: "INADDR_ANY", header: "<netinet/in.h>".}: InAddrScalar
-var INADDR_LOOPBACK* {.importc: "INADDR_LOOPBACK", header: "<netinet/in.h>".}: InAddrScalar
-var INADDR_BROADCAST* {.importc: "INADDR_BROADCAST", header: "<netinet/in.h>".}: InAddrScalar
+var INADDR_LOOPBACK* {.importc: "INADDR_LOOPBACK", header: "<netinet/in.h>".}:
+  InAddrScalar
+var INADDR_BROADCAST* {.importc: "INADDR_BROADCAST", header: "<netinet/in.h>".}:
+  InAddrScalar
 var INET_ADDRSTRLEN* {.importc: "INET_ADDRSTRLEN", header: "<netinet/in.h>".}: cint
 var INET6_ADDRSTRLEN* {.importc: "INET6_ADDRSTRLEN", header: "<netinet/in.h>".}: cint
 var IPV6_JOIN_GROUP* {.importc: "IPV6_JOIN_GROUP", header: "<netinet/in.h>".}: cint
 var IPV6_LEAVE_GROUP* {.importc: "IPV6_LEAVE_GROUP", header: "<netinet/in.h>".}: cint
-var IPV6_MULTICAST_HOPS* {.importc: "IPV6_MULTICAST_HOPS", header: "<netinet/in.h>".}: cint
+var IPV6_MULTICAST_HOPS* {.importc: "IPV6_MULTICAST_HOPS", header: "<netinet/in.h>".}:
+  cint
 var IPV6_MULTICAST_IF* {.importc: "IPV6_MULTICAST_IF", header: "<netinet/in.h>".}: cint
-var IPV6_MULTICAST_LOOP* {.importc: "IPV6_MULTICAST_LOOP", header: "<netinet/in.h>".}: cint
+var IPV6_MULTICAST_LOOP* {.importc: "IPV6_MULTICAST_LOOP", header: "<netinet/in.h>".}:
+  cint
 var IPV6_UNICAST_HOPS* {.importc: "IPV6_UNICAST_HOPS", header: "<netinet/in.h>".}: cint
 var IPV6_V6ONLY* {.importc: "IPV6_V6ONLY", header: "<netinet/in.h>".}: cint
 
@@ -349,26 +354,53 @@ var POLLHUP* {.importc: "POLLHUP", header: "<poll.h>".}: cshort
 var POLLNVAL* {.importc: "POLLNVAL", header: "<poll.h>".}: cshort
 
 # <pthread.h>
-var PTHREAD_BARRIER_SERIAL_THREAD* {.importc: "PTHREAD_BARRIER_SERIAL_THREAD", header: "<pthread.h>".}: cint
-var PTHREAD_CANCEL_ASYNCHRONOUS* {.importc: "PTHREAD_CANCEL_ASYNCHRONOUS", header: "<pthread.h>".}: cint
-var PTHREAD_CANCEL_ENABLE* {.importc: "PTHREAD_CANCEL_ENABLE", header: "<pthread.h>".}: cint
-var PTHREAD_CANCEL_DEFERRED* {.importc: "PTHREAD_CANCEL_DEFERRED", header: "<pthread.h>".}: cint
-var PTHREAD_CANCEL_DISABLE* {.importc: "PTHREAD_CANCEL_DISABLE", header: "<pthread.h>".}: cint
-var PTHREAD_CREATE_DETACHED* {.importc: "PTHREAD_CREATE_DETACHED", header: "<pthread.h>".}: cint
-var PTHREAD_CREATE_JOINABLE* {.importc: "PTHREAD_CREATE_JOINABLE", header: "<pthread.h>".}: cint
-var PTHREAD_EXPLICIT_SCHED* {.importc: "PTHREAD_EXPLICIT_SCHED", header: "<pthread.h>".}: cint
-var PTHREAD_INHERIT_SCHED* {.importc: "PTHREAD_INHERIT_SCHED", header: "<pthread.h>".}: cint
-var PTHREAD_MUTEX_DEFAULT* {.importc: "PTHREAD_MUTEX_DEFAULT", header: "<pthread.h>".}: cint
-var PTHREAD_MUTEX_ERRORCHECK* {.importc: "PTHREAD_MUTEX_ERRORCHECK", header: "<pthread.h>".}: cint
-var PTHREAD_MUTEX_NORMAL* {.importc: "PTHREAD_MUTEX_NORMAL", header: "<pthread.h>".}: cint
-var PTHREAD_MUTEX_RECURSIVE* {.importc: "PTHREAD_MUTEX_RECURSIVE", header: "<pthread.h>".}: cint
-var PTHREAD_PRIO_INHERIT* {.importc: "PTHREAD_PRIO_INHERIT", header: "<pthread.h>".}: cint
+var PTHREAD_BARRIER_SERIAL_THREAD* {.
+  importc: "PTHREAD_BARRIER_SERIAL_THREAD", header: "<pthread.h>"
+.}: cint
+var PTHREAD_CANCEL_ASYNCHRONOUS* {.
+  importc: "PTHREAD_CANCEL_ASYNCHRONOUS", header: "<pthread.h>"
+.}: cint
+var PTHREAD_CANCEL_ENABLE* {.importc: "PTHREAD_CANCEL_ENABLE", header: "<pthread.h>".}:
+  cint
+var PTHREAD_CANCEL_DEFERRED* {.
+  importc: "PTHREAD_CANCEL_DEFERRED", header: "<pthread.h>"
+.}: cint
+var PTHREAD_CANCEL_DISABLE* {.importc: "PTHREAD_CANCEL_DISABLE", header: "<pthread.h>".}:
+  cint
+var PTHREAD_CREATE_DETACHED* {.
+  importc: "PTHREAD_CREATE_DETACHED", header: "<pthread.h>"
+.}: cint
+var PTHREAD_CREATE_JOINABLE* {.
+  importc: "PTHREAD_CREATE_JOINABLE", header: "<pthread.h>"
+.}: cint
+var PTHREAD_EXPLICIT_SCHED* {.importc: "PTHREAD_EXPLICIT_SCHED", header: "<pthread.h>".}:
+  cint
+var PTHREAD_INHERIT_SCHED* {.importc: "PTHREAD_INHERIT_SCHED", header: "<pthread.h>".}:
+  cint
+var PTHREAD_MUTEX_DEFAULT* {.importc: "PTHREAD_MUTEX_DEFAULT", header: "<pthread.h>".}:
+  cint
+var PTHREAD_MUTEX_ERRORCHECK* {.
+  importc: "PTHREAD_MUTEX_ERRORCHECK", header: "<pthread.h>"
+.}: cint
+var PTHREAD_MUTEX_NORMAL* {.importc: "PTHREAD_MUTEX_NORMAL", header: "<pthread.h>".}:
+  cint
+var PTHREAD_MUTEX_RECURSIVE* {.
+  importc: "PTHREAD_MUTEX_RECURSIVE", header: "<pthread.h>"
+.}: cint
+var PTHREAD_PRIO_INHERIT* {.importc: "PTHREAD_PRIO_INHERIT", header: "<pthread.h>".}:
+  cint
 var PTHREAD_PRIO_NONE* {.importc: "PTHREAD_PRIO_NONE", header: "<pthread.h>".}: cint
-var PTHREAD_PRIO_PROTECT* {.importc: "PTHREAD_PRIO_PROTECT", header: "<pthread.h>".}: cint
-var PTHREAD_PROCESS_SHARED* {.importc: "PTHREAD_PROCESS_SHARED", header: "<pthread.h>".}: cint
-var PTHREAD_PROCESS_PRIVATE* {.importc: "PTHREAD_PROCESS_PRIVATE", header: "<pthread.h>".}: cint
-var PTHREAD_SCOPE_PROCESS* {.importc: "PTHREAD_SCOPE_PROCESS", header: "<pthread.h>".}: cint
-var PTHREAD_SCOPE_SYSTEM* {.importc: "PTHREAD_SCOPE_SYSTEM", header: "<pthread.h>".}: cint
+var PTHREAD_PRIO_PROTECT* {.importc: "PTHREAD_PRIO_PROTECT", header: "<pthread.h>".}:
+  cint
+var PTHREAD_PROCESS_SHARED* {.importc: "PTHREAD_PROCESS_SHARED", header: "<pthread.h>".}:
+  cint
+var PTHREAD_PROCESS_PRIVATE* {.
+  importc: "PTHREAD_PROCESS_PRIVATE", header: "<pthread.h>"
+.}: cint
+var PTHREAD_SCOPE_PROCESS* {.importc: "PTHREAD_SCOPE_PROCESS", header: "<pthread.h>".}:
+  cint
+var PTHREAD_SCOPE_SYSTEM* {.importc: "PTHREAD_SCOPE_SYSTEM", header: "<pthread.h>".}:
+  cint
 
 # <sched.h>
 var SCHED_FIFO* {.importc: "SCHED_FIFO", header: "<sched.h>".}: cint
@@ -445,7 +477,8 @@ var PROT_WRITE* {.importc: "PROT_WRITE", header: "<sys/mman.h>".}: cint
 var PROT_EXEC* {.importc: "PROT_EXEC", header: "<sys/mman.h>".}: cint
 var PROT_NONE* {.importc: "PROT_NONE", header: "<sys/mman.h>".}: cint
 var MAP_ANONYMOUS* {.importc: "MAP_ANONYMOUS", header: "<sys/mman.h>".}: cint
-var MAP_FIXED_NOREPLACE* {.importc: "MAP_FIXED_NOREPLACE", header: "<sys/mman.h>".}: cint
+var MAP_FIXED_NOREPLACE* {.importc: "MAP_FIXED_NOREPLACE", header: "<sys/mman.h>".}:
+  cint
 var MAP_NORESERVE* {.importc: "MAP_NORESERVE", header: "<sys/mman.h>".}: cint
 var MAP_SHARED* {.importc: "MAP_SHARED", header: "<sys/mman.h>".}: cint
 var MAP_PRIVATE* {.importc: "MAP_PRIVATE", header: "<sys/mman.h>".}: cint
@@ -457,13 +490,22 @@ var MCL_CURRENT* {.importc: "MCL_CURRENT", header: "<sys/mman.h>".}: cint
 var MCL_FUTURE* {.importc: "MCL_FUTURE", header: "<sys/mman.h>".}: cint
 var MAP_FAILED* {.importc: "MAP_FAILED", header: "<sys/mman.h>".}: pointer
 var POSIX_MADV_NORMAL* {.importc: "POSIX_MADV_NORMAL", header: "<sys/mman.h>".}: cint
-var POSIX_MADV_SEQUENTIAL* {.importc: "POSIX_MADV_SEQUENTIAL", header: "<sys/mman.h>".}: cint
+var POSIX_MADV_SEQUENTIAL* {.importc: "POSIX_MADV_SEQUENTIAL", header: "<sys/mman.h>".}:
+  cint
 var POSIX_MADV_RANDOM* {.importc: "POSIX_MADV_RANDOM", header: "<sys/mman.h>".}: cint
-var POSIX_MADV_WILLNEED* {.importc: "POSIX_MADV_WILLNEED", header: "<sys/mman.h>".}: cint
-var POSIX_MADV_DONTNEED* {.importc: "POSIX_MADV_DONTNEED", header: "<sys/mman.h>".}: cint
-var POSIX_TYPED_MEM_ALLOCATE* {.importc: "POSIX_TYPED_MEM_ALLOCATE", header: "<sys/mman.h>".}: cint
-var POSIX_TYPED_MEM_ALLOCATE_CONTIG* {.importc: "POSIX_TYPED_MEM_ALLOCATE_CONTIG", header: "<sys/mman.h>".}: cint
-var POSIX_TYPED_MEM_MAP_ALLOCATABLE* {.importc: "POSIX_TYPED_MEM_MAP_ALLOCATABLE", header: "<sys/mman.h>".}: cint
+var POSIX_MADV_WILLNEED* {.importc: "POSIX_MADV_WILLNEED", header: "<sys/mman.h>".}:
+  cint
+var POSIX_MADV_DONTNEED* {.importc: "POSIX_MADV_DONTNEED", header: "<sys/mman.h>".}:
+  cint
+var POSIX_TYPED_MEM_ALLOCATE* {.
+  importc: "POSIX_TYPED_MEM_ALLOCATE", header: "<sys/mman.h>"
+.}: cint
+var POSIX_TYPED_MEM_ALLOCATE_CONTIG* {.
+  importc: "POSIX_TYPED_MEM_ALLOCATE_CONTIG", header: "<sys/mman.h>"
+.}: cint
+var POSIX_TYPED_MEM_MAP_ALLOCATABLE* {.
+  importc: "POSIX_TYPED_MEM_MAP_ALLOCATABLE", header: "<sys/mman.h>"
+.}: cint
 
 # <sys/resource.h>
 var RLIMIT_NOFILE* {.importc: "RLIMIT_NOFILE", header: "<sys/resource.h>".}: cint
@@ -502,7 +544,8 @@ var SOCK_DGRAM* {.importc: "SOCK_DGRAM", header: "<sys/socket.h>".}: cint
 var SOCK_RAW* {.importc: "SOCK_RAW", header: "<sys/socket.h>".}: cint
 when defined(zephyr):
   const SOCK_SEQPACKET* = cint(5)
-  var SOMAXCONN* {.importc: "CONFIG_NET_SOCKETS_POLL_MAX", header: "<sys/socket.h>".}: cint
+  var SOMAXCONN* {.importc: "CONFIG_NET_SOCKETS_POLL_MAX", header: "<sys/socket.h>".}:
+    cint
 else:
   var SOCK_SEQPACKET* {.importc: "SOCK_SEQPACKET", header: "<sys/socket.h>".}: cint
   var SOMAXCONN* {.importc: "SOMAXCONN", header: "<sys/socket.h>".}: cint
@@ -562,11 +605,18 @@ var P_PGID* {.importc: "P_PGID", header: "<sys/wait.h>".}: cint
 
 # <spawn.h>
 var POSIX_SPAWN_RESETIDS* {.importc: "POSIX_SPAWN_RESETIDS", header: "<spawn.h>".}: cint
-var POSIX_SPAWN_SETPGROUP* {.importc: "POSIX_SPAWN_SETPGROUP", header: "<spawn.h>".}: cint
-var POSIX_SPAWN_SETSCHEDPARAM* {.importc: "POSIX_SPAWN_SETSCHEDPARAM", header: "<spawn.h>".}: cint
-var POSIX_SPAWN_SETSCHEDULER* {.importc: "POSIX_SPAWN_SETSCHEDULER", header: "<spawn.h>".}: cint
-var POSIX_SPAWN_SETSIGDEF* {.importc: "POSIX_SPAWN_SETSIGDEF", header: "<spawn.h>".}: cint
-var POSIX_SPAWN_SETSIGMASK* {.importc: "POSIX_SPAWN_SETSIGMASK", header: "<spawn.h>".}: cint
+var POSIX_SPAWN_SETPGROUP* {.importc: "POSIX_SPAWN_SETPGROUP", header: "<spawn.h>".}:
+  cint
+var POSIX_SPAWN_SETSCHEDPARAM* {.
+  importc: "POSIX_SPAWN_SETSCHEDPARAM", header: "<spawn.h>"
+.}: cint
+var POSIX_SPAWN_SETSCHEDULER* {.
+  importc: "POSIX_SPAWN_SETSCHEDULER", header: "<spawn.h>"
+.}: cint
+var POSIX_SPAWN_SETSIGDEF* {.importc: "POSIX_SPAWN_SETSIGDEF", header: "<spawn.h>".}:
+  cint
+var POSIX_SPAWN_SETSIGMASK* {.importc: "POSIX_SPAWN_SETSIGMASK", header: "<spawn.h>".}:
+  cint
 
 # <stdio.h>
 var IOFBF* {.importc: "_IOFBF", header: "<stdio.h>".}: cint
@@ -574,8 +624,11 @@ var IONBF* {.importc: "_IONBF", header: "<stdio.h>".}: cint
 
 # <time.h>
 var CLOCKS_PER_SEC* {.importc: "CLOCKS_PER_SEC", header: "<time.h>".}: clong
-var CLOCK_PROCESS_CPUTIME_ID* {.importc: "CLOCK_PROCESS_CPUTIME_ID", header: "<time.h>".}: cint
-var CLOCK_THREAD_CPUTIME_ID* {.importc: "CLOCK_THREAD_CPUTIME_ID", header: "<time.h>".}: cint
+var CLOCK_PROCESS_CPUTIME_ID* {.
+  importc: "CLOCK_PROCESS_CPUTIME_ID", header: "<time.h>"
+.}: cint
+var CLOCK_THREAD_CPUTIME_ID* {.importc: "CLOCK_THREAD_CPUTIME_ID", header: "<time.h>".}:
+  cint
 var CLOCK_REALTIME* {.importc: "CLOCK_REALTIME", header: "<time.h>".}: cint
 var TIMER_ABSTIME* {.importc: "TIMER_ABSTIME", header: "<time.h>".}: cint
 var CLOCK_MONOTONIC* {.importc: "CLOCK_MONOTONIC", header: "<time.h>".}: cint
@@ -589,19 +642,45 @@ var R_OK* {.importc: "R_OK", header: "<unistd.h>".}: cint
 var W_OK* {.importc: "W_OK", header: "<unistd.h>".}: cint
 var X_OK* {.importc: "X_OK", header: "<unistd.h>".}: cint
 var CS_PATH* {.importc: "_CS_PATH", header: "<unistd.h>".}: cint
-var CS_POSIX_V6_ILP32_OFF32_CFLAGS* {.importc: "_CS_POSIX_V6_ILP32_OFF32_CFLAGS", header: "<unistd.h>".}: cint
-var CS_POSIX_V6_ILP32_OFF32_LDFLAGS* {.importc: "_CS_POSIX_V6_ILP32_OFF32_LDFLAGS", header: "<unistd.h>".}: cint
-var CS_POSIX_V6_ILP32_OFF32_LIBS* {.importc: "_CS_POSIX_V6_ILP32_OFF32_LIBS", header: "<unistd.h>".}: cint
-var CS_POSIX_V6_ILP32_OFFBIG_CFLAGS* {.importc: "_CS_POSIX_V6_ILP32_OFFBIG_CFLAGS", header: "<unistd.h>".}: cint
-var CS_POSIX_V6_ILP32_OFFBIG_LDFLAGS* {.importc: "_CS_POSIX_V6_ILP32_OFFBIG_LDFLAGS", header: "<unistd.h>".}: cint
-var CS_POSIX_V6_ILP32_OFFBIG_LIBS* {.importc: "_CS_POSIX_V6_ILP32_OFFBIG_LIBS", header: "<unistd.h>".}: cint
-var CS_POSIX_V6_LP64_OFF64_CFLAGS* {.importc: "_CS_POSIX_V6_LP64_OFF64_CFLAGS", header: "<unistd.h>".}: cint
-var CS_POSIX_V6_LP64_OFF64_LDFLAGS* {.importc: "_CS_POSIX_V6_LP64_OFF64_LDFLAGS", header: "<unistd.h>".}: cint
-var CS_POSIX_V6_LP64_OFF64_LIBS* {.importc: "_CS_POSIX_V6_LP64_OFF64_LIBS", header: "<unistd.h>".}: cint
-var CS_POSIX_V6_LPBIG_OFFBIG_CFLAGS* {.importc: "_CS_POSIX_V6_LPBIG_OFFBIG_CFLAGS", header: "<unistd.h>".}: cint
-var CS_POSIX_V6_LPBIG_OFFBIG_LDFLAGS* {.importc: "_CS_POSIX_V6_LPBIG_OFFBIG_LDFLAGS", header: "<unistd.h>".}: cint
-var CS_POSIX_V6_LPBIG_OFFBIG_LIBS* {.importc: "_CS_POSIX_V6_LPBIG_OFFBIG_LIBS", header: "<unistd.h>".}: cint
-var CS_POSIX_V6_WIDTH_RESTRICTED_ENVS* {.importc: "_CS_POSIX_V6_WIDTH_RESTRICTED_ENVS", header: "<unistd.h>".}: cint
+var CS_POSIX_V6_ILP32_OFF32_CFLAGS* {.
+  importc: "_CS_POSIX_V6_ILP32_OFF32_CFLAGS", header: "<unistd.h>"
+.}: cint
+var CS_POSIX_V6_ILP32_OFF32_LDFLAGS* {.
+  importc: "_CS_POSIX_V6_ILP32_OFF32_LDFLAGS", header: "<unistd.h>"
+.}: cint
+var CS_POSIX_V6_ILP32_OFF32_LIBS* {.
+  importc: "_CS_POSIX_V6_ILP32_OFF32_LIBS", header: "<unistd.h>"
+.}: cint
+var CS_POSIX_V6_ILP32_OFFBIG_CFLAGS* {.
+  importc: "_CS_POSIX_V6_ILP32_OFFBIG_CFLAGS", header: "<unistd.h>"
+.}: cint
+var CS_POSIX_V6_ILP32_OFFBIG_LDFLAGS* {.
+  importc: "_CS_POSIX_V6_ILP32_OFFBIG_LDFLAGS", header: "<unistd.h>"
+.}: cint
+var CS_POSIX_V6_ILP32_OFFBIG_LIBS* {.
+  importc: "_CS_POSIX_V6_ILP32_OFFBIG_LIBS", header: "<unistd.h>"
+.}: cint
+var CS_POSIX_V6_LP64_OFF64_CFLAGS* {.
+  importc: "_CS_POSIX_V6_LP64_OFF64_CFLAGS", header: "<unistd.h>"
+.}: cint
+var CS_POSIX_V6_LP64_OFF64_LDFLAGS* {.
+  importc: "_CS_POSIX_V6_LP64_OFF64_LDFLAGS", header: "<unistd.h>"
+.}: cint
+var CS_POSIX_V6_LP64_OFF64_LIBS* {.
+  importc: "_CS_POSIX_V6_LP64_OFF64_LIBS", header: "<unistd.h>"
+.}: cint
+var CS_POSIX_V6_LPBIG_OFFBIG_CFLAGS* {.
+  importc: "_CS_POSIX_V6_LPBIG_OFFBIG_CFLAGS", header: "<unistd.h>"
+.}: cint
+var CS_POSIX_V6_LPBIG_OFFBIG_LDFLAGS* {.
+  importc: "_CS_POSIX_V6_LPBIG_OFFBIG_LDFLAGS", header: "<unistd.h>"
+.}: cint
+var CS_POSIX_V6_LPBIG_OFFBIG_LIBS* {.
+  importc: "_CS_POSIX_V6_LPBIG_OFFBIG_LIBS", header: "<unistd.h>"
+.}: cint
+var CS_POSIX_V6_WIDTH_RESTRICTED_ENVS* {.
+  importc: "_CS_POSIX_V6_WIDTH_RESTRICTED_ENVS", header: "<unistd.h>"
+.}: cint
 var F_LOCK* {.importc: "F_LOCK", header: "<unistd.h>".}: cint
 var F_TEST* {.importc: "F_TEST", header: "<unistd.h>".}: cint
 var F_TLOCK* {.importc: "F_TLOCK", header: "<unistd.h>".}: cint
@@ -619,8 +698,10 @@ var PC_NO_TRUNC* {.importc: "_PC_NO_TRUNC", header: "<unistd.h>".}: cint
 var PC_PATH_MAX* {.importc: "_PC_PATH_MAX", header: "<unistd.h>".}: cint
 var PC_PIPE_BUF* {.importc: "_PC_PIPE_BUF", header: "<unistd.h>".}: cint
 var PC_PRIO_IO* {.importc: "_PC_PRIO_IO", header: "<unistd.h>".}: cint
-var PC_REC_INCR_XFER_SIZE* {.importc: "_PC_REC_INCR_XFER_SIZE", header: "<unistd.h>".}: cint
-var PC_REC_MIN_XFER_SIZE* {.importc: "_PC_REC_MIN_XFER_SIZE", header: "<unistd.h>".}: cint
+var PC_REC_INCR_XFER_SIZE* {.importc: "_PC_REC_INCR_XFER_SIZE", header: "<unistd.h>".}:
+  cint
+var PC_REC_MIN_XFER_SIZE* {.importc: "_PC_REC_MIN_XFER_SIZE", header: "<unistd.h>".}:
+  cint
 var PC_REC_XFER_ALIGN* {.importc: "_PC_REC_XFER_ALIGN", header: "<unistd.h>".}: cint
 var PC_SYMLINK_MAX* {.importc: "_PC_SYMLINK_MAX", header: "<unistd.h>".}: cint
 var PC_SYNC_IO* {.importc: "_PC_SYNC_IO", header: "<unistd.h>".}: cint
@@ -643,7 +724,8 @@ var SC_2_VERSION* {.importc: "_SC_2_VERSION", header: "<unistd.h>".}: cint
 var SC_ADVISORY_INFO* {.importc: "_SC_ADVISORY_INFO", header: "<unistd.h>".}: cint
 var SC_AIO_LISTIO_MAX* {.importc: "_SC_AIO_LISTIO_MAX", header: "<unistd.h>".}: cint
 var SC_AIO_MAX* {.importc: "_SC_AIO_MAX", header: "<unistd.h>".}: cint
-var SC_AIO_PRIO_DELTA_MAX* {.importc: "_SC_AIO_PRIO_DELTA_MAX", header: "<unistd.h>".}: cint
+var SC_AIO_PRIO_DELTA_MAX* {.importc: "_SC_AIO_PRIO_DELTA_MAX", header: "<unistd.h>".}:
+  cint
 var SC_ARG_MAX* {.importc: "_SC_ARG_MAX", header: "<unistd.h>".}: cint
 var SC_ASYNCHRONOUS_IO* {.importc: "_SC_ASYNCHRONOUS_IO", header: "<unistd.h>".}: cint
 var SC_ATEXIT_MAX* {.importc: "_SC_ATEXIT_MAX", header: "<unistd.h>".}: cint
@@ -671,7 +753,8 @@ var SC_LOGIN_NAME_MAX* {.importc: "_SC_LOGIN_NAME_MAX", header: "<unistd.h>".}: 
 var SC_MAPPED_FILES* {.importc: "_SC_MAPPED_FILES", header: "<unistd.h>".}: cint
 var SC_MEMLOCK* {.importc: "_SC_MEMLOCK", header: "<unistd.h>".}: cint
 var SC_MEMLOCK_RANGE* {.importc: "_SC_MEMLOCK_RANGE", header: "<unistd.h>".}: cint
-var SC_MEMORY_PROTECTION* {.importc: "_SC_MEMORY_PROTECTION", header: "<unistd.h>".}: cint
+var SC_MEMORY_PROTECTION* {.importc: "_SC_MEMORY_PROTECTION", header: "<unistd.h>".}:
+  cint
 var SC_MESSAGE_PASSING* {.importc: "_SC_MESSAGE_PASSING", header: "<unistd.h>".}: cint
 var SC_MONOTONIC_CLOCK* {.importc: "_SC_MONOTONIC_CLOCK", header: "<unistd.h>".}: cint
 var SC_MQ_OPEN_MAX* {.importc: "_SC_MQ_OPEN_MAX", header: "<unistd.h>".}: cint
@@ -680,10 +763,12 @@ var SC_NGROUPS_MAX* {.importc: "_SC_NGROUPS_MAX", header: "<unistd.h>".}: cint
 var SC_OPEN_MAX* {.importc: "_SC_OPEN_MAX", header: "<unistd.h>".}: cint
 var SC_PAGESIZE* {.importc: "_SC_PAGESIZE", header: "<unistd.h>".}: cint
 var SC_PRIORITIZED_IO* {.importc: "_SC_PRIORITIZED_IO", header: "<unistd.h>".}: cint
-var SC_PRIORITY_SCHEDULING* {.importc: "_SC_PRIORITY_SCHEDULING", header: "<unistd.h>".}: cint
+var SC_PRIORITY_SCHEDULING* {.importc: "_SC_PRIORITY_SCHEDULING", header: "<unistd.h>".}:
+  cint
 var SC_RAW_SOCKETS* {.importc: "_SC_RAW_SOCKETS", header: "<unistd.h>".}: cint
 var SC_RE_DUP_MAX* {.importc: "_SC_RE_DUP_MAX", header: "<unistd.h>".}: cint
-var SC_READER_WRITER_LOCKS* {.importc: "_SC_READER_WRITER_LOCKS", header: "<unistd.h>".}: cint
+var SC_READER_WRITER_LOCKS* {.importc: "_SC_READER_WRITER_LOCKS", header: "<unistd.h>".}:
+  cint
 var SC_REALTIME_SIGNALS* {.importc: "_SC_REALTIME_SIGNALS", header: "<unistd.h>".}: cint
 var SC_REGEXP* {.importc: "_SC_REGEXP", header: "<unistd.h>".}: cint
 var SC_RTSIG_MAX* {.importc: "_SC_RTSIG_MAX", header: "<unistd.h>".}: cint
@@ -691,7 +776,9 @@ var SC_SAVED_IDS* {.importc: "_SC_SAVED_IDS", header: "<unistd.h>".}: cint
 var SC_SEM_NSEMS_MAX* {.importc: "_SC_SEM_NSEMS_MAX", header: "<unistd.h>".}: cint
 var SC_SEM_VALUE_MAX* {.importc: "_SC_SEM_VALUE_MAX", header: "<unistd.h>".}: cint
 var SC_SEMAPHORES* {.importc: "_SC_SEMAPHORES", header: "<unistd.h>".}: cint
-var SC_SHARED_MEMORY_OBJECTS* {.importc: "_SC_SHARED_MEMORY_OBJECTS", header: "<unistd.h>".}: cint
+var SC_SHARED_MEMORY_OBJECTS* {.
+  importc: "_SC_SHARED_MEMORY_OBJECTS", header: "<unistd.h>"
+.}: cint
 var SC_SHELL* {.importc: "_SC_SHELL", header: "<unistd.h>".}: cint
 var SC_SIGQUEUE_MAX* {.importc: "_SC_SIGQUEUE_MAX", header: "<unistd.h>".}: cint
 var SC_SPAWN* {.importc: "_SC_SPAWN", header: "<unistd.h>".}: cint
@@ -701,33 +788,57 @@ var SC_SS_REPL_MAX* {.importc: "_SC_SS_REPL_MAX", header: "<unistd.h>".}: cint
 var SC_STREAM_MAX* {.importc: "_SC_STREAM_MAX", header: "<unistd.h>".}: cint
 var SC_SYMLOOP_MAX* {.importc: "_SC_SYMLOOP_MAX", header: "<unistd.h>".}: cint
 var SC_SYNCHRONIZED_IO* {.importc: "_SC_SYNCHRONIZED_IO", header: "<unistd.h>".}: cint
-var SC_THREAD_ATTR_STACKADDR* {.importc: "_SC_THREAD_ATTR_STACKADDR", header: "<unistd.h>".}: cint
-var SC_THREAD_ATTR_STACKSIZE* {.importc: "_SC_THREAD_ATTR_STACKSIZE", header: "<unistd.h>".}: cint
+var SC_THREAD_ATTR_STACKADDR* {.
+  importc: "_SC_THREAD_ATTR_STACKADDR", header: "<unistd.h>"
+.}: cint
+var SC_THREAD_ATTR_STACKSIZE* {.
+  importc: "_SC_THREAD_ATTR_STACKSIZE", header: "<unistd.h>"
+.}: cint
 var SC_THREAD_CPUTIME* {.importc: "_SC_THREAD_CPUTIME", header: "<unistd.h>".}: cint
-var SC_THREAD_DESTRUCTOR_ITERATIONS* {.importc: "_SC_THREAD_DESTRUCTOR_ITERATIONS", header: "<unistd.h>".}: cint
+var SC_THREAD_DESTRUCTOR_ITERATIONS* {.
+  importc: "_SC_THREAD_DESTRUCTOR_ITERATIONS", header: "<unistd.h>"
+.}: cint
 var SC_THREAD_KEYS_MAX* {.importc: "_SC_THREAD_KEYS_MAX", header: "<unistd.h>".}: cint
-var SC_THREAD_PRIO_INHERIT* {.importc: "_SC_THREAD_PRIO_INHERIT", header: "<unistd.h>".}: cint
-var SC_THREAD_PRIO_PROTECT* {.importc: "_SC_THREAD_PRIO_PROTECT", header: "<unistd.h>".}: cint
-var SC_THREAD_PRIORITY_SCHEDULING* {.importc: "_SC_THREAD_PRIORITY_SCHEDULING", header: "<unistd.h>".}: cint
-var SC_THREAD_PROCESS_SHARED* {.importc: "_SC_THREAD_PROCESS_SHARED", header: "<unistd.h>".}: cint
-var SC_THREAD_SAFE_FUNCTIONS* {.importc: "_SC_THREAD_SAFE_FUNCTIONS", header: "<unistd.h>".}: cint
-var SC_THREAD_SPORADIC_SERVER* {.importc: "_SC_THREAD_SPORADIC_SERVER", header: "<unistd.h>".}: cint
+var SC_THREAD_PRIO_INHERIT* {.importc: "_SC_THREAD_PRIO_INHERIT", header: "<unistd.h>".}:
+  cint
+var SC_THREAD_PRIO_PROTECT* {.importc: "_SC_THREAD_PRIO_PROTECT", header: "<unistd.h>".}:
+  cint
+var SC_THREAD_PRIORITY_SCHEDULING* {.
+  importc: "_SC_THREAD_PRIORITY_SCHEDULING", header: "<unistd.h>"
+.}: cint
+var SC_THREAD_PROCESS_SHARED* {.
+  importc: "_SC_THREAD_PROCESS_SHARED", header: "<unistd.h>"
+.}: cint
+var SC_THREAD_SAFE_FUNCTIONS* {.
+  importc: "_SC_THREAD_SAFE_FUNCTIONS", header: "<unistd.h>"
+.}: cint
+var SC_THREAD_SPORADIC_SERVER* {.
+  importc: "_SC_THREAD_SPORADIC_SERVER", header: "<unistd.h>"
+.}: cint
 var SC_THREAD_STACK_MIN* {.importc: "_SC_THREAD_STACK_MIN", header: "<unistd.h>".}: cint
-var SC_THREAD_THREADS_MAX* {.importc: "_SC_THREAD_THREADS_MAX", header: "<unistd.h>".}: cint
+var SC_THREAD_THREADS_MAX* {.importc: "_SC_THREAD_THREADS_MAX", header: "<unistd.h>".}:
+  cint
 var SC_THREADS* {.importc: "_SC_THREADS", header: "<unistd.h>".}: cint
 var SC_TIMEOUTS* {.importc: "_SC_TIMEOUTS", header: "<unistd.h>".}: cint
 var SC_TIMER_MAX* {.importc: "_SC_TIMER_MAX", header: "<unistd.h>".}: cint
 var SC_TIMERS* {.importc: "_SC_TIMERS", header: "<unistd.h>".}: cint
 var SC_TRACE* {.importc: "_SC_TRACE", header: "<unistd.h>".}: cint
-var SC_TRACE_EVENT_FILTER* {.importc: "_SC_TRACE_EVENT_FILTER", header: "<unistd.h>".}: cint
-var SC_TRACE_EVENT_NAME_MAX* {.importc: "_SC_TRACE_EVENT_NAME_MAX", header: "<unistd.h>".}: cint
+var SC_TRACE_EVENT_FILTER* {.importc: "_SC_TRACE_EVENT_FILTER", header: "<unistd.h>".}:
+  cint
+var SC_TRACE_EVENT_NAME_MAX* {.
+  importc: "_SC_TRACE_EVENT_NAME_MAX", header: "<unistd.h>"
+.}: cint
 var SC_TRACE_INHERIT* {.importc: "_SC_TRACE_INHERIT", header: "<unistd.h>".}: cint
 var SC_TRACE_LOG* {.importc: "_SC_TRACE_LOG", header: "<unistd.h>".}: cint
 var SC_TRACE_NAME_MAX* {.importc: "_SC_TRACE_NAME_MAX", header: "<unistd.h>".}: cint
 var SC_TRACE_SYS_MAX* {.importc: "_SC_TRACE_SYS_MAX", header: "<unistd.h>".}: cint
-var SC_TRACE_USER_EVENT_MAX* {.importc: "_SC_TRACE_USER_EVENT_MAX", header: "<unistd.h>".}: cint
+var SC_TRACE_USER_EVENT_MAX* {.
+  importc: "_SC_TRACE_USER_EVENT_MAX", header: "<unistd.h>"
+.}: cint
 var SC_TTY_NAME_MAX* {.importc: "_SC_TTY_NAME_MAX", header: "<unistd.h>".}: cint
-var SC_TYPED_MEMORY_OBJECTS* {.importc: "_SC_TYPED_MEMORY_OBJECTS", header: "<unistd.h>".}: cint
+var SC_TYPED_MEMORY_OBJECTS* {.
+  importc: "_SC_TYPED_MEMORY_OBJECTS", header: "<unistd.h>"
+.}: cint
 var SC_TZNAME_MAX* {.importc: "_SC_TZNAME_MAX", header: "<unistd.h>".}: cint
 var SC_V6_ILP32_OFF32* {.importc: "_SC_V6_ILP32_OFF32", header: "<unistd.h>".}: cint
 var SC_V6_ILP32_OFFBIG* {.importc: "_SC_V6_ILP32_OFFBIG", header: "<unistd.h>".}: cint
@@ -735,14 +846,18 @@ var SC_V6_LP64_OFF64* {.importc: "_SC_V6_LP64_OFF64", header: "<unistd.h>".}: ci
 var SC_V6_LPBIG_OFFBIG* {.importc: "_SC_V6_LPBIG_OFFBIG", header: "<unistd.h>".}: cint
 var SC_VERSION* {.importc: "_SC_VERSION", header: "<unistd.h>".}: cint
 var SC_XBS5_ILP32_OFF32* {.importc: "_SC_XBS5_ILP32_OFF32", header: "<unistd.h>".}: cint
-var SC_XBS5_ILP32_OFFBIG* {.importc: "_SC_XBS5_ILP32_OFFBIG", header: "<unistd.h>".}: cint
+var SC_XBS5_ILP32_OFFBIG* {.importc: "_SC_XBS5_ILP32_OFFBIG", header: "<unistd.h>".}:
+  cint
 var SC_XBS5_LP64_OFF64* {.importc: "_SC_XBS5_LP64_OFF64", header: "<unistd.h>".}: cint
-var SC_XBS5_LPBIG_OFFBIG* {.importc: "_SC_XBS5_LPBIG_OFFBIG", header: "<unistd.h>".}: cint
+var SC_XBS5_LPBIG_OFFBIG* {.importc: "_SC_XBS5_LPBIG_OFFBIG", header: "<unistd.h>".}:
+  cint
 var SC_XOPEN_CRYPT* {.importc: "_SC_XOPEN_CRYPT", header: "<unistd.h>".}: cint
 var SC_XOPEN_ENH_I18N* {.importc: "_SC_XOPEN_ENH_I18N", header: "<unistd.h>".}: cint
 var SC_XOPEN_LEGACY* {.importc: "_SC_XOPEN_LEGACY", header: "<unistd.h>".}: cint
 var SC_XOPEN_REALTIME* {.importc: "_SC_XOPEN_REALTIME", header: "<unistd.h>".}: cint
-var SC_XOPEN_REALTIME_THREADS* {.importc: "_SC_XOPEN_REALTIME_THREADS", header: "<unistd.h>".}: cint
+var SC_XOPEN_REALTIME_THREADS* {.
+  importc: "_SC_XOPEN_REALTIME_THREADS", header: "<unistd.h>"
+.}: cint
 var SC_XOPEN_SHM* {.importc: "_SC_XOPEN_SHM", header: "<unistd.h>".}: cint
 var SC_XOPEN_STREAMS* {.importc: "_SC_XOPEN_STREAMS", header: "<unistd.h>".}: cint
 var SC_XOPEN_UNIX* {.importc: "_SC_XOPEN_UNIX", header: "<unistd.h>".}: cint
@@ -754,4 +869,6 @@ var SEEK_END* {.importc: "SEEK_END", header: "<unistd.h>".}: cint
 
 # <nuttx/config.h>
 when defined(nuttx):
-  var NEPOLL_MAX* {.importc: "CONFIG_FS_NEPOLL_DESCRIPTORS", header: "<nuttx/config.h>".}: cint
+  var NEPOLL_MAX* {.
+    importc: "CONFIG_FS_NEPOLL_DESCRIPTORS", header: "<nuttx/config.h>"
+  .}: cint

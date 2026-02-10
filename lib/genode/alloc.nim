@@ -17,8 +17,7 @@ when not defined(genode):
 when not declared(GenodeEnv):
   import genode/env
 
-type RamDataspaceCapability {.
-  importcpp: "Genode::Ram_dataspace_capability", pure.} = object
+type RamDataspaceCapability {.importcpp: "Genode::Ram_dataspace_capability", pure.} = object
 
 type
   Map = object
@@ -32,34 +31,33 @@ type
 
   MapSlab = object
     meta: SlabMeta
-    maps: array[1,Map]
+    maps: array[1, Map]
 
 const SlabBackendSize = 4096
 
-proc ramAvail(env: GenodeEnv): int {.
-  importcpp: "#->pd().avail_ram().value".}
+proc ramAvail(env: GenodeEnv): int {.importcpp: "#->pd().avail_ram().value".}
   ## Return number of bytes available for allocation.
 
-proc capsAvail(env: GenodeEnv): int {.
-  importcpp: "#->pd().avail_caps().value".}
+proc capsAvail(env: GenodeEnv): int {.importcpp: "#->pd().avail_caps().value".}
   ## Return the number of available capabilities.
   ## Each dataspace allocation consumes a capability.
 
-proc allocDataspace(env: GenodeEnv; size: int): RamDataspaceCapability {.
-  importcpp: "#->pd().alloc(@)".}
+proc allocDataspace(
+  env: GenodeEnv, size: int
+): RamDataspaceCapability {.importcpp: "#->pd().alloc(@)".}
   ## Allocate a dataspace and its capability.
 
-proc attachDataspace(env: GenodeEnv; ds: RamDataspaceCapability): pointer {.
-  importcpp: "#->rm().attach(@)".}
+proc attachDataspace(
+  env: GenodeEnv, ds: RamDataspaceCapability
+): pointer {.importcpp: "#->rm().attach(@)".}
   ## Attach a dataspace into the component address-space.
 
-proc detachAddress(env: GenodeEnv; p: pointer) {.
-  importcpp: "#->rm().detach(@)".}
+proc detachAddress(env: GenodeEnv, p: pointer) {.importcpp: "#->rm().detach(@)".}
   ## Detach a dataspace from the component address-space.
 
-proc freeDataspace(env: GenodeEnv; ds: RamDataspaceCapability) {.
-  importcpp: "#->pd().free(@)".}
-  ## Free a dataspace.
+proc freeDataspace(
+  env: GenodeEnv, ds: RamDataspaceCapability
+) {.importcpp: "#->pd().free(@)".} ## Free a dataspace.
 
 proc newMapSlab(): ptr MapSlab =
   let
@@ -90,10 +88,8 @@ proc osAllocPages(size: int): pointer =
           map = m
           break findFreeMap
       if slab.meta.next.isNil:
-        slab.meta.next = newMapSlab()
-          # tack a new slab on the tail
-      slab = slab.meta.next
-        # move to next slab in linked list
+        slab.meta.next = newMapSlab() # tack a new slab on the tail
+      slab = slab.meta.next # move to next slab in linked list
   map.ds = runtimeEnv.allocDataspace size
   map.size = size
   map.attachment = runtimeEnv.attachDataspace map.ds
@@ -103,7 +99,7 @@ proc osTryAllocPages(size: int): pointer =
   if runtimeEnv.ramAvail() >= size and runtimeEnv.capsAvail() > 4:
     result = osAllocPages size
 
-proc osDeallocPages(p: pointer; size: int) =
+proc osDeallocPages(p: pointer, size: int) =
   var slab = slabs
   while not slab.isNil:
     # lookup first free spot in slabs

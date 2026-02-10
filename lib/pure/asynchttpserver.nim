@@ -19,7 +19,7 @@ runnableExamples("-r:off"):
   # It will respond to all requests with a `200 OK` response code and "Hello World"
   # as the response body.
   import std/asyncdispatch
-  proc main {.async.} =
+  proc main() {.async.} =
     var server = newAsyncHttpServer()
     proc cb(req: Request) {.async.} =
       echo (req.reqMethod, req.url, req.headers)
@@ -49,8 +49,7 @@ when defined(nimPreviewSlimSystem):
 
 export httpcore except parseHeader
 
-const
-  maxLine = 8*1024
+const maxLine = 8 * 1024
 
 # TODO: If it turns out that the decisions that asynchttpserver makes
 # explicitly, about whether to close the client sockets or upgrade them are
@@ -64,7 +63,7 @@ type
     headers*: HttpHeaders
     protocol*: tuple[orig: string, major, minor: int]
     url*: Uri
-    hostname*: string    ## The hostname of the client that made the request.
+    hostname*: string ## The hostname of the client that made the request.
     body*: string
 
   AsyncHttpServer* = ref object
@@ -87,8 +86,9 @@ proc getPort*(self: AsyncHttpServer): Port {.since: (1, 5, 1).} =
     server.close()
   result = getLocalAddr(self.socket)[1]
 
-proc newAsyncHttpServer*(reuseAddr = true, reusePort = false,
-                         maxBody = 8388608): AsyncHttpServer =
+proc newAsyncHttpServer*(
+    reuseAddr = true, reusePort = false, maxBody = 8388608
+): AsyncHttpServer =
   ## Creates a new `AsyncHttpServer` instance.
   result = AsyncHttpServer(reuseAddr: reuseAddr, reusePort: reusePort, maxBody: maxBody)
 
@@ -102,8 +102,9 @@ proc sendHeaders*(req: Request, headers: HttpHeaders): Future[void] =
   addHeaders(msg, headers)
   return req.client.send(msg)
 
-proc respond*(req: Request, code: HttpCode, content: string,
-              headers: HttpHeaders = nil): Future[void] =
+proc respond*(
+    req: Request, code: HttpCode, content: string, headers: HttpHeaders = nil
+): Future[void] =
   ## Responds to the request with the specified `HttpCode`, headers and
   ## content.
   ##
@@ -149,8 +150,7 @@ proc parseProtocol(protocol: string): tuple[orig: string, major, minor: int] =
   result = default(tuple[orig: string, major, minor: int])
   var i = protocol.skipIgnoreCase("HTTP/")
   if i != 5:
-    raise newException(ValueError, "Invalid request protocol. Got: " &
-        protocol)
+    raise newException(ValueError, "Invalid request protocol. Got: " & protocol)
   result.orig = protocol
   i.inc protocol.parseSaturatedNatural(result.major, i)
   i.inc # Skip .
@@ -171,14 +171,13 @@ func hasChunkedEncoding(request: Request): bool =
   return false
 
 proc processRequest(
-  server: AsyncHttpServer,
-  req: FutureVar[Request],
-  client: AsyncSocket,
-  address: sink string,
-  lineFut: FutureVar[string],
-  callback: proc (request: Request): Future[void] {.closure, gcsafe.},
+    server: AsyncHttpServer,
+    req: FutureVar[Request],
+    client: AsyncSocket,
+    address: sink string,
+    lineFut: FutureVar[string],
+    callback: proc(request: Request): Future[void] {.closure, gcsafe.},
 ): Future[bool] {.async.} =
-
   # Alias `request` to `req.mget()` so we don't have to write `mget` everywhere.
   template request(): Request =
     req.mget()
@@ -197,7 +196,7 @@ proc processRequest(
 
   # We should skip at least one empty line before the request
   # https://tools.ietf.org/html/rfc7230#section-3.5
-  for i in 0..1:
+  for i in 0 .. 1:
     lineFut.mget().setLen(0)
     lineFut.clean()
     await client.recvLineInto(lineFut, maxLength = maxLine) # TODO: Timeouts.
@@ -219,15 +218,24 @@ proc processRequest(
     case i
     of 0:
       case linePart
-      of "GET": request.reqMethod = HttpGet
-      of "POST": request.reqMethod = HttpPost
-      of "HEAD": request.reqMethod = HttpHead
-      of "PUT": request.reqMethod = HttpPut
-      of "DELETE": request.reqMethod = HttpDelete
-      of "PATCH": request.reqMethod = HttpPatch
-      of "OPTIONS": request.reqMethod = HttpOptions
-      of "CONNECT": request.reqMethod = HttpConnect
-      of "TRACE": request.reqMethod = HttpTrace
+      of "GET":
+        request.reqMethod = HttpGet
+      of "POST":
+        request.reqMethod = HttpPost
+      of "HEAD":
+        request.reqMethod = HttpHead
+      of "PUT":
+        request.reqMethod = HttpPut
+      of "DELETE":
+        request.reqMethod = HttpDelete
+      of "PATCH":
+        request.reqMethod = HttpPatch
+      of "OPTIONS":
+        request.reqMethod = HttpOptions
+      of "CONNECT":
+        request.reqMethod = HttpConnect
+      of "TRACE":
+        request.reqMethod = HttpTrace
       else:
         asyncCheck request.respondError(Http400)
         return true # Retry processing of request
@@ -256,11 +264,14 @@ proc processRequest(
     await client.recvLineInto(lineFut, maxLength = maxLine)
 
     if lineFut.mget == "":
-      client.close(); return false
+      client.close()
+      return false
     if lineFut.mget.len > maxLine:
       await request.respondError(Http413)
-      client.close(); return false
-    if lineFut.mget == "\c\L": break
+      client.close()
+      return false
+    if lineFut.mget == "\c\L":
+      break
     let (key, value) = parseHeader(lineFut.mget)
     request.headers[key] = value
     # Ensure the client isn't trying to DoS us.
@@ -290,7 +301,9 @@ proc processRequest(
         return false
       request.body = await client.recv(contentLength)
       if request.body.len != contentLength:
-        await request.respond(Http400, "Bad Request. Content-Length does not match actual.")
+        await request.respond(
+          Http400, "Bad Request. Content-Length does not match actual."
+        )
         return true
   elif hasChunkedEncoding(request):
     # https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Transfer-Encoding
@@ -311,8 +324,13 @@ proc processRequest(
           bytesToRead = lineFut.mget.parseHexInt
         except ValueError:
           # Malformed request
-          await request.respond(Http411, ("Invalid chunked transfer encoding - " &
-                                          "chunk data size must be hex encoded"))
+          await request.respond(
+            Http411,
+            (
+              "Invalid chunked transfer encoding - " &
+              "chunk data size must be hex encoded"
+            ),
+          )
           return true
       else:
         if bytesToRead == 0:
@@ -325,7 +343,9 @@ proc processRequest(
         # Skip \r\n (chunk terminating bytes per spec)
         let separator = await client.recv(2)
         if separator != "\r\n":
-          await request.respond(Http400, "Bad Request. Encoding separator must be \\r\\n")
+          await request.respond(
+            Http400, "Bad Request. Encoding separator must be \\r\\n"
+          )
           return true
 
       inc sizeOrData
@@ -343,10 +363,13 @@ proc processRequest(
   # connection will not be closed and will be kept in the connection pool.
 
   # Persistent connections
-  if (request.protocol == HttpVer11 and
-      cmpIgnoreCase(request.headers.getOrDefault("connection"), "close") != 0) or
-     (request.protocol == HttpVer10 and
-      cmpIgnoreCase(request.headers.getOrDefault("connection"), "keep-alive") == 0):
+  if (
+    request.protocol == HttpVer11 and
+    cmpIgnoreCase(request.headers.getOrDefault("connection"), "close") != 0
+  ) or (
+    request.protocol == HttpVer10 and
+    cmpIgnoreCase(request.headers.getOrDefault("connection"), "keep-alive") == 0
+  ):
     # In HTTP 1.1 we assume that connection is persistent. Unless connection
     # header states otherwise.
     # In HTTP 1.0 we assume that the connection should not be persistent.
@@ -356,9 +379,12 @@ proc processRequest(
     request.client.close()
     return false
 
-proc processClient(server: AsyncHttpServer, client: AsyncSocket, address: string,
-                   callback: proc (request: Request):
-                      Future[void] {.closure, gcsafe.}) {.async.} =
+proc processClient(
+    server: AsyncHttpServer,
+    client: AsyncSocket,
+    address: string,
+    callback: proc(request: Request): Future[void] {.closure, gcsafe.},
+) {.async.} =
   var request = newFutureVar[Request]("asynchttpserver.processClient")
   request.mget().url = initUri()
   request.mget().headers = newHttpHeaders()
@@ -366,23 +392,26 @@ proc processClient(server: AsyncHttpServer, client: AsyncSocket, address: string
   lineFut.mget() = newStringOfCap(80)
 
   while not client.isClosed:
-    let retry = await processRequest(
-      server, request, client, address, lineFut, callback
-    )
+    let retry =
+      await processRequest(server, request, client, address, lineFut, callback)
     if not retry:
       client.close()
       break
 
-const
-  nimMaxDescriptorsFallback* {.intdefine.} = 16_000 ## fallback value for \
-    ## when `maxDescriptors` is not available.
-    ## This can be set on the command line during compilation
-    ## via `-d:nimMaxDescriptorsFallback=N`
+const nimMaxDescriptorsFallback* {.intdefine.} = 16_000
+  ## fallback value for \
+  ## when `maxDescriptors` is not available.
+  ## This can be set on the command line during compilation
+  ## via `-d:nimMaxDescriptorsFallback=N`
 
-proc listen*(server: AsyncHttpServer; port: Port; address = ""; domain = AF_INET) =
+proc listen*(server: AsyncHttpServer, port: Port, address = "", domain = AF_INET) =
   ## Listen to the given port and address.
   when declared(maxDescriptors):
-    server.maxFDs = try: maxDescriptors() except: nimMaxDescriptorsFallback
+    server.maxFDs =
+      try:
+        maxDescriptors()
+      except:
+        nimMaxDescriptorsFallback
   else:
     server.maxFDs = nimMaxDescriptorsFallback
   server.socket = newAsyncSocket(domain)
@@ -394,26 +423,33 @@ proc listen*(server: AsyncHttpServer; port: Port; address = ""; domain = AF_INET
   server.socket.bindAddr(port, address)
   server.socket.listen()
 
-proc shouldAcceptRequest*(server: AsyncHttpServer;
-                          assumedDescriptorsPerRequest = 5): bool {.inline.} =
+proc shouldAcceptRequest*(
+    server: AsyncHttpServer, assumedDescriptorsPerRequest = 5
+): bool {.inline.} =
   ## Returns true if the process's current number of opened file
   ## descriptors is still within the maximum limit and so it's reasonable to
   ## accept yet another request.
-  result = assumedDescriptorsPerRequest < 0 or
+  result =
+    assumedDescriptorsPerRequest < 0 or
     (activeDescriptors() + assumedDescriptorsPerRequest < server.maxFDs)
 
-proc acceptRequest*(server: AsyncHttpServer,
-            callback: proc (request: Request): Future[void] {.closure, gcsafe.}) {.async.} =
+proc acceptRequest*(
+    server: AsyncHttpServer,
+    callback: proc(request: Request): Future[void] {.closure, gcsafe.},
+) {.async.} =
   ## Accepts a single request. Write an explicit loop around this proc so that
   ## errors can be handled properly.
   var (address, client) = await server.socket.acceptAddr()
   asyncCheck processClient(server, client, address, callback)
 
-proc serve*(server: AsyncHttpServer, port: Port,
-            callback: proc (request: Request): Future[void] {.closure, gcsafe.},
-            address = "";
-            assumedDescriptorsPerRequest = -1;
-            domain = AF_INET) {.async.} =
+proc serve*(
+    server: AsyncHttpServer,
+    port: Port,
+    callback: proc(request: Request): Future[void] {.closure, gcsafe.},
+    address = "",
+    assumedDescriptorsPerRequest = -1,
+    domain = AF_INET,
+) {.async.} =
   ## Starts the process of listening for incoming HTTP connections on the
   ## specified address and port.
   ##

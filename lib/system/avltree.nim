@@ -9,7 +9,8 @@
 
 # not really an AVL tree anymore, but still balanced ...
 
-template isBottom(n: PAvlNode): bool = n.link[0] == n
+template isBottom(n: PAvlNode): bool =
+  n.link[0] == n
 
 proc lowGauge(n: PAvlNode): int =
   var it = n
@@ -27,13 +28,15 @@ proc highGauge(n: PAvlNode): int =
 proc find(root: PAvlNode, key: int): PAvlNode =
   var it = root
   while not isBottom(it):
-    if it.key == key: return it
+    if it.key == key:
+      return it
     it = it.link[ord(it.key <% key)]
 
 proc inRange(root: PAvlNode, key: int): PAvlNode =
   var it = root
   while not isBottom(it):
-    if it.key <=% key and key <% it.upperBound: return it
+    if it.key <=% key and key <% it.upperBound:
+      return it
     it = it.link[ord(it.key <% key)]
 
 proc skew(t: var PAvlNode) =
@@ -71,7 +74,8 @@ proc add(a: var MemRegion, t: var PAvlNode, key, upperBound: int) {.benign.} =
     split(t)
 
 proc del(a: var MemRegion, t: var PAvlNode, x: int) {.benign.} =
-  if isBottom(t): return
+  if isBottom(t):
+    return
   a.last = t
   if x <% t.key:
     del(a, t.link[0], x)
@@ -84,8 +88,7 @@ proc del(a: var MemRegion, t: var PAvlNode, x: int) {.benign.} =
     a.deleted = getBottom(a)
     t = t.link[1]
     deallocAvlNode(a, a.last)
-  elif t.link[0].level < t.level-1 or
-       t.link[1].level < t.level-1:
+  elif t.link[0].level < t.level - 1 or t.link[1].level < t.level - 1:
     dec t.level
     if t.link[1].level > t.level:
       t.link[1].level = t.level
@@ -94,4 +97,3 @@ proc del(a: var MemRegion, t: var PAvlNode, x: int) {.benign.} =
     skew(t.link[1].link[1])
     split(t)
     split(t.link[1])
-

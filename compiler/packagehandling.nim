@@ -12,10 +12,11 @@ iterator myParentDirs(p: string): string =
   var current = p
   while true:
     current = current.parentDir
-    if current.len == 0: break
+    if current.len == 0:
+      break
     yield current
 
-proc getNimbleFile*(conf: ConfigRef; path: string): string =
+proc getNimbleFile*(conf: ConfigRef, path: string): string =
   ## returns absolute path to nimble file, e.g.: /pathto/cligen.nimble
   result = ""
   var parents = 0
@@ -33,9 +34,10 @@ proc getNimbleFile*(conf: ConfigRef; path: string): string =
     #echo "set cache ", d, " |", result, "|", parents
     conf.packageCache[d] = result
     dec parents
-    if parents <= 0: break
+    if parents <= 0:
+      break
 
-proc getPackageName*(conf: ConfigRef; path: string): string =
+proc getPackageName*(conf: ConfigRef, path: string): string =
   ## returns nimble package name, e.g.: `cligen`
   let path = getNimbleFile(conf, path)
   if path.len > 0:

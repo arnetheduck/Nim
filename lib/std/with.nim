@@ -14,9 +14,9 @@
 ##
 ## **Since:** version 1.2.
 
-import std/[macros, private / underscored_calls]
+import std/[macros, private/underscored_calls]
 
-macro with*(arg: typed; calls: varargs[untyped]): untyped =
+macro with*(arg: typed, calls: varargs[untyped]): untyped =
   ## This macro provides `chaining`:idx: of function calls.
   ## It does so by patching every call in `calls` to
   ## use `arg` as the first argument.
@@ -31,8 +31,8 @@ macro with*(arg: typed; calls: varargs[untyped]): untyped =
 
     var a = 44
     with a:
-      += 4
-      -= 5
+      +=4
+      -=5
     doAssert a == 43
 
     # Nesting works for object types too!

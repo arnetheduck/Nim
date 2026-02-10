@@ -156,8 +156,12 @@ type
     ready: bool
     when not usesDestructors:
       region: MemRegion
+
   PRawChannel = ptr RawChannel
-  LoadStoreMode = enum mStore, mLoad
+  LoadStoreMode = enum
+    mStore
+    mLoad
+
   Channel*[TMsg] {.gcsafe.} = RawChannel ## a channel for thread communication
 
 const ChannelDeadMask = -2
@@ -177,33 +181,39 @@ proc deinitRawChannel(p: pointer) =
   when not usesDestructors:
     deallocOsPages(c.region)
   else:
-    if c.data != nil: deallocShared(c.data)
+    if c.data != nil:
+      deallocShared(c.data)
   deinitSys(c.lock)
   deinitSysCond(c.cond)
 
 when not usesDestructors:
-  proc storeAux(dest, src: pointer, mt: PNimType, t: PRawChannel,
-                mode: LoadStoreMode) {.benign.}
+  proc storeAux(
+    dest, src: pointer, mt: PNimType, t: PRawChannel, mode: LoadStoreMode
+  ) {.benign.}
 
-  proc storeAux(dest, src: pointer, n: ptr TNimNode, t: PRawChannel,
-                mode: LoadStoreMode) {.benign.} =
+  proc storeAux(
+      dest, src: pointer, n: ptr TNimNode, t: PRawChannel, mode: LoadStoreMode
+  ) {.benign.} =
     var
       d = cast[int](dest)
       s = cast[int](src)
     case n.kind
-    of nkSlot: storeAux(cast[pointer](d +% n.offset),
-                        cast[pointer](s +% n.offset), n.typ, t, mode)
+    of nkSlot:
+      storeAux(
+        cast[pointer](d +% n.offset), cast[pointer](s +% n.offset), n.typ, t, mode
+      )
     of nkList:
-      for i in 0..n.len-1: storeAux(dest, src, n.sons[i], t, mode)
+      for i in 0 .. n.len - 1:
+        storeAux(dest, src, n.sons[i], t, mode)
     of nkCase:
-      copyMem(cast[pointer](d +% n.offset), cast[pointer](s +% n.offset),
-              n.typ.size)
+      copyMem(cast[pointer](d +% n.offset), cast[pointer](s +% n.offset), n.typ.size)
       var m = selectBranch(src, n)
-      if m != nil: storeAux(dest, src, m, t, mode)
-    of nkNone: sysAssert(false, "storeAux")
+      if m != nil:
+        storeAux(dest, src, m, t, mode)
+    of nkNone:
+      sysAssert(false, "storeAux")
 
-  proc storeAux(dest, src: pointer, mt: PNimType, t: PRawChannel,
-                mode: LoadStoreMode) =
+  proc storeAux(dest, src: pointer, mt: PNimType, t: PRawChannel, mode: LoadStoreMode) =
     var
       d = cast[int](dest)
       s = cast[int](src)
@@ -217,8 +227,8 @@ when not usesDestructors:
           x[] = nil
         else:
           var ss = cast[NimString](s2)
-          var ns = cast[NimString](alloc(t.region, GenericSeqSize + ss.len+1))
-          copyMem(ns, ss, ss.len+1 + GenericSeqSize)
+          var ns = cast[NimString](alloc(t.region, GenericSeqSize + ss.len + 1))
+          copyMem(ns, ss, ss.len + 1 + GenericSeqSize)
           x[] = ns
       else:
         var x = cast[PPointer](dest)
@@ -242,20 +252,27 @@ when not usesDestructors:
       else:
         sysAssert(dest != nil, "dest == nil")
         if mode == mStore:
-          x[] = alloc0(t.region, align(GenericSeqSize, mt.base.align) +% seq.len *% mt.base.size)
+          x[] = alloc0(
+            t.region, align(GenericSeqSize, mt.base.align) +% seq.len *% mt.base.size
+          )
         else:
           unsureAsgnRef(x, newSeq(mt, seq.len))
         var dst = cast[int](cast[PPointer](dest)[])
         var dstseq = cast[PGenericSeq](dst)
         dstseq.len = seq.len
         dstseq.reserved = seq.len
-        for i in 0..seq.len-1:
+        for i in 0 .. seq.len - 1:
           storeAux(
-            cast[pointer](dst +% align(GenericSeqSize, mt.base.align) +% i *% mt.base.size),
+            cast[pointer](dst +% align(GenericSeqSize, mt.base.align) +%
+              i *% mt.base.size),
             cast[pointer](cast[int](s2) +% align(GenericSeqSize, mt.base.align) +%
-                          i *% mt.base.size),
-            mt.base, t, mode)
-        if mode != mStore: dealloc(t.region, s2)
+              i *% mt.base.size),
+            mt.base,
+            t,
+            mode,
+          )
+        if mode != mStore:
+          dealloc(t.region, s2)
     of tyObject:
       if mt.base != nil:
         storeAux(dest, src, mt.base, t, mode)
@@ -267,9 +284,14 @@ when not usesDestructors:
     of tyTuple:
       storeAux(dest, src, mt.node, t, mode)
     of tyArray, tyArrayConstr:
-      for i in 0..(mt.size div mt.base.size)-1:
-        storeAux(cast[pointer](d +% i *% mt.base.size),
-                cast[pointer](s +% i *% mt.base.size), mt.base, t, mode)
+      for i in 0 .. (mt.size div mt.base.size) - 1:
+        storeAux(
+          cast[pointer](d +% i *% mt.base.size),
+          cast[pointer](s +% i *% mt.base.size),
+          mt.base,
+          t,
+          mode,
+        )
     of tyRef:
       var s = cast[PPointer](src)[]
       var x = cast[PPointer](dest)
@@ -282,12 +304,15 @@ when not usesDestructors:
         #let size = if mt.base.kind == tyObject: cast[ptr PNimType](s)[].size
         #           else: mt.base.size
         if mode == mStore:
-          let dyntype = when declared(usrToCell): usrToCell(s).typ
-                        else: mt
+          let dyntype =
+            when declared(usrToCell):
+              usrToCell(s).typ
+            else:
+              mt
           let size = dyntype.base.size
           # we store the real dynamic 'ref type' at offset 0, so that
           # no information is lost
-          let a = alloc0(t.region, size+sizeof(pointer))
+          let a = alloc0(t.region, size + sizeof(pointer))
           x[] = a
           cast[PPointer](a)[] = dyntype
           storeAux(a +! sizeof(pointer), s, dyntype.base, t, mode)
@@ -302,20 +327,21 @@ when not usesDestructors:
 
 proc rawSend(q: PRawChannel, data: pointer, typ: PNimType) =
   ## Adds an `item` to the end of the queue `q`.
-  var cap = q.mask+1
+  var cap = q.mask + 1
   if q.count >= cap:
     # start with capacity for 2 entries in the queue:
-    if cap == 0: cap = 1
+    if cap == 0:
+      cap = 1
     when not usesDestructors:
-      var n = cast[pbytes](alloc0(q.region, cap*2*typ.size))
+      var n = cast[pbytes](alloc0(q.region, cap * 2 * typ.size))
     else:
-      var n = cast[pbytes](allocShared0(cap*2*typ.size))
+      var n = cast[pbytes](allocShared0(cap * 2 * typ.size))
     var z = 0
     var i = q.rd
     var c = q.count
     while c > 0:
       dec c
-      copyMem(addr(n[z*typ.size]), addr(q.data[i*typ.size]), typ.size)
+      copyMem(addr(n[z * typ.size]), addr(q.data[i * typ.size]), typ.size)
       i = (i + 1) and q.mask
       inc z
     if q.data != nil:
@@ -324,7 +350,7 @@ proc rawSend(q: PRawChannel, data: pointer, typ: PNimType) =
       else:
         deallocShared(q.data)
     q.data = n
-    q.mask = cap*2 - 1
+    q.mask = cap * 2 - 1
     q.wr = q.count
     q.rd = 0
   when not usesDestructors:
@@ -370,7 +396,12 @@ proc sendImpl(q: PRawChannel, typ: PNimType, msg: pointer, noBlock: bool): bool 
 when defined(gcDestructors):
   proc send*[TMsg](c: var Channel[TMsg], msg: sink TMsg) {.inline.} =
     ## Sends a message to a thread.
-    discard sendImpl(cast[PRawChannel](addr c), cast[PNimType](getTypeInfo(msg)), unsafeAddr(msg), false)
+    discard sendImpl(
+      cast[PRawChannel](addr c),
+      cast[PNimType](getTypeInfo(msg)),
+      unsafeAddr(msg),
+      false,
+    )
     wasMoved(msg)
 
   proc trySend*[TMsg](c: var Channel[TMsg], msg: sink TMsg): bool {.inline.} =
@@ -380,13 +411,21 @@ when defined(gcDestructors):
     ##
     ## Returns `false` if the message was not sent because number of pending items
     ## in the channel exceeded `maxItems`.
-    result = sendImpl(cast[PRawChannel](addr c), cast[PNimType](getTypeInfo(msg)), unsafeAddr(msg), true)
+    result = sendImpl(
+      cast[PRawChannel](addr c), cast[PNimType](getTypeInfo(msg)), unsafeAddr(msg), true
+    )
     if result:
       wasMoved(msg)
+
 else:
   proc send*[TMsg](c: var Channel[TMsg], msg: TMsg) {.inline.} =
     ## Sends a message to a thread. `msg` is deeply copied.
-    discard sendImpl(cast[PRawChannel](addr c), cast[PNimType](getTypeInfo(msg)), unsafeAddr(msg), false)
+    discard sendImpl(
+      cast[PRawChannel](addr c),
+      cast[PNimType](getTypeInfo(msg)),
+      unsafeAddr(msg),
+      false,
+    )
 
   proc trySend*[TMsg](c: var Channel[TMsg], msg: TMsg): bool {.inline.} =
     ## Tries to send a message to a thread.
@@ -395,7 +434,9 @@ else:
     ##
     ## Returns `false` if the message was not sent because number of pending items
     ## in the channel exceeded `maxItems`.
-    result = sendImpl(cast[PRawChannel](addr c), cast[PNimType](getTypeInfo(msg)), unsafeAddr(msg), true)
+    result = sendImpl(
+      cast[PRawChannel](addr c), cast[PNimType](getTypeInfo(msg)), unsafeAddr(msg), true
+    )
 
 proc llRecv(q: PRawChannel, res: pointer, typ: PNimType) =
   q.ready = true
@@ -421,8 +462,7 @@ proc recv*[TMsg](c: var Channel[TMsg]): TMsg =
   llRecv(q, addr(result), cast[PNimType](getTypeInfo(result)))
   releaseSys(q.lock)
 
-proc tryRecv*[TMsg](c: var Channel[TMsg]): tuple[dataAvailable: bool,
-                                                  msg: TMsg] =
+proc tryRecv*[TMsg](c: var Channel[TMsg]): tuple[dataAvailable: bool, msg: TMsg] =
   ## Tries to receive a message from the channel `c`, but this can fail
   ## for all sort of reasons, including contention.
   ##

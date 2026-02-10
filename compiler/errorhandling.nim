@@ -16,27 +16,27 @@ import std/strutils
 when defined(nimPreviewSlimSystem):
   import std/assertions
 
-type
-  ErrorKind* = enum ## expand as you need.
-    RawTypeMismatchError
-    ExpressionCannotBeCalled
-    CustomError
-    WrongNumberOfArguments
-    AmbiguousCall
+type ErrorKind* = enum ## expand as you need.
+  RawTypeMismatchError
+  ExpressionCannotBeCalled
+  CustomError
+  WrongNumberOfArguments
+  AmbiguousCall
 
 proc errorSubNode*(n: PNode): PNode =
   case n.kind
-  of nkEmpty..nkNilLit:
+  of nkEmpty .. nkNilLit:
     result = nil
   of nkError:
     result = n
   else:
     result = nil
-    for i in 0..<n.len:
+    for i in 0 ..< n.len:
       result = errorSubNode(n[i])
-      if result != nil: break
+      if result != nil:
+        break
 
-proc newError*(wrongNode: PNode; k: ErrorKind; args: varargs[PNode]): PNode =
+proc newError*(wrongNode: PNode, k: ErrorKind, args: varargs[PNode]): PNode =
   assert wrongNode.kind != nkError
   let innerError = errorSubNode(wrongNode)
   if innerError != nil:
@@ -45,9 +45,10 @@ proc newError*(wrongNode: PNode; k: ErrorKind; args: varargs[PNode]): PNode =
   result = newNodeIT(nkError, wrongNode.info, newType(tyError, idgen, nil))
   result.add wrongNode
   result.add newIntNode(nkIntLit, ord(k))
-  for a in args: result.add a
+  for a in args:
+    result.add a
 
-proc newError*(wrongNode: PNode; msg: string): PNode =
+proc newError*(wrongNode: PNode, msg: string): PNode =
   assert wrongNode.kind != nkError
   let innerError = errorSubNode(wrongNode)
   if innerError != nil:
@@ -58,7 +59,7 @@ proc newError*(wrongNode: PNode; msg: string): PNode =
   result.add newIntNode(nkIntLit, ord(CustomError))
   result.add newStrNode(msg, wrongNode.info)
 
-proc errorToString*(config: ConfigRef; n: PNode): string =
+proc errorToString*(config: ConfigRef, n: PNode): string =
   assert n.kind == nkError
   assert n.len > 1
   let wrongNode = n[0]
@@ -75,11 +76,11 @@ proc errorToString*(config: ConfigRef; n: PNode): string =
     let a = n[2].sym
     let b = n[3].sym
     var args = "("
-    for i in 1..<wrongNode.len:
-      if i > 1: args.add(", ")
+    for i in 1 ..< wrongNode.len:
+      if i > 1:
+        args.add(", ")
       args.add(typeToString(wrongNode[i].typ))
     args.add(")")
-    result = "ambiguous call; both $1 and $2 match for: $3" % [
-      getProcHeader(config, a),
-      getProcHeader(config, b),
-      args]
+    result =
+      "ambiguous call; both $1 and $2 match for: $3" %
+      [getProcHeader(config, a), getProcHeader(config, b), args]

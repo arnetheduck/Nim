@@ -20,7 +20,7 @@
 # Keep in mind that whenever any limit is reached the AsideBit is set and the real line
 # information is kept in a side channel.
 
-import std / assertions
+import std/assertions
 
 const
   AsideBit = 1
@@ -34,7 +34,7 @@ const
 static:
   assert AsideBit + FileBits + LineBits + ColBits == 32
 
-import .. / ic / [bitabs, rodfiles] # for LitId
+import .. /ic/[bitabs, rodfiles] # for LitId
 
 type
   PackedLineInfo* = distinct uint32
@@ -42,40 +42,46 @@ type
   LineInfoManager* = object
     aside: seq[(LitId, int32, int32)]
 
-const
-  NoLineInfo* = PackedLineInfo(0'u32)
+const NoLineInfo* = PackedLineInfo(0'u32)
 
-proc pack*(m: var LineInfoManager; file: LitId; line, col: int32): PackedLineInfo =
+proc pack*(m: var LineInfoManager, file: LitId, line, col: int32): PackedLineInfo =
   if file.uint32 <= FileMax.uint32 and line <= LineMax and col <= ColMax:
     let col = if col < 0'i32: 0'u32 else: col.uint32
     let line = if line < 0'i32: 0'u32 else: line.uint32
     # use inline representation:
-    result = PackedLineInfo((file.uint32 shl 1'u32) or (line shl uint32(AsideBit + FileBits)) or
-      (col shl uint32(AsideBit + FileBits + LineBits)))
+    result = PackedLineInfo(
+      (file.uint32 shl 1'u32) or (line shl uint32(AsideBit + FileBits)) or
+        (col shl uint32(AsideBit + FileBits + LineBits))
+    )
   else:
     result = PackedLineInfo((m.aside.len shl 1) or AsideBit)
     m.aside.add (file, line, col)
 
-proc unpack*(m: LineInfoManager; i: PackedLineInfo): (LitId, int32, int32) =
+proc unpack*(m: LineInfoManager, i: PackedLineInfo): (LitId, int32, int32) =
   let i = i.uint32
   if (i and 1'u32) == 0'u32:
     # inline representation:
-    result = (LitId((i shr 1'u32) and FileMax.uint32),
+    result = (
+      LitId((i shr 1'u32) and FileMax.uint32),
       int32((i shr uint32(AsideBit + FileBits)) and LineMax.uint32),
-      int32((i shr uint32(AsideBit + FileBits + LineBits)) and ColMax.uint32))
+      int32((i shr uint32(AsideBit + FileBits + LineBits)) and ColMax.uint32),
+    )
   else:
     result = m.aside[int(i shr 1'u32)]
 
-proc getFileId*(m: LineInfoManager; i: PackedLineInfo): LitId =
+proc getFileId*(m: LineInfoManager, i: PackedLineInfo): LitId =
   result = unpack(m, i)[0]
 
-proc store*(r: var RodFile; m: LineInfoManager) = storeSeq(r, m.aside)
-proc load*(r: var RodFile; m: var LineInfoManager) = loadSeq(r, m.aside)
+proc store*(r: var RodFile, m: LineInfoManager) =
+  storeSeq(r, m.aside)
+
+proc load*(r: var RodFile, m: var LineInfoManager) =
+  loadSeq(r, m.aside)
 
 when isMainModule:
   var m = LineInfoManager(aside: @[])
-  for i in 0'i32..<16388'i32:
-    for col in 0'i32..<100'i32:
+  for i in 0'i32 ..< 16388'i32:
+    for col in 0'i32 ..< 100'i32:
       let packed = pack(m, LitId(1023), i, col)
       let u = unpack(m, packed)
       assert u[0] == LitId(1023)

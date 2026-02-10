@@ -4,8 +4,7 @@ include system/inclrtl
 import std/envvars
 import std/private/ospaths2
 
-proc getHomeDir*(): string {.rtl, extern: "nos$1",
-  tags: [ReadEnvEffect, ReadIOEffect].} =
+proc getHomeDir*(): string {.rtl, extern: "nos$1", tags: [ReadEnvEffect, ReadIOEffect].} =
   ## Returns the home directory of the current user.
   ##
   ## This proc is wrapped by the `expandTilde proc`_
@@ -22,11 +21,12 @@ proc getHomeDir*(): string {.rtl, extern: "nos$1",
     import std/os
     assert getHomeDir() == expandTilde("~")
 
-  when defined(windows): return getEnv("USERPROFILE") & "\\"
-  else: return getEnv("HOME") & "/"
+  when defined(windows):
+    return getEnv("USERPROFILE") & "\\"
+  else:
+    return getEnv("HOME") & "/"
 
-proc getDataDir*(): string {.rtl, extern: "nos$1"
-  tags: [ReadEnvEffect, ReadIOEffect].} =
+proc getDataDir*(): string {.rtl, extern: "nos$1", tags: [ReadEnvEffect, ReadIOEffect].} =
   ## Returns the data directory of the current user for applications.
   ## 
   ## On non-Windows OSs, this proc conforms to the XDG Base Directory
@@ -49,8 +49,9 @@ proc getDataDir*(): string {.rtl, extern: "nos$1"
     result = getEnv("XDG_DATA_HOME", getEnv("HOME") / ".local" / "share")
   result.normalizePathEnd(trailingSep = true)
 
-proc getConfigDir*(): string {.rtl, extern: "nos$1",
-  tags: [ReadEnvEffect, ReadIOEffect].} =
+proc getConfigDir*(): string {.
+    rtl, extern: "nos$1", tags: [ReadEnvEffect, ReadIOEffect]
+.} =
   ## Returns the config directory of the current user for applications.
   ##
   ## On non-Windows OSs, this proc conforms to the XDG Base Directory
@@ -109,7 +110,6 @@ proc getCacheDir*(app: string): string =
   else:
     getCacheDir() / app
 
-
 when defined(windows):
   type DWORD = uint32
 
@@ -117,7 +117,7 @@ when defined(windows):
     import std/widestrs
 
   proc getTempPath(
-    nBufferLength: DWORD, lpBuffer: WideCString
+      nBufferLength: DWORD, lpBuffer: WideCString
   ): DWORD {.stdcall, dynlib: "kernel32.dll", importc: "GetTempPathW".} =
     ## Retrieves the path of the directory designated for temporary files.
 
@@ -133,8 +133,7 @@ template getTempDirImpl(result: var string) =
   else:
     getEnvImpl(result, ["TMPDIR", "TEMP", "TMP", "TEMPDIR"])
 
-proc getTempDir*(): string {.rtl, extern: "nos$1",
-  tags: [ReadEnvEffect, ReadIOEffect].} =
+proc getTempDir*(): string {.rtl, extern: "nos$1", tags: [ReadEnvEffect, ReadIOEffect].} =
   ## Returns the temporary directory of the current user for applications to
   ## save temporary files in.
   ##
@@ -169,9 +168,10 @@ proc getTempDir*(): string {.rtl, extern: "nos$1",
           let buffer = newWideCString(size.int)
           if getTempPath(size, buffer) > 0:
             result = $buffer
-      elif defined(android): result = "/data/local/tmp"
+      elif defined(android):
+        result = "/data/local/tmp"
       else:
         getTempDirImpl(result)
     if result.len == 0:
       result = tempDirDefault
-  normalizePathEnd(result, trailingSep=true)
+  normalizePathEnd(result, trailingSep = true)

@@ -13,7 +13,10 @@
 ## for usage.
 
 when not defined(profiler) and not defined(memProfiler):
-  {.error: "Profiling support is turned off! Enable profiling by passing `--profiler:on --stackTrace:on` to the compiler (see the Nim Compiler User Guide for more options).".}
+  {.
+    error:
+      "Profiling support is turned off! Enable profiling by passing `--profiler:on --stackTrace:on` to the compiler (see the Nim Compiler User Guide for more options)."
+  .}
 
 {.used.}
 
@@ -34,20 +37,24 @@ const
 
 when not declared(system.StackTrace):
   type StackTrace = object
-    lines: array[0..20, cstring]
-    files: array[0..20, cstring]
-  proc `[]`*(st: StackTrace, i: int): cstring = st.lines[i]
+    lines: array[0 .. 20, cstring]
+    files: array[0 .. 20, cstring]
+
+  proc `[]`*(st: StackTrace, i: int): cstring =
+    st.lines[i]
 
 # We use a simple hash table of bounded size to keep track of the stack traces:
 type
   ProfileEntry = object
     total: int
     st: StackTrace
-  ProfileData = array[0..64*1024-1, ptr ProfileEntry]
+
+  ProfileData = array[0 .. 64 * 1024 - 1, ptr ProfileEntry]
 
 proc `==`(a, b: StackTrace): bool =
   for i in 0 .. high(a.lines):
-    if a[i] != b[i]: return false
+    if a[i] != b[i]:
+      return false
   result = true
 
 # XXX extract this data structure; it is generally useful ;-)
@@ -65,22 +72,25 @@ when not defined(memProfiler):
     ## set this to change the sampling frequency. Default value is 5ms.
     ## Set it to 0 to disable time based profiling; it uses an imprecise
     ## instruction count measure instead then.
-    if intervalInUs <= 0: interval = 0
-    else: interval = intervalInUs * 1000 - tickCountCorrection
+    if intervalInUs <= 0:
+      interval = 0
+    else:
+      interval = intervalInUs * 1000 - tickCountCorrection
 
 when withThreads:
   import std/locks
-  var
-    profilingLock: Lock
+  var profilingLock: Lock
 
   initLock profilingLock
 
 proc hookAux(st: StackTrace, costs: int) =
   # this is quite performance sensitive!
-  when withThreads: acquire profilingLock
+  when withThreads:
+    acquire profilingLock
   inc totalCalls
   var last = high(st.lines)
-  while last > 0 and isNil(st[last]): dec last
+  while last > 0 and isNil(st[last]):
+    dec last
   var h = hash(pointer(st[last])) and high(profileData)
 
   # we use probing for maxChainLen entries and replace the encountered entry
@@ -103,8 +113,7 @@ proc hookAux(st: StackTrace, costs: int) =
     var chain = 0
     while true:
       if profileData[h] == nil:
-        profileData[h] = cast[ptr ProfileEntry](
-                             allocShared0(sizeof(ProfileEntry)))
+        profileData[h] = cast[ptr ProfileEntry](allocShared0(sizeof(ProfileEntry)))
         profileData[h].total = costs
         profileData[h].st = st
         dec emptySlots
@@ -116,13 +125,12 @@ proc hookAux(st: StackTrace, costs: int) =
       h = ((5 * h) + 1) and high(profileData)
       inc chain
     maxChainLen = max(maxChainLen, chain)
-  when withThreads: release profilingLock
+  when withThreads:
+    release profilingLock
 
 when defined(memProfiler):
-  const
-    SamplingInterval = 50_000
-  var
-    gTicker {.threadvar.}: int
+  const SamplingInterval = 50_000
+  var gTicker {.threadvar.}: int
 
   proc requestedHook(): bool {.nimcall.} =
     if gTicker == 0:
@@ -139,12 +147,14 @@ when defined(memProfiler):
 else:
   var
     t0 {.threadvar.}: Ticks
-    gTicker: int # we use an additional counter to
-                 # avoid calling 'getTicks' too frequently
+    gTicker: int
+      # we use an additional counter to
+      # avoid calling 'getTicks' too frequently
 
   proc requestedHook(): bool {.nimcall.} =
     result = false
-    if interval == 0: result = true
+    if interval == 0:
+      result = true
     elif gTicker == 0:
       gTicker = 500
       if getTicks() - t0 > interval:
@@ -180,40 +190,54 @@ proc writeProfile() {.noconv.} =
     sort(profileData, cmpEntries)
     writeLine(f, "total executions of each stack trace:")
     var entries = 0
-    for i in 0..high(profileData):
-      if profileData[i] != nil: inc entries
+    for i in 0 .. high(profileData):
+      if profileData[i] != nil:
+        inc entries
 
     var perProc = initCountTable[string]()
-    for i in 0..entries-1:
+    for i in 0 .. entries - 1:
       var dups = initHashSet[string]()
-      for ii in 0..high(StackTrace.lines):
+      for ii in 0 .. high(StackTrace.lines):
         let procname = profileData[i].st[ii]
-        if isNil(procname): break
+        if isNil(procname):
+          break
         let p = $procname
         if not containsOrIncl(dups, p):
           perProc.inc(p, profileData[i].total)
 
     var sum = 0
     # only write the first 100 entries:
-    for i in 0..min(100, entries-1):
+    for i in 0 .. min(100, entries - 1):
       if profileData[i].total > 1:
         inc sum, profileData[i].total
-        writeLine(f, "Entry: ", i+1, "/", entries, " Calls: ",
-          profileData[i].total // totalCalls, " [sum: ", sum, "; ",
-          sum // totalCalls, "]")
-        for ii in 0..high(StackTrace.lines):
+        writeLine(
+          f,
+          "Entry: ",
+          i + 1,
+          "/",
+          entries,
+          " Calls: ",
+          profileData[i].total // totalCalls,
+          " [sum: ",
+          sum,
+          "; ",
+          sum // totalCalls,
+          "]",
+        )
+        for ii in 0 .. high(StackTrace.lines):
           let procname = profileData[i].st[ii]
           let filename = profileData[i].st.files[ii]
-          if isNil(procname): break
-          writeLine(f, "  ", $filename & ": " & $procname, " ",
-                    perProc[$procname] // totalCalls)
+          if isNil(procname):
+            break
+          writeLine(
+            f, "  ", $filename & ": " & $procname, " ", perProc[$procname] // totalCalls
+          )
     close(f)
     echo "... done"
   else:
     echo "... failed"
 
-var
-  disabled: int
+var disabled: int
 
 proc disableProfiling*() =
   when declared(system.StackTrace):

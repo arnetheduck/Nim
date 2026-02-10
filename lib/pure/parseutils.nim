@@ -44,23 +44,30 @@
 ## * `parsexml module<parsexml.html>`_ for a XML / HTML parser
 ## * `other parsers<lib.html#pure-libraries-parsers>`_ for other parsers
 
-{.push debugger: off.} # the user does not want to trace a part
-                       # of the standard library!
+{.push debugger: off.}
+  # the user does not want to trace a part
+  # of the standard library!
 
 include "system/inclrtl"
 
-template toOa(s: string): openArray[char] = openArray[char](s)
+template toOa(s: string): openArray[char] =
+  openArray[char](s)
 
 const
   Whitespace = {' ', '\t', '\v', '\r', '\l', '\f'}
-  IdentChars = {'a'..'z', 'A'..'Z', '0'..'9', '_'}
-  IdentStartChars = {'a'..'z', 'A'..'Z', '_'}
-    ## copied from strutils
+  IdentChars = {'a' .. 'z', 'A' .. 'Z', '0' .. '9', '_'}
+  IdentStartChars = {'a' .. 'z', 'A' .. 'Z', '_'} ## copied from strutils
 
 proc toLower(c: char): char {.inline.} =
-  result = if c in {'A'..'Z'}: chr(ord(c)-ord('A')+ord('a')) else: c
+  result =
+    if c in {'A' .. 'Z'}:
+      chr(ord(c) - ord('A') + ord('a'))
+    else:
+      c
 
-proc parseBin*[T: SomeInteger](s: openArray[char], number: var T, maxLen = 0): int {.noSideEffect.} =
+proc parseBin*[T: SomeInteger](
+    s: openArray[char], number: var T, maxLen = 0
+): int {.noSideEffect.} =
   ## Parses a binary number and stores its value in ``number``.
   ##
   ## Returns the number of the parsed characters or 0 in case of an error.
@@ -92,15 +99,24 @@ proc parseBin*[T: SomeInteger](s: openArray[char], number: var T, maxLen = 0): i
   var i = 0
   var output = T(0)
   var foundDigit = false
-  let last = min(s.len, if maxLen == 0: s.len else: i + maxLen)
-  if i + 1 < last and s[i] == '0' and (s[i+1] in {'b', 'B'}): inc(i, 2)
+  let last = min(
+    s.len,
+    if maxLen == 0:
+      s.len
+    else:
+      i + maxLen,
+  )
+  if i + 1 < last and s[i] == '0' and (s[i + 1] in {'b', 'B'}):
+    inc(i, 2)
   while i < last:
     case s[i]
-    of '_': discard
-    of '0'..'1':
+    of '_':
+      discard
+    of '0' .. '1':
       output = output shl 1 or T(ord(s[i]) - ord('0'))
       foundDigit = true
-    else: break
+    else:
+      break
     inc(i)
   if foundDigit:
     number = output
@@ -108,7 +124,9 @@ proc parseBin*[T: SomeInteger](s: openArray[char], number: var T, maxLen = 0): i
   else:
     result = 0
 
-proc parseOct*[T: SomeInteger](s: openArray[char], number: var T, maxLen = 0): int {.noSideEffect.} =
+proc parseOct*[T: SomeInteger](
+    s: openArray[char], number: var T, maxLen = 0
+): int {.noSideEffect.} =
   ## Parses an octal number and stores its value in ``number``.
   ##
   ## Returns the number of the parsed characters or 0 in case of an error.
@@ -140,15 +158,24 @@ proc parseOct*[T: SomeInteger](s: openArray[char], number: var T, maxLen = 0): i
   var i = 0
   var output = T(0)
   var foundDigit = false
-  let last = min(s.len, if maxLen == 0: s.len else: i + maxLen)
-  if i + 1 < last and s[i] == '0' and (s[i+1] in {'o', 'O'}): inc(i, 2)
+  let last = min(
+    s.len,
+    if maxLen == 0:
+      s.len
+    else:
+      i + maxLen,
+  )
+  if i + 1 < last and s[i] == '0' and (s[i + 1] in {'o', 'O'}):
+    inc(i, 2)
   while i < last:
     case s[i]
-    of '_': discard
-    of '0'..'7':
+    of '_':
+      discard
+    of '0' .. '7':
       output = output shl 3 or T(ord(s[i]) - ord('0'))
       foundDigit = true
-    else: break
+    else:
+      break
     inc(i)
   if foundDigit:
     number = output
@@ -156,7 +183,9 @@ proc parseOct*[T: SomeInteger](s: openArray[char], number: var T, maxLen = 0): i
   else:
     result = 0
 
-proc parseHex*[T: SomeInteger](s: openArray[char], number: var T, maxLen = 0): int {.noSideEffect.} =
+proc parseHex*[T: SomeInteger](
+    s: openArray[char], number: var T, maxLen = 0
+): int {.noSideEffect.} =
   ## Parses a hexadecimal number and stores its value in ``number``.
   ##
   ## Returns the number of the parsed characters or 0 in case of an error.
@@ -189,22 +218,32 @@ proc parseHex*[T: SomeInteger](s: openArray[char], number: var T, maxLen = 0): i
   var i = 0
   var output = T(0)
   var foundDigit = false
-  let last = min(s.len, if maxLen == 0: s.len else: i + maxLen)
-  if i + 1 < last and s[i] == '0' and (s[i+1] in {'x', 'X'}): inc(i, 2)
-  elif i < last and s[i] == '#': inc(i)
+  let last = min(
+    s.len,
+    if maxLen == 0:
+      s.len
+    else:
+      i + maxLen,
+  )
+  if i + 1 < last and s[i] == '0' and (s[i + 1] in {'x', 'X'}):
+    inc(i, 2)
+  elif i < last and s[i] == '#':
+    inc(i)
   while i < last:
     case s[i]
-    of '_': discard
-    of '0'..'9':
+    of '_':
+      discard
+    of '0' .. '9':
       output = output shl 4 or T(ord(s[i]) - ord('0'))
       foundDigit = true
-    of 'a'..'f':
+    of 'a' .. 'f':
       output = output shl 4 or T(ord(s[i]) - ord('a') + 10)
       foundDigit = true
-    of 'A'..'F':
+    of 'A' .. 'F':
       output = output shl 4 or T(ord(s[i]) - ord('A') + 10)
       foundDigit = true
-    else: break
+    else:
+      break
     inc(i)
   if foundDigit:
     number = output
@@ -225,8 +264,9 @@ proc parseIdent*(s: openArray[char], ident: var string): int =
   var i = 0
   if i < s.len and s[i] in IdentStartChars:
     inc(i)
-    while i < s.len and s[i] in IdentChars: inc(i)
-    ident = substr(s.toOpenArray(0, i-1))
+    while i < s.len and s[i] in IdentChars:
+      inc(i)
+    ident = substr(s.toOpenArray(0, i - 1))
     result = i
   else:
     result = 0
@@ -242,7 +282,8 @@ proc parseIdent*(s: openArray[char]): string =
   var i = 0
   if i < s.len and s[i] in IdentStartChars:
     inc(i)
-    while i < s.len and s[i] in IdentChars: inc(i)
+    while i < s.len and s[i] in IdentChars:
+      inc(i)
     result = substr(s.toOpenArray(0, i - 1))
   else:
     result = ""
@@ -272,7 +313,8 @@ proc skipWhitespace*(s: openArray[char]): int {.inline.} =
     doAssert skipWhitespace("Hello World", 5) == 1
     doAssert skipWhitespace("Hello  World", 5) == 2
   result = 0
-  while result < s.len and s[result] in Whitespace: inc(result)
+  while result < s.len and s[result] in Whitespace:
+    inc(result)
 
 proc skip*(s, token: openArray[char]): int {.inline.} =
   ## Skips the `token` starting at ``s[start]``. Returns the length of `token`
@@ -284,10 +326,10 @@ proc skip*(s, token: openArray[char]): int {.inline.} =
     doAssert skip("CAPlow", "CAP", 0) == 3
     doAssert skip("CAPlow", "cap", 0) == 0
   result = 0
-  while result < s.len and result < token.len and
-      s[result] == token[result]:
+  while result < s.len and result < token.len and s[result] == token[result]:
     inc(result)
-  if result != token.len: result = 0
+  if result != token.len:
+    result = 0
 
 proc skipIgnoreCase*(s, token: openArray[char]): int =
   ## Same as `skip` but case is ignored for token matching.
@@ -296,8 +338,10 @@ proc skipIgnoreCase*(s, token: openArray[char]): int =
     doAssert skipIgnoreCase("CAPlow", "cap", 0) == 3
   result = 0
   while result < s.len and result < token.len and
-      toLower(s[result]) == toLower(token[result]): inc(result)
-  if result != token.len: result = 0
+      toLower(s[result]) == toLower(token[result]):
+    inc(result)
+  if result != token.len:
+    result = 0
 
 proc skipUntil*(s: openArray[char], until: set[char]): int {.inline.} =
   ## Skips all characters until one char from the set `until` is found
@@ -308,7 +352,8 @@ proc skipUntil*(s: openArray[char], until: set[char]): int {.inline.} =
     doAssert skipUntil("Hello World", {'W'}, 0) == 6
     doAssert skipUntil("Hello World", {'W', 'd'}, 0) == 6
   result = 0
-  while result < s.len and s[result] notin until: inc(result)
+  while result < s.len and s[result] notin until:
+    inc(result)
 
 proc skipUntil*(s: openArray[char], until: char): int {.inline.} =
   ## Skips all characters until the char `until` is found
@@ -320,7 +365,8 @@ proc skipUntil*(s: openArray[char], until: char): int {.inline.} =
     doAssert skipUntil("Hello World", 'W', 0) == 6
     doAssert skipUntil("Hello World", 'w', 0) == 11
   result = 0
-  while result < s.len and s[result] != until: inc(result)
+  while result < s.len and s[result] != until:
+    inc(result)
 
 proc skipWhile*(s: openArray[char], toSkip: set[char]): int {.inline.} =
   ## Skips all characters while one char from the set `toSkip` is found.
@@ -330,13 +376,17 @@ proc skipWhile*(s: openArray[char], toSkip: set[char]): int {.inline.} =
     doAssert skipWhile("Hello World", {'e'}) == 0
     doAssert skipWhile("Hello World", {'W', 'o', 'r'}, 6) == 3
   result = 0
-  while result < s.len and s[result] in toSkip: inc(result)
+  while result < s.len and s[result] in toSkip:
+    inc(result)
 
-proc fastSubstr(s: openArray[char]; token: var string; length: int) =
+proc fastSubstr(s: openArray[char], token: var string, length: int) =
   token.setLen length
-  for i in 0 ..< length: token[i] = s[i]
+  for i in 0 ..< length:
+    token[i] = s[i]
 
-proc parseUntil*(s: openArray[char], token: var string, until: set[char]): int {.inline.} =
+proc parseUntil*(
+    s: openArray[char], token: var string, until: set[char]
+): int {.inline.} =
   ## Parses a token and stores it in ``token``. Returns
   ## the number of the parsed characters or 0 in case of an error. A token
   ## consists of the characters notin `until`.
@@ -349,7 +399,8 @@ proc parseUntil*(s: openArray[char], token: var string, until: set[char]): int {
     doAssert parseUntil("Hello World", myToken, {'W', 'r'}, 3) == 3
     doAssert myToken == "lo "
   var i = 0
-  while i < s.len and s[i] notin until: inc(i)
+  while i < s.len and s[i] notin until:
+    inc(i)
   result = i
   fastSubstr(s, token, result)
   #token = substr(s, start, i-1)
@@ -367,7 +418,8 @@ proc parseUntil*(s: openArray[char], token: var string, until: char): int {.inli
     doAssert parseUntil("Hello World", myToken, 'o', 2) == 2
     doAssert myToken == "ll"
   var i = 0
-  while i < s.len and s[i] != until: inc(i)
+  while i < s.len and s[i] != until:
+    inc(i)
   result = i
   fastSubstr(s, token, result)
   #token = substr(s, start, i-1)
@@ -390,15 +442,18 @@ proc parseUntil*(s: openArray[char], token: var string, until: string): int {.in
   while i < s.len:
     if until.len > 0 and s[i] == until[0]:
       var u = 1
-      while i+u < s.len and u < until.len and s[i+u] == until[u]:
+      while i + u < s.len and u < until.len and s[i + u] == until[u]:
         inc u
-      if u >= until.len: break
+      if u >= until.len:
+        break
     inc(i)
   result = i
   fastSubstr(s, token, result)
   #token = substr(s, start, i-1)
 
-proc parseWhile*(s: openArray[char], token: var string, validChars: set[char]): int {.inline.} =
+proc parseWhile*(
+    s: openArray[char], token: var string, validChars: set[char]
+): int {.inline.} =
   ## Parses a token and stores it in ``token``. Returns
   ## the number of the parsed characters or 0 in case of an error. A token
   ## consists of the characters in `validChars`.
@@ -409,7 +464,8 @@ proc parseWhile*(s: openArray[char], token: var string, validChars: set[char]): 
     doAssert parseWhile("Hello World", myToken, {'W', 'o', 'r'}, 6) == 3
     doAssert myToken == "Wor"
   var i = 0
-  while i < s.len and s[i] in validChars: inc(i)
+  while i < s.len and s[i] in validChars:
+    inc(i)
   result = i
   fastSubstr(s, token, result)
   #token = substr(s, start, i-1)
@@ -423,7 +479,8 @@ proc captureBetween*(s: openArray[char], first: char, second = '\0'): string =
     doAssert captureBetween("Hello World".toOpenArray(6, "Hello World".high), 'l') == "d"
   var i = skipUntil(s, first) + 1
   result = ""
-  discard parseUntil(s.toOpenArray(i, s.high), result, if second == '\0': first else: second)
+  discard
+    parseUntil(s.toOpenArray(i, s.high), result, if second == '\0': first else: second)
 
 proc integerOutOfRangeError() {.noinline, noreturn.} =
   raise newException(ValueError, "Parsed integer outside of valid range")
@@ -437,20 +494,22 @@ proc rawParseInt(s: openArray[char], b: var BiggestInt): int =
     sign: BiggestInt = -1
     i = 0
   if i < s.len:
-    if s[i] == '+': inc(i)
+    if s[i] == '+':
+      inc(i)
     elif s[i] == '-':
       inc(i)
       sign = 1
-  if i < s.len and s[i] in {'0'..'9'}:
+  if i < s.len and s[i] in {'0' .. '9'}:
     b = 0
-    while i < s.len and s[i] in {'0'..'9'}:
+    while i < s.len and s[i] in {'0' .. '9'}:
       let c = ord(s[i]) - ord('0')
       if b >= (low(BiggestInt) + c) div 10:
         b = b * 10 - c
       else:
         integerOutOfRangeError()
       inc(i)
-      while i < s.len and s[i] == '_': inc(i) # underscores are allowed and ignored
+      while i < s.len and s[i] == '_':
+        inc(i) # underscores are allowed and ignored
     if sign == -1 and b == low(BiggestInt):
       integerOutOfRangeError()
     else:
@@ -462,8 +521,9 @@ proc rawParseInt(s: openArray[char], b: var BiggestInt): int =
 when defined(js):
   {.pop.} # overflowChecks: off
 
-proc parseBiggestInt*(s: openArray[char], number: var BiggestInt): int {.
-  rtl, extern: "npuParseBiggestInt", noSideEffect, raises: [ValueError].} =
+proc parseBiggestInt*(
+    s: openArray[char], number: var BiggestInt
+): int {.rtl, extern: "npuParseBiggestInt", noSideEffect, raises: [ValueError].} =
   ## Parses an integer and stores the value into `number`.
   ## Result is the number of processed chars or 0 if there is no integer.
   ## `ValueError` is raised if the parsed integer is out of the valid range.
@@ -480,8 +540,9 @@ proc parseBiggestInt*(s: openArray[char], number: var BiggestInt): int {.
   if result != 0:
     number = res
 
-proc parseInt*(s: openArray[char], number: var int): int {.
-  rtl, extern: "npuParseInt", noSideEffect, raises: [ValueError].} =
+proc parseInt*(
+    s: openArray[char], number: var int
+): int {.rtl, extern: "npuParseInt", noSideEffect, raises: [ValueError].} =
   ## Parses an integer and stores the value into `number`.
   ## Result is the number of processed chars or 0 if there is no integer.
   ## `ValueError` is raised if the parsed integer is out of the valid range.
@@ -497,8 +558,7 @@ proc parseInt*(s: openArray[char], number: var int): int {.
   if result != 0:
     number = int(res)
 
-proc parseSaturatedNatural*(s: openArray[char], b: var int): int {.
-    raises: [].} =
+proc parseSaturatedNatural*(s: openArray[char], b: var int): int {.raises: [].} =
   ## Parses a natural number into ``b``. This cannot raise an overflow
   ## error. ``high(int)`` is returned for an overflow.
   ## The number of processed character is returned.
@@ -508,17 +568,19 @@ proc parseSaturatedNatural*(s: openArray[char], b: var int): int {.
     discard parseSaturatedNatural("848", res)
     doAssert res == 848
   var i = 0
-  if i < s.len and s[i] == '+': inc(i)
-  if i < s.len and s[i] in {'0'..'9'}:
+  if i < s.len and s[i] == '+':
+    inc(i)
+  if i < s.len and s[i] in {'0' .. '9'}:
     b = 0
-    while i < s.len and s[i] in {'0'..'9'}:
+    while i < s.len and s[i] in {'0' .. '9'}:
       let c = ord(s[i]) - ord('0')
       if b <= (high(int) - c) div 10:
         b = b * 10 + c
       else:
         b = high(int)
       inc(i)
-      while i < s.len and s[i] == '_': inc(i) # underscores are allowed and ignored
+      while i < s.len and s[i] == '_':
+        inc(i) # underscores are allowed and ignored
     result = i
   else:
     result = 0
@@ -527,13 +589,15 @@ proc rawParseUInt(s: openArray[char], b: var BiggestUInt): int =
   var
     res = 0.BiggestUInt
     i = 0
-  if i < s.len - 1 and s[i] == '-' and s[i + 1] in {'0'..'9'}:
+  if i < s.len - 1 and s[i] == '-' and s[i + 1] in {'0' .. '9'}:
     integerOutOfRangeError()
-  if i < s.len and s[i] == '+': inc(i) # Allow
-  if i < s.len and s[i] in {'0'..'9'}:
+  if i < s.len and s[i] == '+':
+    inc(i) # Allow
+  if i < s.len and s[i] in {'0' .. '9'}:
     b = 0
-    while i < s.len and s[i] in {'0'..'9'}:
-      if res > BiggestUInt.high div 10: # Highest value that you can multiply 10 without overflow
+    while i < s.len and s[i] in {'0' .. '9'}:
+      if res > BiggestUInt.high div 10:
+        # Highest value that you can multiply 10 without overflow
         integerOutOfRangeError()
       res = res * 10
       let prev = res
@@ -541,14 +605,16 @@ proc rawParseUInt(s: openArray[char], b: var BiggestUInt): int =
       if prev > res:
         integerOutOfRangeError()
       inc(i)
-      while i < s.len and s[i] == '_': inc(i) # underscores are allowed and ignored
+      while i < s.len and s[i] == '_':
+        inc(i) # underscores are allowed and ignored
     b = res
     result = i
   else:
     result = 0
 
-proc parseBiggestUInt*(s: openArray[char], number: var BiggestUInt): int {.
-  rtl, extern: "npuParseBiggestUInt", noSideEffect, raises: [ValueError].} =
+proc parseBiggestUInt*(
+    s: openArray[char], number: var BiggestUInt
+): int {.rtl, extern: "npuParseBiggestUInt", noSideEffect, raises: [ValueError].} =
   ## Parses an unsigned integer and stores the value
   ## into `number`.
   ## `ValueError` is raised if the parsed integer is out of the valid range.
@@ -565,8 +631,9 @@ proc parseBiggestUInt*(s: openArray[char], number: var BiggestUInt): int {.
   if result != 0:
     number = res
 
-proc parseUInt*(s: openArray[char], number: var uint): int {.
-  rtl, extern: "npuParseUInt", noSideEffect, raises: [ValueError].} =
+proc parseUInt*(
+    s: openArray[char], number: var uint
+): int {.rtl, extern: "npuParseUInt", noSideEffect, raises: [ValueError].} =
   ## Parses an unsigned integer and stores the value
   ## into `number`.
   ## `ValueError` is raised if the parsed integer is out of the valid range.
@@ -584,14 +651,16 @@ proc parseUInt*(s: openArray[char], number: var uint): int {.
   if result != 0:
     number = uint(res)
 
-proc parseBiggestFloat*(s: openArray[char], number: var BiggestFloat): int {.
-  magic: "ParseBiggestFloat", importc: "nimParseBiggestFloat", noSideEffect.}
+proc parseBiggestFloat*(
+  s: openArray[char], number: var BiggestFloat
+): int {.magic: "ParseBiggestFloat", importc: "nimParseBiggestFloat", noSideEffect.}
   ## Parses a float and stores the value into `number`.
   ## Result is the number of processed chars or 0 if a parsing error
   ## occurred.
 
-proc parseFloat*(s: openArray[char], number: var float): int {.
-  rtl, extern: "npuParseFloat", noSideEffect.} =
+proc parseFloat*(
+    s: openArray[char], number: var float
+): int {.rtl, extern: "npuParseFloat", noSideEffect.} =
   ## Parses a float and stores the value into `number`.
   ## Result is the number of processed chars or 0 if there occurred a parsing
   ## error.
@@ -609,9 +678,12 @@ proc parseFloat*(s: openArray[char], number: var float): int {.
     number = bf
 
 func toLowerAscii(c: char): char =
-  if c in {'A'..'Z'}: char(uint8(c) xor 0b0010_0000'u8) else: c
+  if c in {'A' .. 'Z'}:
+    char(uint8(c) xor 0b0010_0000'u8)
+  else:
+    c
 
-func parseSize*(s: openArray[char], size: var int64, alwaysBin=false): int =
+func parseSize*(s: openArray[char], size: var int64, alwaysBin = false): int =
   ## Parse a size qualified by binary or metric units into `size`.  This format
   ## is often called "human readable".  Result is the number of processed chars
   ## or 0 on parse errors and size is rounded to the nearest integer.  Trailing
@@ -636,117 +708,140 @@ func parseSize*(s: openArray[char], size: var int64, alwaysBin=false): int =
   ## * https://en.wikipedia.org/wiki/Binary_prefix
   ## * `formatSize module<strutils.html>`_ for formatting
   runnableExamples:
-    var res: int64  # caller must still know if 'b' refers to bytes|bits
+    var res: int64 # caller must still know if 'b' refers to bytes|bits
     doAssert parseSize("10.5 MB", res) == 7
-    doAssert res == 10_500_000  # decimal metric Mega prefix
+    doAssert res == 10_500_000 # decimal metric Mega prefix
     doAssert parseSize("64 mib", res) == 6
-    doAssert res == 67108864    # 64 shl 20
+    doAssert res == 67108864 # 64 shl 20
     doAssert parseSize("1G/h", res, true) == 2 # '/' stops parse
-    doAssert res == 1073741824  # 1 shl 30, forced binary metric
-  const prefix = "b" & "kmgtpezy"       # byte|bit & lowCase metric-ish prefixes
+    doAssert res == 1073741824 # 1 shl 30, forced binary metric
+  const prefix = "b" & "kmgtpezy" # byte|bit & lowCase metric-ish prefixes
   const scaleM = [1.0, 1e3, 1e6, 1e9, 1e12, 1e15, 1e18, 1e21, 1e24] # 10^(3*idx)
-  const scaleB = [1.0, 1024, 1048576, 1073741824, 1099511627776.0,  # 2^(10*idx)
-                  1125899906842624.0, 1152921504606846976.0,        # ldexp?
-                  1.180591620717411303424e21, 1.208925819614629174706176e24]
+  const scaleB = [
+    1.0,
+    1024,
+    1048576,
+    1073741824,
+    1099511627776.0, # 2^(10*idx)
+    1125899906842624.0,
+    1152921504606846976.0, # ldexp?
+    1.180591620717411303424e21,
+    1.208925819614629174706176e24,
+  ]
   var number: float = 0.0
   var scale = 1.0
   result = parseFloat(s, number)
-  if number < 0:                        # While parseFloat accepts negatives ..
-    result = 0                          #.. we do not since sizes cannot be < 0
+  if number < 0: # While parseFloat accepts negatives ..
+    result = 0 #.. we do not since sizes cannot be < 0
   if result > 0:
-    let start = result                  # Save spot to maybe unwind white to EOS
+    let start = result # Save spot to maybe unwind white to EOS
     while result < s.len and s[result] in Whitespace:
       inc result
-    if result < s.len:                  # Illegal starting char => unity
+    if result < s.len: # Illegal starting char => unity
       if (let si = prefix.find(s[result].toLowerAscii); si >= 0):
-        inc result                      # Now parse the scale
-        scale = if alwaysBin: scaleB[si] else: scaleM[si]
+        inc result # Now parse the scale
+        scale =
+          if alwaysBin:
+            scaleB[si]
+          else:
+            scaleM[si]
         if result < s.len and s[result] == 'i':
-          scale = scaleB[si]            # Switch from default to binary-metric
+          scale = scaleB[si] # Switch from default to binary-metric
           inc result
         if result < s.len and s[result].toLowerAscii == 'b':
-          inc result                    # Skip optional '[bB]'
-    else:                               # Unwind result advancement when there..
-      result = start                    #..is no unit to the end of `s`.
-    var sizeF = number * scale + 0.5    # Saturate to int64.high when too big
+          inc result # Skip optional '[bB]'
+    else: # Unwind result advancement when there..
+      result = start #..is no unit to the end of `s`.
+    var sizeF = number * scale + 0.5 # Saturate to int64.high when too big
     size = if sizeF > 9223372036854774784.0: int64.high else: sizeF.int64
 # Above constant=2^63-1024 avoids C UB; github.com/nim-lang/Nim/issues/20102 or
 # stackoverflow.com/questions/20923556/math-pow2-63-1-math-pow2-63-512-is-true
 
-type
-  InterpolatedKind* = enum ## Describes for `interpolatedFragments`
-                           ## which part of the interpolated string is
-                           ## yielded; for example in "str$$$var${expr}"
-    ikStr,                 ## ``str`` part of the interpolated string
-    ikDollar,              ## escaped ``$`` part of the interpolated string
-    ikVar,                 ## ``var`` part of the interpolated string
-    ikExpr                 ## ``expr`` part of the interpolated string
+type InterpolatedKind* = enum
+  ## Describes for `interpolatedFragments`
+  ## which part of the interpolated string is
+  ## yielded; for example in "str$$$var${expr}"
+  ikStr ## ``str`` part of the interpolated string
+  ikDollar ## escaped ``$`` part of the interpolated string
+  ikVar ## ``var`` part of the interpolated string
+  ikExpr ## ``expr`` part of the interpolated string
 
-iterator interpolatedFragments*(s: openArray[char]): tuple[kind: InterpolatedKind,
-  value: string] =
+iterator interpolatedFragments*(
+    s: openArray[char]
+): tuple[kind: InterpolatedKind, value: string] =
   ## Tokenizes the string `s` into substrings for interpolation purposes.
   ##
   runnableExamples:
     var outp: seq[tuple[kind: InterpolatedKind, value: string]]
     for k, v in interpolatedFragments("  $this is ${an  example}  $$"):
       outp.add (k, v)
-    doAssert outp == @[(ikStr, "  "),
-                       (ikVar, "this"),
-                       (ikStr, " is "),
-                       (ikExpr, "an  example"),
-                       (ikStr, "  "),
-                       (ikDollar, "$")]
+    doAssert outp ==
+      @[
+        (ikStr, "  "),
+        (ikVar, "this"),
+        (ikStr, " is "),
+        (ikExpr, "an  example"),
+        (ikStr, "  "),
+        (ikDollar, "$"),
+      ]
 
   var i = 0
   var kind: InterpolatedKind
   while true:
     var j = i
     if j < s.len and s[j] == '$':
-      if j+1 < s.len and s[j+1] == '{':
+      if j + 1 < s.len and s[j + 1] == '{':
         inc j, 2
         var nesting = 0
         block curlies:
           while j < s.len:
             case s[j]
-            of '{': inc nesting
+            of '{':
+              inc nesting
             of '}':
               if nesting == 0:
                 inc j
                 break curlies
               dec nesting
-            else: discard
+            else:
+              discard
             inc j
-          raise newException(ValueError,
-            "Expected closing '}': " & substr(s.toOpenArray(i, s.high)))
+          raise newException(
+            ValueError, "Expected closing '}': " & substr(s.toOpenArray(i, s.high))
+          )
         inc i, 2 # skip ${
         kind = ikExpr
-      elif j+1 < s.len and s[j+1] in IdentStartChars:
+      elif j + 1 < s.len and s[j + 1] in IdentStartChars:
         inc j, 2
-        while j < s.len and s[j] in IdentChars: inc(j)
+        while j < s.len and s[j] in IdentChars:
+          inc(j)
         inc i # skip $
         kind = ikVar
-      elif j+1 < s.len and s[j+1] == '$':
+      elif j + 1 < s.len and s[j + 1] == '$':
         inc j, 2
         inc i # skip $
         kind = ikDollar
       else:
-        raise newException(ValueError,
-          "Unable to parse a variable name at " & substr(s.toOpenArray(i, s.high)))
+        raise newException(
+          ValueError,
+          "Unable to parse a variable name at " & substr(s.toOpenArray(i, s.high)),
+        )
     else:
-      while j < s.len and s[j] != '$': inc j
+      while j < s.len and s[j] != '$':
+        inc j
       kind = ikStr
     if j > i:
       # do not copy the trailing } for ikExpr:
-      yield (kind, substr(s.toOpenArray(i, j-1-ord(kind == ikExpr))))
+      yield (kind, substr(s.toOpenArray(i, j - 1 - ord(kind == ikExpr))))
     else:
       break
     i = j
 
 {.pop.}
 
-
-proc parseBin*[T: SomeInteger](s: string, number: var T, start = 0,
-    maxLen = 0): int {.noSideEffect.} =
+proc parseBin*[T: SomeInteger](
+    s: string, number: var T, start = 0, maxLen = 0
+): int {.noSideEffect.} =
   ## Parses a binary number and stores its value in ``number``.
   ##
   ## Returns the number of the parsed characters or 0 in case of an error.
@@ -777,8 +872,9 @@ proc parseBin*[T: SomeInteger](s: string, number: var T, start = 0,
     doAssert num64 == 336784608873
   parseBin(s.toOpenArray(start, s.high), number, maxLen)
 
-proc parseOct*[T: SomeInteger](s: string, number: var T, start = 0,
-    maxLen = 0): int {.noSideEffect.} =
+proc parseOct*[T: SomeInteger](
+    s: string, number: var T, start = 0, maxLen = 0
+): int {.noSideEffect.} =
   ## Parses an octal number and stores its value in ``number``.
   ##
   ## Returns the number of the parsed characters or 0 in case of an error.
@@ -809,8 +905,9 @@ proc parseOct*[T: SomeInteger](s: string, number: var T, start = 0,
     doAssert num64 == 86216859871725
   parseOct(s.toOpenArray(start, s.high), number, maxLen)
 
-proc parseHex*[T: SomeInteger](s: string, number: var T, start = 0,
-    maxLen = 0): int {.noSideEffect.} =
+proc parseHex*[T: SomeInteger](
+    s: string, number: var T, start = 0, maxLen = 0
+): int {.noSideEffect.} =
   ## Parses a hexadecimal number and stores its value in ``number``.
   ##
   ## Returns the number of the parsed characters or 0 in case of an error.
@@ -936,8 +1033,9 @@ proc skipWhile*(s: string, toSkip: set[char], start = 0): int {.inline.} =
     doAssert skipWhile("Hello World", {'W', 'o', 'r'}, 6) == 3
   skipWhile(s.toOpenArray(start, s.high), toSkip)
 
-proc parseUntil*(s: string, token: var string, until: set[char],
-                 start = 0): int {.inline.} =
+proc parseUntil*(
+    s: string, token: var string, until: set[char], start = 0
+): int {.inline.} =
   ## Parses a token and stores it in ``token``. Returns
   ## the number of the parsed characters or 0 in case of an error. A token
   ## consists of the characters notin `until`.
@@ -951,8 +1049,7 @@ proc parseUntil*(s: string, token: var string, until: set[char],
     doAssert myToken == "lo "
   parseUntil(s.toOpenArray(start, s.high), token, until)
 
-proc parseUntil*(s: string, token: var string, until: char,
-                 start = 0): int {.inline.} =
+proc parseUntil*(s: string, token: var string, until: char, start = 0): int {.inline.} =
   ## Parses a token and stores it in ``token``. Returns
   ## the number of the parsed characters or 0 in case of an error. A token
   ## consists of any character that is not the `until` character.
@@ -966,8 +1063,9 @@ proc parseUntil*(s: string, token: var string, until: char,
     doAssert myToken == "ll"
   parseUntil(s.toOpenArray(start, s.high), token, until)
 
-proc parseUntil*(s: string, token: var string, until: string,
-                 start = 0): int {.inline.} =
+proc parseUntil*(
+    s: string, token: var string, until: string, start = 0
+): int {.inline.} =
   ## Parses a token and stores it in ``token``. Returns
   ## the number of the parsed characters or 0 in case of an error. A token
   ## consists of any character that comes before the `until`  token.
@@ -979,8 +1077,9 @@ proc parseUntil*(s: string, token: var string, until: string,
     doAssert myToken == "llo "
   parseUntil(s.toOpenArray(start, s.high), token, until)
 
-proc parseWhile*(s: string, token: var string, validChars: set[char],
-                 start = 0): int {.inline.} =
+proc parseWhile*(
+    s: string, token: var string, validChars: set[char], start = 0
+): int {.inline.} =
   ## Parses a token and stores it in ``token``. Returns
   ## the number of the parsed characters or 0 in case of an error. A token
   ## consists of the characters in `validChars`.
@@ -1001,7 +1100,9 @@ proc captureBetween*(s: string, first: char, second = '\0', start = 0): string =
     doAssert captureBetween("Hello World", 'l', start = 6) == "d"
   captureBetween(s.toOpenArray(start, s.high), first, second)
 
-proc parseBiggestInt*(s: string, number: var BiggestInt, start = 0): int {.noSideEffect, raises: [ValueError].} =
+proc parseBiggestInt*(
+    s: string, number: var BiggestInt, start = 0
+): int {.noSideEffect, raises: [ValueError].} =
   ## Parses an integer starting at `start` and stores the value into `number`.
   ## Result is the number of processed chars or 0 if there is no integer.
   ## `ValueError` is raised if the parsed integer is out of the valid range.
@@ -1015,7 +1116,9 @@ proc parseBiggestInt*(s: string, number: var BiggestInt, start = 0): int {.noSid
     doAssert res == 502
   parseBiggestInt(s.toOpenArray(start, s.high), number)
 
-proc parseInt*(s: string, number: var int, start = 0): int {.noSideEffect, raises: [ValueError].} =
+proc parseInt*(
+    s: string, number: var int, start = 0
+): int {.noSideEffect, raises: [ValueError].} =
   ## Parses an integer starting at `start` and stores the value into `number`.
   ## Result is the number of processed chars or 0 if there is no integer.
   ## `ValueError` is raised if the parsed integer is out of the valid range.
@@ -1027,9 +1130,7 @@ proc parseInt*(s: string, number: var int, start = 0): int {.noSideEffect, raise
     doAssert res == 502
   parseInt(s.toOpenArray(start, s.high), number)
 
-
-proc parseSaturatedNatural*(s: string, b: var int, start = 0): int {.
-    raises: [].} =
+proc parseSaturatedNatural*(s: string, b: var int, start = 0): int {.raises: [].} =
   ## Parses a natural number into ``b``. This cannot raise an overflow
   ## error. ``high(int)`` is returned for an overflow.
   ## The number of processed character is returned.
@@ -1040,8 +1141,9 @@ proc parseSaturatedNatural*(s: string, b: var int, start = 0): int {.
     doAssert res == 848
   parseSaturatedNatural(s.toOpenArray(start, s.high), b)
 
-
-proc parseBiggestUInt*(s: string, number: var BiggestUInt, start = 0): int {.noSideEffect, raises: [ValueError].} =
+proc parseBiggestUInt*(
+    s: string, number: var BiggestUInt, start = 0
+): int {.noSideEffect, raises: [ValueError].} =
   ## Parses an unsigned integer starting at `start` and stores the value
   ## into `number`.
   ## `ValueError` is raised if the parsed integer is out of the valid range.
@@ -1053,7 +1155,9 @@ proc parseBiggestUInt*(s: string, number: var BiggestUInt, start = 0): int {.noS
     doAssert res == 1111111111111111111'u64
   parseBiggestUInt(s.toOpenArray(start, s.high), number)
 
-proc parseUInt*(s: string, number: var uint, start = 0): int {.noSideEffect, raises: [ValueError].} =
+proc parseUInt*(
+    s: string, number: var uint, start = 0
+): int {.noSideEffect, raises: [ValueError].} =
   ## Parses an unsigned integer starting at `start` and stores the value
   ## into `number`.
   ## `ValueError` is raised if the parsed integer is out of the valid range.
@@ -1065,7 +1169,9 @@ proc parseUInt*(s: string, number: var uint, start = 0): int {.noSideEffect, rai
     doAssert res == 50
   parseUInt(s.toOpenArray(start, s.high), number)
 
-proc parseBiggestFloat*(s: string, number: var BiggestFloat, start = 0): int {.noSideEffect.} =
+proc parseBiggestFloat*(
+    s: string, number: var BiggestFloat, start = 0
+): int {.noSideEffect.} =
   ## Parses a float starting at `start` and stores the value into `number`.
   ## Result is the number of processed chars or 0 if a parsing error
   ## occurred.
@@ -1085,20 +1191,23 @@ proc parseFloat*(s: string, number: var float, start = 0): int {.noSideEffect.} 
     doAssert res == 57.00
   parseFloat(s.toOpenArray(start, s.high), number)
 
-iterator interpolatedFragments*(s: string): tuple[kind: InterpolatedKind,
-  value: string] =
+iterator interpolatedFragments*(
+    s: string
+): tuple[kind: InterpolatedKind, value: string] =
   ## Tokenizes the string `s` into substrings for interpolation purposes.
   ##
   runnableExamples:
     var outp: seq[tuple[kind: InterpolatedKind, value: string]]
     for k, v in interpolatedFragments("  $this is ${an  example}  $$"):
       outp.add (k, v)
-    doAssert outp == @[(ikStr, "  "),
-                       (ikVar, "this"),
-                       (ikStr, " is "),
-                       (ikExpr, "an  example"),
-                       (ikStr, "  "),
-                       (ikDollar, "$")]
+    doAssert outp ==
+      @[
+        (ikStr, "  "),
+        (ikVar, "this"),
+        (ikStr, " is "),
+        (ikExpr, "an  example"),
+        (ikStr, "  "),
+        (ikDollar, "$"),
+      ]
   for x in s.toOa.interpolatedFragments:
     yield x
-

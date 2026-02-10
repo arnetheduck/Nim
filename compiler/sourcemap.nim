@@ -16,20 +16,23 @@ type
       file: int # Index into files list
       line: int # 0 indexed line of code in the Nim source
       segments: seq[Segment]
-    else: discard
+    else:
+      discard
 
   SourceInfo = object
     mappings: seq[Mapping]
     names, files: seq[string]
 
   SourceMap* = object
-    version*:   int
-    sources*:   seq[string]
-    names*:     seq[string]
-    mappings*:  string
-    file*:      string
+    version*: int
+    sources*: seq[string]
+    names*: seq[string]
+    mappings*: string
+    file*: string
 
-func addSegment(info: var SourceInfo, original, generated: int, name: string = "") {.raises: [].} =
+func addSegment(
+    info: var SourceInfo, original, generated: int, name: string = ""
+) {.raises: [].} =
   ## Adds a new segment into the current line
   assert info.mappings.len > 0, "No lines have been added yet"
   var segment = Segment(original: original, generated: generated, name: -1)
@@ -57,7 +60,6 @@ func newLine(info: var SourceInfo, file: string, line: int) {.raises: [].} =
     mapping.file = info.files.len
     info.files &= file
   info.mappings &= mapping
-
 
 # base64_VLQ
 func encode*(values: seq[int]): string {.raises: [].} =
@@ -119,7 +121,7 @@ iterator tokenize*(line: string): (int, string) =
       # It might be in the form originalName_randomInt
       let lastUnderscore = token.rfind('_')
       if lastUnderscore != -1:
-        name = token[0..<lastUnderscore]
+        name = token[0 ..< lastUnderscore]
     if name != "":
       yield (identStart, name)
 
@@ -184,7 +186,12 @@ func toSourceMap*(info: SourceInfo, file: string): SourceMap {.raises: [].} =
       # JS Column is special in that it is reset after every line
       var prevJSCol = 0
       for segment in mapping.segments:
-        var values = @[segment.generated - prevJSCol, mapping.file - prevFile, mapping.line - prevLine, segment.original - prevNimCol]
+        var values = @[
+          segment.generated - prevJSCol,
+          mapping.file - prevFile,
+          mapping.line - prevLine,
+          segment.original - prevNimCol,
+        ]
         # Add name field if needed
         if segment.name != -1:
           values &= segment.name - prevName
@@ -203,4 +210,3 @@ func toSourceMap*(info: SourceInfo, file: string): SourceMap {.raises: [].} =
 proc genSourceMap*(source: string, outFile: string): SourceMap =
   let node = parse(source)
   result = node.toSourceMap(outFile)
-

@@ -43,41 +43,40 @@ include "system/hti.nim"
 when defined(nimPreviewSlimSystem):
   import std/assertions
 
-
 type
-  AnyKind* = enum       ## The kind of `Any`.
-    akNone = 0,         ## invalid
-    akBool = 1,         ## bool
-    akChar = 2,         ## char
-    akEnum = 14,        ## enum
-    akArray = 16,       ## array
-    akObject = 17,      ## object
-    akTuple = 18,       ## tuple
-    akSet = 19,         ## set
-    akRange = 20,       ## range
-    akPtr = 21,         ## ptr
-    akRef = 22,         ## ref
-    akSequence = 24,    ## sequence
-    akProc = 25,        ## proc
-    akPointer = 26,     ## pointer
-    akString = 28,      ## string
-    akCString = 29,     ## cstring
-    akInt = 31,         ## int
-    akInt8 = 32,        ## int8
-    akInt16 = 33,       ## int16
-    akInt32 = 34,       ## int32
-    akInt64 = 35,       ## int64
-    akFloat = 36,       ## float
-    akFloat32 = 37,     ## float32
-    akFloat64 = 38,     ## float64
-    akFloat128 = 39,    ## float128
-    akUInt = 40,        ## uint
-    akUInt8 = 41,       ## uint8
-    akUInt16 = 42,      ## uin16
-    akUInt32 = 43,      ## uint32
-    akUInt64 = 44,      ## uint64
-#    akOpt = 44+18       ## the builtin 'opt' type.
+  AnyKind* = enum ## The kind of `Any`.
+    akNone = 0 ## invalid
+    akBool = 1 ## bool
+    akChar = 2 ## char
+    akEnum = 14 ## enum
+    akArray = 16 ## array
+    akObject = 17 ## object
+    akTuple = 18 ## tuple
+    akSet = 19 ## set
+    akRange = 20 ## range
+    akPtr = 21 ## ptr
+    akRef = 22 ## ref
+    akSequence = 24 ## sequence
+    akProc = 25 ## proc
+    akPointer = 26 ## pointer
+    akString = 28 ## string
+    akCString = 29 ## cstring
+    akInt = 31 ## int
+    akInt8 = 32 ## int8
+    akInt16 = 33 ## int16
+    akInt32 = 34 ## int32
+    akInt64 = 35 ## int64
+    akFloat = 36 ## float
+    akFloat32 = 37 ## float32
+    akFloat64 = 38 ## float64
+    akFloat128 = 39 ## float128
+    akUInt = 40 ## uint
+    akUInt8 = 41 ## uint8
+    akUInt16 = 42 ## uin16
+    akUInt32 = 43 ## uint32
+    akUInt64 = 44 ## uint64
 
+  #    akOpt = 44+18       ## the builtin 'opt' type.
   Any* = object
     ## A type that can represent any nim value.
     ##
@@ -99,13 +98,13 @@ when not defined(gcDestructors):
       len, space: int
       when defined(gogc):
         elemSize: int
+
     PGenSeq = ptr TGenericSeq
 
   when defined(gogc):
     const GenericSeqSize = 3 * sizeof(int)
   else:
     const GenericSeqSize = 2 * sizeof(int)
-
 else:
   include system/seqs_v2_reimpl
 
@@ -121,18 +120,30 @@ when not defined(js):
 proc genericAssign(dest, src: pointer, mt: PNimType) {.importCompilerProc, raises: [].}
 
 when not defined(gcDestructors):
-  proc genericShallowAssign(dest, src: pointer, mt: PNimType) {.importCompilerProc, raises: [].}
-  proc incrSeq(seq: PGenSeq, elemSize, elemAlign: int): PGenSeq {.importCompilerProc, raises: [].}
+  proc genericShallowAssign(
+    dest, src: pointer, mt: PNimType
+  ) {.importCompilerProc, raises: [].}
+
+  proc incrSeq(
+    seq: PGenSeq, elemSize, elemAlign: int
+  ): PGenSeq {.importCompilerProc, raises: [].}
+
   proc newObj(typ: PNimType, size: int): pointer {.importCompilerProc, raises: [].}
   proc newSeq(typ: PNimType, len: int): pointer {.importCompilerProc, raises: [].}
   proc objectInit(dest: pointer, typ: PNimType) {.importCompilerProc, raises: [].}
 else:
   proc nimNewObj(size, align: int): pointer {.importCompilerProc, raises: [].}
-  proc newSeqPayload(cap, elemSize, elemAlign: int): pointer {.importCompilerProc, raises: [].}
-  proc prepareSeqAddUninit(len: int; p: pointer; addlen, elemSize, elemAlign: int): pointer {.
-    importCompilerProc, raises: [].}
-  proc zeroNewElements(len: int; p: pointer; addlen, elemSize, elemAlign: int) {.
-    importCompilerProc, raises: [].}
+  proc newSeqPayload(
+    cap, elemSize, elemAlign: int
+  ): pointer {.importCompilerProc, raises: [].}
+
+  proc prepareSeqAddUninit(
+    len: int, p: pointer, addlen, elemSize, elemAlign: int
+  ): pointer {.importCompilerProc, raises: [].}
+
+  proc zeroNewElements(
+    len: int, p: pointer, addlen, elemSize, elemAlign: int
+  ) {.importCompilerProc, raises: [].}
 
 include system/ptrarith
 
@@ -140,17 +151,23 @@ proc getDiscriminant(aa: pointer, n: ptr TNimNode): int =
   assert(n.kind == nkCase)
   let a = aa +! n.offset
   case n.typ.size
-  of 1: int(cast[ptr uint8](a)[])
-  of 2: int(cast[ptr uint16](a)[])
-  of 4: int(cast[ptr uint32](a)[])
-  of 8: cast[int](cast[ptr uint64](a)[])
-  else: raiseAssert "unreachable"
+  of 1:
+    int(cast[ptr uint8](a)[])
+  of 2:
+    int(cast[ptr uint16](a)[])
+  of 4:
+    int(cast[ptr uint32](a)[])
+  of 8:
+    cast[int](cast[ptr uint64](a)[])
+  else:
+    raiseAssert "unreachable"
 
 proc selectBranch(aa: pointer, n: ptr TNimNode): ptr TNimNode =
   let discr = getDiscriminant(aa, n)
   if discr <% n.len:
     result = n.sons[discr]
-    if result == nil: result = n.sons[n.len]
+    if result == nil:
+      result = n.sons[n.len]
     # n.sons[n.len] contains the `else` part (but may be nil)
   else:
     result = n.sons[n.len]
@@ -214,8 +231,10 @@ proc extendSeq*(x: Any) =
   when defined(gcDestructors):
     var s = cast[ptr NimSeqV2Reimpl](x.value)
     let elem = x.rawType.base
-    if s.p == nil or s.p.cap < s.len+1:
-      s.p = cast[ptr NimSeqPayloadReimpl](prepareSeqAddUninit(s.len, s.p, 1, elem.size, elem.align))
+    if s.p == nil or s.p.cap < s.len + 1:
+      s.p = cast[ptr NimSeqPayloadReimpl](prepareSeqAddUninit(
+        s.len, s.p, 1, elem.size, elem.align
+      ))
     zeroNewElements(s.len, s.p, 1, elem.size, elem.align)
     inc s.len
   else:
@@ -236,7 +255,8 @@ proc setObjectRuntimeType*(x: Any) =
 
 proc skipRange(x: PNimType): PNimType {.inline.} =
   result = x
-  if result.kind == tyRange: result = result.base
+  if result.kind == tyRange:
+    result = result.base
 
 proc `[]`*(x: Any, i: int): Any =
   ## Accessor for an any `x` that represents an array or a sequence.
@@ -245,24 +265,29 @@ proc `[]`*(x: Any, i: int): Any =
     let bs = x.rawType.base.size
     if i >=% x.rawType.size div bs:
       raise newException(IndexDefect, formatErrorIndexBound(i, x.rawType.size div bs))
-    return newAny(x.value +! i*bs, x.rawType.base)
+    return newAny(x.value +! i * bs, x.rawType.base)
   of tySequence:
     when defined(gcDestructors):
       var s = cast[ptr NimSeqV2Reimpl](x.value)
       if i >=% s.len:
-        raise newException(IndexDefect, formatErrorIndexBound(i, s.len-1))
+        raise newException(IndexDefect, formatErrorIndexBound(i, s.len - 1))
       let bs = x.rawType.base.size
       let ba = x.rawType.base.align
       let headerSize = align(sizeof(int), ba)
-      return newAny(s.p +! (headerSize+i*bs), x.rawType.base)
+      return newAny(s.p +! (headerSize + i * bs), x.rawType.base)
     else:
       var s = cast[ppointer](x.value)[]
-      if s == nil: raise newException(ValueError, "sequence is nil")
+      if s == nil:
+        raise newException(ValueError, "sequence is nil")
       let bs = x.rawType.base.size
       if i >=% cast[PGenSeq](s).len:
-        raise newException(IndexDefect, formatErrorIndexBound(i, cast[PGenSeq](s).len-1))
-      return newAny(s +! (align(GenericSeqSize, x.rawType.base.align)+i*bs), x.rawType.base)
-  else: raiseAssert "unreachable"
+        raise
+          newException(IndexDefect, formatErrorIndexBound(i, cast[PGenSeq](s).len - 1))
+      return newAny(
+        s +! (align(GenericSeqSize, x.rawType.base.align) + i * bs), x.rawType.base
+      )
+  else:
+    raiseAssert "unreachable"
 
 proc `[]=`*(x: Any, i: int, y: Any) =
   ## Accessor for an any `x` that represents an array or a sequence.
@@ -272,26 +297,31 @@ proc `[]=`*(x: Any, i: int, y: Any) =
     if i >=% x.rawType.size div bs:
       raise newException(IndexDefect, formatErrorIndexBound(i, x.rawType.size div bs))
     assert y.rawType == x.rawType.base
-    genericAssign(x.value +! i*bs, y.value, y.rawType)
+    genericAssign(x.value +! i * bs, y.value, y.rawType)
   of tySequence:
     when defined(gcDestructors):
       var s = cast[ptr NimSeqV2Reimpl](x.value)
       if i >=% s.len:
-        raise newException(IndexDefect, formatErrorIndexBound(i, s.len-1))
+        raise newException(IndexDefect, formatErrorIndexBound(i, s.len - 1))
       let bs = x.rawType.base.size
       let ba = x.rawType.base.align
       let headerSize = align(sizeof(int), ba)
       assert y.rawType == x.rawType.base
-      genericAssign(s.p +! (headerSize+i*bs), y.value, y.rawType)
+      genericAssign(s.p +! (headerSize + i * bs), y.value, y.rawType)
     else:
       var s = cast[ppointer](x.value)[]
-      if s == nil: raise newException(ValueError, "sequence is nil")
+      if s == nil:
+        raise newException(ValueError, "sequence is nil")
       var bs = x.rawType.base.size
       if i >=% cast[PGenSeq](s).len:
-        raise newException(IndexDefect, formatErrorIndexBound(i, cast[PGenSeq](s).len-1))
+        raise
+          newException(IndexDefect, formatErrorIndexBound(i, cast[PGenSeq](s).len - 1))
       assert y.rawType == x.rawType.base
-      genericAssign(s +! (align(GenericSeqSize, x.rawType.base.align)+i*bs), y.value, y.rawType)
-  else: raiseAssert "unreachable"
+      genericAssign(
+        s +! (align(GenericSeqSize, x.rawType.base.align) + i * bs), y.value, y.rawType
+      )
+  else:
+    raiseAssert "unreachable"
 
 proc len*(x: Any): int =
   ## `len` for an any `x` that represents an array or a sequence.
@@ -307,8 +337,8 @@ proc len*(x: Any): int =
         result = 0
       else:
         result = pgenSeq.len
-  else: raiseAssert "unreachable"
-
+  else:
+    raiseAssert "unreachable"
 
 proc base*(x: Any): Any =
   ## Returns the base type of `x` (useful for inherited object types).
@@ -322,8 +352,10 @@ proc isNil*(x: Any): bool =
   result = isNil(cast[ppointer](x.value)[])
 
 const pointerLike =
-  when defined(gcDestructors): {tyCstring, tyRef, tyPtr, tyPointer, tyProc}
-  else: {tyString, tyCstring, tyRef, tyPtr, tyPointer, tySequence, tyProc}
+  when defined(gcDestructors):
+    {tyCstring, tyRef, tyPtr, tyPointer, tyProc}
+  else:
+    {tyString, tyCstring, tyRef, tyPtr, tyPointer, tySequence, tyProc}
 
 proc getPointer*(x: Any): pointer =
   ## Retrieves the pointer value out of `x`. `x` needs to be of kind
@@ -342,19 +374,23 @@ proc setPointer*(x: Any, y: pointer) =
   else:
     cast[ppointer](x.value)[] = y
 
-proc fieldsAux(p: pointer, n: ptr TNimNode,
-               ret: var seq[tuple[name: cstring, any: Any]]) =
+proc fieldsAux(
+    p: pointer, n: ptr TNimNode, ret: var seq[tuple[name: cstring, any: Any]]
+) =
   case n.kind
-  of nkNone: assert(false)
+  of nkNone:
+    assert(false)
   of nkSlot:
     ret.add((n.name, newAny(p +! n.offset, n.typ)))
-    assert ret[ret.len()-1][0] != nil
+    assert ret[ret.len() - 1][0] != nil
   of nkList:
-    for i in 0..n.len-1: fieldsAux(p, n.sons[i], ret)
+    for i in 0 .. n.len - 1:
+      fieldsAux(p, n.sons[i], ret)
   of nkCase:
     var m = selectBranch(p, n)
     ret.add((n.name, newAny(p +! n.offset, n.typ)))
-    if m != nil: fieldsAux(p, m, ret)
+    if m != nil:
+      fieldsAux(p, m, ret)
 
 iterator fields*(x: Any): tuple[name: string, any: Any] =
   ## Iterates over every active field of `x`. `x` needs to represent an object
@@ -364,13 +400,15 @@ iterator fields*(x: Any): tuple[name: string, any: Any] =
   var t = x.rawType
   # XXX BUG: does not work yet, however is questionable anyway
   when false:
-    if x.rawType.kind == tyObject: t = cast[ptr PNimType](x.value)[]
+    if x.rawType.kind == tyObject:
+      t = cast[ptr PNimType](x.value)[]
   var ret: seq[tuple[name: cstring, any: Any]] = @[]
   if t.kind == tyObject:
     while true:
       fieldsAux(p, t.node, ret)
       t = t.base
-      if t.isNil: break
+      if t.isNil:
+        break
   else:
     fieldsAux(p, t.node, ret)
   for name, any in items(ret):
@@ -379,27 +417,31 @@ iterator fields*(x: Any): tuple[name: string, any: Any] =
 proc getFieldNode(p: pointer, n: ptr TNimNode, name: cstring): ptr TNimNode =
   result = nil
   case n.kind
-  of nkNone: raiseAssert "unreachable"
+  of nkNone:
+    raiseAssert "unreachable"
   of nkSlot:
     if cmpNimIdentifier(n.name, name) == 0:
       result = n
   of nkList:
-    for i in 0..n.len-1:
+    for i in 0 .. n.len - 1:
       result = getFieldNode(p, n.sons[i], name)
-      if result != nil: break
+      if result != nil:
+        break
   of nkCase:
     if cmpNimIdentifier(n.name, name) == 0:
       result = n
     else:
       let m = selectBranch(p, n)
-      if m != nil: result = getFieldNode(p, m, name)
+      if m != nil:
+        result = getFieldNode(p, m, name)
 
 proc `[]=`*(x: Any, fieldName: string, value: Any) =
   ## Sets a field of `x`. `x` needs to represent an object or a tuple.
   var t = x.rawType
   # XXX BUG: does not work yet, however is questionable anyway
   when false:
-    if x.rawType.kind == tyObject: t = cast[ptr PNimType](x.value)[]
+    if x.rawType.kind == tyObject:
+      t = cast[ptr PNimType](x.value)[]
   assert x.rawType.kind in {tyTuple, tyObject}
   let n = getFieldNode(x.value, t.node, fieldName)
   if n != nil:
@@ -413,7 +455,8 @@ proc `[]`*(x: Any, fieldName: string): Any =
   var t = x.rawType
   # XXX BUG: does not work yet, however is questionable anyway
   when false:
-    if x.rawType.kind == tyObject: t = cast[ptr PNimType](x.value)[]
+    if x.rawType.kind == tyObject:
+      t = cast[ptr PNimType](x.value)[]
   assert x.rawType.kind in {tyTuple, tyObject}
   let n = getFieldNode(x.value, t.node, fieldName)
   if n != nil:
@@ -467,50 +510,84 @@ proc getBiggestInt*(x: Any): BiggestInt =
   ## The value might be sign-extended to `BiggestInt`.
   let t = skipRange(x.rawType)
   case t.kind
-  of tyInt: result = BiggestInt(cast[ptr int](x.value)[])
-  of tyInt8: result = BiggestInt(cast[ptr int8](x.value)[])
-  of tyInt16: result = BiggestInt(cast[ptr int16](x.value)[])
-  of tyInt32: result = BiggestInt(cast[ptr int32](x.value)[])
-  of tyInt64, tyUInt64: result = BiggestInt(cast[ptr int64](x.value)[])
-  of tyBool: result = BiggestInt(cast[ptr bool](x.value)[])
-  of tyChar: result = BiggestInt(cast[ptr char](x.value)[])
+  of tyInt:
+    result = BiggestInt(cast[ptr int](x.value)[])
+  of tyInt8:
+    result = BiggestInt(cast[ptr int8](x.value)[])
+  of tyInt16:
+    result = BiggestInt(cast[ptr int16](x.value)[])
+  of tyInt32:
+    result = BiggestInt(cast[ptr int32](x.value)[])
+  of tyInt64, tyUInt64:
+    result = BiggestInt(cast[ptr int64](x.value)[])
+  of tyBool:
+    result = BiggestInt(cast[ptr bool](x.value)[])
+  of tyChar:
+    result = BiggestInt(cast[ptr char](x.value)[])
   of tyEnum, tySet:
     case t.size
-    of 1: result = int64(cast[ptr uint8](x.value)[])
-    of 2: result = int64(cast[ptr uint16](x.value)[])
-    of 4: result = BiggestInt(cast[ptr int32](x.value)[])
-    of 8: result = BiggestInt(cast[ptr int64](x.value)[])
-    else: raiseAssert "unreachable"
-  of tyUInt: result = BiggestInt(cast[ptr uint](x.value)[])
-  of tyUInt8: result = BiggestInt(cast[ptr uint8](x.value)[])
-  of tyUInt16: result = BiggestInt(cast[ptr uint16](x.value)[])
-  of tyUInt32: result = BiggestInt(cast[ptr uint32](x.value)[])
-  else: raiseAssert "unreachable"
+    of 1:
+      result = int64(cast[ptr uint8](x.value)[])
+    of 2:
+      result = int64(cast[ptr uint16](x.value)[])
+    of 4:
+      result = BiggestInt(cast[ptr int32](x.value)[])
+    of 8:
+      result = BiggestInt(cast[ptr int64](x.value)[])
+    else:
+      raiseAssert "unreachable"
+  of tyUInt:
+    result = BiggestInt(cast[ptr uint](x.value)[])
+  of tyUInt8:
+    result = BiggestInt(cast[ptr uint8](x.value)[])
+  of tyUInt16:
+    result = BiggestInt(cast[ptr uint16](x.value)[])
+  of tyUInt32:
+    result = BiggestInt(cast[ptr uint32](x.value)[])
+  else:
+    raiseAssert "unreachable"
 
 proc setBiggestInt*(x: Any, y: BiggestInt) =
   ## Sets the integer value of `x`. `x` needs to represent
   ## some integer, a bool, a char, an enum or a small enough bit set.
   let t = skipRange(x.rawType)
   case t.kind
-  of tyInt: cast[ptr int](x.value)[] = int(y)
-  of tyInt8: cast[ptr int8](x.value)[] = int8(y)
-  of tyInt16: cast[ptr int16](x.value)[] = int16(y)
-  of tyInt32: cast[ptr int32](x.value)[] = int32(y)
-  of tyInt64, tyUInt64: cast[ptr int64](x.value)[] = int64(y)
-  of tyBool: cast[ptr bool](x.value)[] = y != 0
-  of tyChar: cast[ptr char](x.value)[] = chr(y.int)
+  of tyInt:
+    cast[ptr int](x.value)[] = int(y)
+  of tyInt8:
+    cast[ptr int8](x.value)[] = int8(y)
+  of tyInt16:
+    cast[ptr int16](x.value)[] = int16(y)
+  of tyInt32:
+    cast[ptr int32](x.value)[] = int32(y)
+  of tyInt64, tyUInt64:
+    cast[ptr int64](x.value)[] = int64(y)
+  of tyBool:
+    cast[ptr bool](x.value)[] = y != 0
+  of tyChar:
+    cast[ptr char](x.value)[] = chr(y.int)
   of tyEnum, tySet:
     case t.size
-    of 1: cast[ptr uint8](x.value)[] = uint8(y.int)
-    of 2: cast[ptr uint16](x.value)[] = uint16(y.int)
-    of 4: cast[ptr int32](x.value)[] = int32(y)
-    of 8: cast[ptr int64](x.value)[] = y
-    else: assert false
-  of tyUInt: cast[ptr uint](x.value)[] = uint(y)
-  of tyUInt8: cast[ptr uint8](x.value)[] = uint8(y)
-  of tyUInt16: cast[ptr uint16](x.value)[] = uint16(y)
-  of tyUInt32: cast[ptr uint32](x.value)[] = uint32(y)
-  else: assert false
+    of 1:
+      cast[ptr uint8](x.value)[] = uint8(y.int)
+    of 2:
+      cast[ptr uint16](x.value)[] = uint16(y.int)
+    of 4:
+      cast[ptr int32](x.value)[] = int32(y)
+    of 8:
+      cast[ptr int64](x.value)[] = y
+    else:
+      assert false
+  of tyUInt:
+    cast[ptr uint](x.value)[] = uint(y)
+  of tyUInt8:
+    cast[ptr uint8](x.value)[] = uint8(y)
+  of tyUInt16:
+    cast[ptr uint16](x.value)[] = uint16(y)
+  of tyUInt32:
+    cast[ptr uint32](x.value)[] = uint32(y)
+  else:
+    assert false
 
 proc getUInt*(x: Any): uint =
   ## Retrieves the `uint` value out of `x`. `x` needs to represent a `uint`.
@@ -542,24 +619,36 @@ proc getBiggestUint*(x: Any): uint64 =
   ## represent an unsigned integer.
   let t = skipRange(x.rawType)
   case t.kind
-  of tyUInt: result = uint64(cast[ptr uint](x.value)[])
-  of tyUInt8: result = uint64(cast[ptr uint8](x.value)[])
-  of tyUInt16: result = uint64(cast[ptr uint16](x.value)[])
-  of tyUInt32: result = uint64(cast[ptr uint32](x.value)[])
-  of tyUInt64: result = uint64(cast[ptr uint64](x.value)[])
-  else: raiseAssert "unreachable"
+  of tyUInt:
+    result = uint64(cast[ptr uint](x.value)[])
+  of tyUInt8:
+    result = uint64(cast[ptr uint8](x.value)[])
+  of tyUInt16:
+    result = uint64(cast[ptr uint16](x.value)[])
+  of tyUInt32:
+    result = uint64(cast[ptr uint32](x.value)[])
+  of tyUInt64:
+    result = uint64(cast[ptr uint64](x.value)[])
+  else:
+    raiseAssert "unreachable"
 
-proc setBiggestUint*(x: Any; y: uint64) =
+proc setBiggestUint*(x: Any, y: uint64) =
   ## Sets the unsigned integer value of `x`. `x` needs to represent an
   ## unsigned integer.
   let t = skipRange(x.rawType)
-  case t.kind:
-  of tyUInt: cast[ptr uint](x.value)[] = uint(y)
-  of tyUInt8: cast[ptr uint8](x.value)[] = uint8(y)
-  of tyUInt16: cast[ptr uint16](x.value)[] = uint16(y)
-  of tyUInt32: cast[ptr uint32](x.value)[] = uint32(y)
-  of tyUInt64: cast[ptr uint64](x.value)[] = uint64(y)
-  else: raiseAssert "unreachable"
+  case t.kind
+  of tyUInt:
+    cast[ptr uint](x.value)[] = uint(y)
+  of tyUInt8:
+    cast[ptr uint8](x.value)[] = uint8(y)
+  of tyUInt16:
+    cast[ptr uint16](x.value)[] = uint16(y)
+  of tyUInt32:
+    cast[ptr uint32](x.value)[] = uint32(y)
+  of tyUInt64:
+    cast[ptr uint64](x.value)[] = uint64(y)
+  else:
+    raiseAssert "unreachable"
 
 proc getChar*(x: Any): char =
   ## Retrieves the `char` value out of `x`. `x` needs to represent a `char`.
@@ -587,7 +676,7 @@ proc getEnumOrdinal*(x: Any, name: string): int =
   assert typ.kind == tyEnum
   let n = typ.node
   let s = n.sons
-  for i in 0 .. n.len-1:
+  for i in 0 .. n.len - 1:
     if cmpNimIdentifier($s[i].name, name) == 0:
       if ntfEnumHole notin typ.flags:
         return i
@@ -609,8 +698,9 @@ proc getEnumField*(x: Any, ordinalValue: int): string =
     # ugh we need a slow linear search:
     let n = typ.node
     let s = n.sons
-    for i in 0 .. n.len-1:
-      if s[i].offset == e: return $s[i].name
+    for i in 0 .. n.len - 1:
+      if s[i].offset == e:
+        return $s[i].name
   result = $e
 
 proc getEnumField*(x: Any): string =
@@ -636,19 +726,27 @@ proc getBiggestFloat*(x: Any): BiggestFloat =
   ## Retrieves the float value out of `x`. `x` needs to represent
   ## some float. The value is extended to `BiggestFloat`.
   case skipRange(x.rawType).kind
-  of tyFloat: result = BiggestFloat(cast[ptr float](x.value)[])
-  of tyFloat32: result = BiggestFloat(cast[ptr float32](x.value)[])
-  of tyFloat64: result = BiggestFloat(cast[ptr float64](x.value)[])
-  else: raiseAssert "unreachable"
+  of tyFloat:
+    result = BiggestFloat(cast[ptr float](x.value)[])
+  of tyFloat32:
+    result = BiggestFloat(cast[ptr float32](x.value)[])
+  of tyFloat64:
+    result = BiggestFloat(cast[ptr float64](x.value)[])
+  else:
+    raiseAssert "unreachable"
 
 proc setBiggestFloat*(x: Any, y: BiggestFloat) =
   ## Sets the float value of `x`. `x` needs to represent
   ## some float.
   case skipRange(x.rawType).kind
-  of tyFloat: cast[ptr float](x.value)[] = y
-  of tyFloat32: cast[ptr float32](x.value)[] = y.float32
-  of tyFloat64: cast[ptr float64](x.value)[] = y
-  else: raiseAssert "unreachable"
+  of tyFloat:
+    cast[ptr float](x.value)[] = y
+  of tyFloat32:
+    cast[ptr float32](x.value)[] = y.float32
+  of tyFloat64:
+    cast[ptr float64](x.value)[] = y
+  else:
+    raiseAssert "unreachable"
 
 proc getString*(x: Any): string =
   ## Retrieves the `string` value out of `x`. `x` needs to represent a `string`.
@@ -683,17 +781,21 @@ iterator elements*(x: Any): int =
   # "typ.slots.len" field is for sets the "first" field
   var u: int64 = 0'i64
   case typ.size
-  of 1: u = int64(cast[ptr uint8](p)[])
-  of 2: u = int64(cast[ptr uint16](p)[])
-  of 4: u = int64(cast[ptr uint32](p)[])
-  of 8: u = cast[ptr int64](p)[]
+  of 1:
+    u = int64(cast[ptr uint8](p)[])
+  of 2:
+    u = int64(cast[ptr uint16](p)[])
+  of 4:
+    u = int64(cast[ptr uint32](p)[])
+  of 8:
+    u = cast[ptr int64](p)[]
   else:
     let a = cast[pbyteArray](p)
-    for i in 0 .. typ.size*8-1:
+    for i in 0 .. typ.size * 8 - 1:
       if (int(a[i div 8]) and (1 shl (i mod 8))) != 0:
         yield i + typ.node.len
   if typ.size <= 8:
-    for i in 0..sizeof(int64)*8-1:
+    for i in 0 .. sizeof(int64) * 8 - 1:
       if (u and (1'i64 shl int64(i))) != 0'i64:
         yield i + typ.node.len
 

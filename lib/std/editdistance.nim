@@ -17,13 +17,16 @@ proc editDistance*(a, b: string): int {.noSideEffect.} =
   ##
   ## This uses the `Levenshtein`:idx: distance algorithm with only a linear
   ## memory overhead.
-  runnableExamples: static: doAssert editdistance("Kitten", "Bitten") == 1
+  runnableExamples:
+    static:
+      doAssert editdistance("Kitten", "Bitten") == 1
   if runeLen(a) > runeLen(b):
     # make `b` the longer string
     return editDistance(b, a)
   # strip common prefix
   var
-    iStart = 0 ## The character starting index of the first rune in both strings `a` and `b`
+    iStart = 0
+      ## The character starting index of the first rune in both strings `a` and `b`
     iNextA = 0
     iNextB = 0
     runeA, runeB: Rune
@@ -78,7 +81,8 @@ proc editDistance*(a, b: string): int {.noSideEffect.} =
         while true:
           b.fastRuneAt(iEndB, runeB)
           inc(lenRunesB)
-          if iEndB >= len(b): break
+          if iEndB >= len(b):
+            break
     elif iCurrentB >= len(b): # `b` exhausted and `a` not exhausted
       iEndA = iCurrentA
       iEndB = iCurrentB
@@ -87,18 +91,22 @@ proc editDistance*(a, b: string): int {.noSideEffect.} =
       while true:
         a.fastRuneAt(iEndA, runeA)
         inc(lenRunesA)
-        if iEndA >= len(a): break
+        if iEndA >= len(a):
+          break
   block specialCases:
     # trivial cases:
-    if lenRunesA == 0: return lenRunesB
-    if lenRunesB == 0: return lenRunesA
+    if lenRunesA == 0:
+      return lenRunesB
+    if lenRunesB == 0:
+      return lenRunesA
     # another special case:
     if lenRunesA == 1:
       a.fastRuneAt(iStart, runeA, doInc = false)
       var iCurrentB = iStart
       while iCurrentB < iEndB:
         b.fastRuneAt(iCurrentB, runeB, doInc = true)
-        if runeA == runeB: return lenRunesB - 1
+        if runeA == runeB:
+          return lenRunesB - 1
       return lenRunesB
   # common case:
   var
@@ -109,7 +117,8 @@ proc editDistance*(a, b: string): int {.noSideEffect.} =
   newSeq(row, len2)
   var e = iStart + len2 - 1 # end marker
   # initialize first row:
-  for i in 1 .. (len2 - half - 1): row[i] = i
+  for i in 1 .. (len2 - half - 1):
+    row[i] = i
   row[0] = len1 - half - 1
   iCurrentA = iStart
   var
@@ -143,7 +152,8 @@ proc editDistance*(a, b: string): int {.noSideEffect.} =
       inc(p)
       x = row[p] + 1
       diff = x
-      if x > c3: x = c3
+      if x > c3:
+        x = c3
       row[p] = x
       inc(p)
     else:
@@ -161,9 +171,11 @@ proc editDistance*(a, b: string): int {.noSideEffect.} =
       var c3 = diff + (if runeA != runeB: 1 else: 0)
       inc(char2p, runeB.size)
       inc(x)
-      if x > c3: x = c3
+      if x > c3:
+        x = c3
       diff = row[p] + 1
-      if x > diff: x = diff
+      if x > diff:
+        x = diff
       row[p] = x
       inc(p)
     # lower triangle sentinel:
@@ -172,7 +184,8 @@ proc editDistance*(a, b: string): int {.noSideEffect.} =
       runeB = b.runeAt(char2p)
       var c3 = diff + (if runeA != runeB: 1 else: 0)
       inc(x)
-      if x > c3: x = c3
+      if x > c3:
+        x = c3
       row[p] = x
     iCurrentA = iNextA
   result = row[e]
@@ -182,7 +195,9 @@ proc editDistanceAscii*(a, b: string): int {.noSideEffect.} =
   ##
   ## This uses the `Levenshtein`:idx: distance algorithm with only a linear
   ## memory overhead.
-  runnableExamples: static: doAssert editDistanceAscii("Kitten", "Bitten") == 1
+  runnableExamples:
+    static:
+      doAssert editDistanceAscii("Kitten", "Bitten") == 1
   var len1 = a.len
   var len2 = b.len
   if len1 > len2:
@@ -196,17 +211,20 @@ proc editDistanceAscii*(a, b: string): int {.noSideEffect.} =
     dec(len1)
     dec(len2)
   # strip common suffix:
-  while len1 > 0 and len2 > 0 and a[s+len1-1] == b[s+len2-1]:
+  while len1 > 0 and len2 > 0 and a[s + len1 - 1] == b[s + len2 - 1]:
     dec(len1)
     dec(len2)
   # trivial cases:
-  if len1 == 0: return len2
-  if len2 == 0: return len1
+  if len1 == 0:
+    return len2
+  if len2 == 0:
+    return len1
 
   # another special case:
   if len1 == 1:
-    for j in s..s+len2-1:
-      if a[s] == b[j]: return len2 - 1
+    for j in s .. s + len2 - 1:
+      if a[s] == b[j]:
+        return len2 - 1
     return len2
 
   inc(len1)
@@ -217,7 +235,8 @@ proc editDistanceAscii*(a, b: string): int {.noSideEffect.} =
   var row: seq[int]
   newSeq(row, len2)
   var e = s + len2 - 1 # end marker
-  for i in 1..len2 - half - 1: row[i] = i
+  for i in 1 .. len2 - half - 1:
+    row[i] = i
   row[0] = len1 - half - 1
   for i in 1 .. len1 - 1:
     var char1 = a[i + s - 1]
@@ -234,7 +253,8 @@ proc editDistanceAscii*(a, b: string): int {.noSideEffect.} =
       inc(char2p)
       x = row[p] + 1
       diff = x
-      if x > c3: x = c3
+      if x > c3:
+        x = c3
       row[p] = x
       inc(p)
     else:
@@ -251,9 +271,11 @@ proc editDistanceAscii*(a, b: string): int {.noSideEffect.} =
       var c3 = diff + ord(char1 != b[char2p + s])
       inc(char2p)
       inc(x)
-      if x > c3: x = c3
+      if x > c3:
+        x = c3
       diff = row[p] + 1
-      if x > diff: x = diff
+      if x > diff:
+        x = diff
       row[p] = x
       inc(p)
     # lower triangle sentinel:
@@ -261,6 +283,7 @@ proc editDistanceAscii*(a, b: string): int {.noSideEffect.} =
       dec(diff)
       var c3 = diff + ord(char1 != b[char2p + s])
       inc(x)
-      if x > c3: x = c3
+      if x > c3:
+        x = c3
       row[p] = x
   result = row[e]

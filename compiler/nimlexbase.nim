@@ -32,31 +32,31 @@ const
   VT* = '\x0B'
 
 const
-  EndOfFile* = '\0'           # end of file marker
-                              # A little picture makes everything clear :-)
-                              #  buf:
-                              #  "Example Text\n ha!"   bufLen = 17
-                              #   ^pos = 0     ^ sentinel = 12
-                              #
+  EndOfFile* = '\0'
+    # end of file marker
+    # A little picture makes everything clear :-)
+    #  buf:
+    #  "Example Text\n ha!"   bufLen = 17
+    #   ^pos = 0     ^ sentinel = 12
+    #
   NewLines* = {CR, LF}
 
-type
-  TBaseLexer* = object of RootObj
-    bufpos*: int
-    buf*: cstring
-    bufStorage: string
-    bufLen: int
-    stream*: PLLStream        # we read from this stream
-    lineNumber*: int          # the current line number
-                              # private data:
-    sentinel*: int
-    lineStart*: int           # index of last line start in buffer
-    offsetBase*: int          # use ``offsetBase + bufpos`` to get the offset
+type TBaseLexer* = object of RootObj
+  bufpos*: int
+  buf*: cstring
+  bufStorage: string
+  bufLen: int
+  stream*: PLLStream # we read from this stream
+  lineNumber*: int
+    # the current line number
+    # private data:
+  sentinel*: int
+  lineStart*: int # index of last line start in buffer
+  offsetBase*: int # use ``offsetBase + bufpos`` to get the offset
 
-
-proc openBaseLexer*(L: var TBaseLexer, inputstream: PLLStream,
-                    bufLen: int = 8192)
+proc openBaseLexer*(L: var TBaseLexer, inputstream: PLLStream, bufLen: int = 8192)
   # 8K is a reasonable buffer size
+
 proc closeBaseLexer*(L: var TBaseLexer)
 proc getCurrentLine*(L: TBaseLexer, marker: bool = true): string
 proc getColNumber*(L: TBaseLexer, pos: int): int
@@ -64,10 +64,12 @@ proc handleCR*(L: var TBaseLexer, pos: int): int
   # Call this if you scanned over CR in the buffer; it returns the
   # position to continue the scanning from. `pos` must be the position
   # of the CR.
+
 proc handleLF*(L: var TBaseLexer, pos: int): int
   # Call this if you scanned over LF in the buffer; it returns the
   # position to continue the scanning from. `pos` must be the position
   # of the LF.
+
 # implementation
 
 proc closeBaseLexer(L: var TBaseLexer) =
@@ -75,9 +77,10 @@ proc closeBaseLexer(L: var TBaseLexer) =
 
 proc fillBuffer(L: var TBaseLexer) =
   var
-    charsRead, toCopy, s: int # all are in characters,
-                              # not bytes (in case this
-                              # is not the same)
+    charsRead, toCopy, s: int
+      # all are in characters,
+      # not bytes (in case this
+      # is not the same)
     oldBufLen: int
   # we know here that pos == L.sentinel, but not if this proc
   # is called the first time by initBaseLexer()
@@ -90,14 +93,15 @@ proc fillBuffer(L: var TBaseLexer) =
   charsRead = llStreamRead(L.stream, addr L.buf[toCopy], L.sentinel + 1)
   s = toCopy + charsRead
   if charsRead < L.sentinel + 1:
-    L.buf[s] = EndOfFile      # set end marker
+    L.buf[s] = EndOfFile # set end marker
     L.sentinel = s
   else:
     # compute sentinel:
-    dec(s)                    # BUGFIX (valgrind)
+    dec(s) # BUGFIX (valgrind)
     while true:
       assert(s < L.bufLen)
-      while (s >= 0) and not (L.buf[s] in NewLines): dec(s)
+      while (s >= 0) and not (L.buf[s] in NewLines):
+        dec(s)
       if s >= 0:
         # we found an appropriate character for a sentinel:
         L.sentinel = s
@@ -110,8 +114,7 @@ proc fillBuffer(L: var TBaseLexer) =
         L.bufStorage.setLen(L.bufLen)
         L.buf = L.bufStorage.cstring
         assert(L.bufLen - oldBufLen == oldBufLen)
-        charsRead = llStreamRead(L.stream, addr(L.buf[oldBufLen]),
-                                 oldBufLen)
+        charsRead = llStreamRead(L.stream, addr(L.buf[oldBufLen]), oldBufLen)
         if charsRead < oldBufLen:
           L.buf[oldBufLen + charsRead] = EndOfFile
           L.sentinel = oldBufLen + charsRead
@@ -121,7 +124,7 @@ proc fillBuffer(L: var TBaseLexer) =
 proc fillBaseLexer(L: var TBaseLexer, pos: int): int =
   assert(pos <= L.sentinel)
   if pos < L.sentinel:
-    result = pos + 1          # nothing to do
+    result = pos + 1 # nothing to do
   else:
     fillBuffer(L)
     L.offsetBase += pos + 1
@@ -155,7 +158,7 @@ proc openBaseLexer(L: var TBaseLexer, inputstream: PLLStream, bufLen = 8192) =
   L.bufLen = bufLen
   L.sentinel = bufLen - 1
   L.lineStart = 0
-  L.lineNumber = 1            # lines start at 1
+  L.lineNumber = 1 # lines start at 1
   L.stream = inputstream
   fillBuffer(L)
   skipUTF8BOM(L)

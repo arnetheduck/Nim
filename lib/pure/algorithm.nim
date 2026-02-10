@@ -14,9 +14,7 @@
 ##
 
 runnableExamples:
-  type People = tuple
-    year: int
-    name: string
+  type People = tuple[year: int, name: string]
 
   var a: seq[People]
 
@@ -26,16 +24,24 @@ runnableExamples:
 
   # Sorting with default system.cmp
   a.sort()
-  assert a == @[(year: 2000, name: "John"), (year: 2005, name: "Marie"),
-                (year: 2010, name: "Jane")]
+  assert a ==
+    @[
+      (year: 2000, name: "John"),
+      (year: 2005, name: "Marie"),
+      (year: 2010, name: "Jane"),
+    ]
 
   proc myCmp(x, y: People): int =
     cmp(x.name, y.name)
 
   # Sorting with custom proc
   a.sort(myCmp)
-  assert a == @[(year: 2010, name: "Jane"), (year: 2000, name: "John"),
-                (year: 2005, name: "Marie")]
+  assert a ==
+    @[
+      (year: 2010, name: "Jane"),
+      (year: 2000, name: "John"),
+      (year: 2005, name: "Marie"),
+    ]
 
 ## See also
 ## ========
@@ -47,10 +53,9 @@ import std/private/since
 when defined(nimPreviewSlimSystem):
   import std/assertions
 
-
-type
-  SortOrder* = enum
-    Descending, Ascending
+type SortOrder* = enum
+  Descending
+  Ascending
 
 proc `*`*(x: int, order: SortOrder): int {.inline.} =
   ## Flips the sign of `x` if `order == Descending`.
@@ -96,7 +101,6 @@ proc fill*[T](a: var openArray[T], value: T) =
     a.fill(4)
     assert a == [4, 4, 4, 4, 4, 4]
   fillImpl(a, 0, a.high, value)
-
 
 proc reverse*[T](a: var openArray[T], first, last: Natural) =
   ## Reverses the slice `a[first..last]`.
@@ -145,10 +149,12 @@ proc reversed*[T](a: openArray[T]): seq[T] {.inline.} =
     assert seq[string].default.reversed == @[]
   let n = a.len
   result.setLen(n)
-  for i in 0..<n: result[i] = a[n - (i + 1)]
+  for i in 0 ..< n:
+    result[i] = a[n - (i + 1)]
 
-proc reversed*[T](a: openArray[T], first: Natural, last: int): seq[T]
-  {.inline, deprecated: "use: `reversed(toOpenArray(a, first, last))`".} =
+proc reversed*[T](
+    a: openArray[T], first: Natural, last: int
+): seq[T] {.inline, deprecated: "use: `reversed(toOpenArray(a, first, last))`".} =
   reversed(toOpenArray(a, first, last))
 
 when defined(nimHasEffectsOf):
@@ -156,8 +162,9 @@ when defined(nimHasEffectsOf):
 else:
   {.pragma: effectsOf.}
 
-proc binarySearch*[T, K](a: openArray[T], key: K,
-                         cmp: proc (x: T, y: K): int {.closure.}): int {.effectsOf: cmp.} =
+proc binarySearch*[T, K](
+    a: openArray[T], key: K, cmp: proc(x: T, y: K): int {.closure.}
+): int {.effectsOf: cmp.} =
   ## Binary search for `key` in `a`. Return the index of `key` or -1 if not found.
   ## Assumes that `a` is sorted according to `cmp`.
   ##
@@ -191,7 +198,8 @@ proc binarySearch*[T, K](a: openArray[T], key: K,
       if cmpRes < 0:
         result = i
       step = step shr 1
-    if cmp(a[result], key) != 0: result = -1
+    if cmp(a[result], key) != 0:
+      result = -1
   else:
     var b = len
     var cmpRes: int
@@ -205,7 +213,8 @@ proc binarySearch*[T, K](a: openArray[T], key: K,
         result = mid + 1
       else:
         b = mid
-    if result >= len or cmp(a[result], key) != 0: result = -1
+    if result >= len or cmp(a[result], key) != 0:
+      result = -1
 
 proc binarySearch*[T](a: openArray[T], key: T): int =
   ## Binary search for `key` in `a`. Return the index of `key` or -1 if not found.
@@ -215,11 +224,11 @@ proc binarySearch*[T](a: openArray[T], key: T): int =
     assert binarySearch([0, 1, 2, 3, 4], 2) == 2
   binarySearch(a, key, cmp[T])
 
-const
-  onlySafeCode = true
+const onlySafeCode = true
 
-proc lowerBound*[T, K](a: openArray[T], key: K,
-                       cmp: proc(x: T, k: K): int {.closure.}): int {.effectsOf: cmp.} =
+proc lowerBound*[T, K](
+    a: openArray[T], key: K, cmp: proc(x: T, k: K): int {.closure.}
+): int {.effectsOf: cmp.} =
   ## Returns the index of the first element in `a` that is not less than
   ## (i.e. greater or equal to) `key`, or last if no such element is found.
   ## In other words if you have a sorted sequence and you call
@@ -254,7 +263,7 @@ proc lowerBound*[T, K](a: openArray[T], key: K,
     else:
       count = step
 
-proc lowerBound*[T](a: openArray[T], key: T): int = lowerBound(a, key, cmp[T])
+proc lowerBound*[T](a: openArray[T], key: T): int =
   ## Returns the index of the first element in `a` that is not less than
   ## (i.e. greater or equal to) `key`, or last if no such element is found.
   ## In other words if you have a sorted sequence and you call
@@ -267,9 +276,11 @@ proc lowerBound*[T](a: openArray[T], key: T): int = lowerBound(a, key, cmp[T])
   ## **See also:**
   ## * `upperBound proc<#upperBound,openArray[T],K,proc(T,K)>`_ sorted by `cmp` in the specified order
   ## * `upperBound proc<#upperBound,openArray[T],T>`_
+  lowerBound(a, key, cmp[T])
 
-proc upperBound*[T, K](a: openArray[T], key: K,
-                       cmp: proc(x: T, k: K): int {.closure.}): int {.effectsOf: cmp.} =
+proc upperBound*[T, K](
+    a: openArray[T], key: K, cmp: proc(x: T, k: K): int {.closure.}
+): int {.effectsOf: cmp.} =
   ## Returns the index of the first element in `a` that is greater than
   ## `key`, or last if no such element is found.
   ## In other words if you have a sorted sequence and you call
@@ -304,7 +315,7 @@ proc upperBound*[T, K](a: openArray[T], key: K,
     else:
       count = step
 
-proc upperBound*[T](a: openArray[T], key: T): int = upperBound(a, key, cmp[T])
+proc upperBound*[T](a: openArray[T], key: T): int =
   ## Returns the index of the first element in `a` that is greater than
   ## `key`, or last if no such element is found.
   ## In other words if you have a sorted sequence and you call
@@ -317,6 +328,7 @@ proc upperBound*[T](a: openArray[T], key: T): int = upperBound(a, key, cmp[T])
   ## **See also:**
   ## * `lowerBound proc<#lowerBound,openArray[T],K,proc(T,K)>`_ sorted by `cmp` in the specified order
   ## * `lowerBound proc<#lowerBound,openArray[T],T>`_
+  upperBound(a, key, cmp[T])
 
 template `<-`(a, b) =
   when defined(gcDestructors):
@@ -326,13 +338,18 @@ template `<-`(a, b) =
   else:
     copyMem(addr(a), addr(b), sizeof(T))
 
-proc mergeAlt[T](a, b: var openArray[T], lo, m, hi: int,
-              cmp: proc (x, y: T): int {.closure.}, order: SortOrder) {.effectsOf: cmp.} =
+proc mergeAlt[T](
+    a, b: var openArray[T],
+    lo, m, hi: int,
+    cmp: proc(x, y: T): int {.closure.},
+    order: SortOrder,
+) {.effectsOf: cmp.} =
   # Optimization: If max(left) <= min(right) there is nothing to do!
   # 1 2 3 4 ## 5 6 7 8
   # -> O(n) for sorted arrays.
   # On random data this saves up to 40% of mergeAlt calls.
-  if cmp(a[m], a[m+1]) * order <= 0: return
+  if cmp(a[m], a[m + 1]) * order <= 0:
+    return
   var j = lo
   # copy a[j..m] into b:
   assert j <= m
@@ -343,8 +360,8 @@ proc mergeAlt[T](a, b: var openArray[T], lo, m, hi: int,
       inc(bb)
       inc(j)
   else:
-    copyMem(addr(b[0]), addr(a[j]), sizeof(T)*(m-j+1))
-    j = m+1
+    copyMem(addr(b[0]), addr(a[j]), sizeof(T) * (m - j + 1))
+    j = m + 1
   var i = 0
   var k = lo
   # copy proper element back:
@@ -363,11 +380,14 @@ proc mergeAlt[T](a, b: var openArray[T], lo, m, hi: int,
       inc(k)
       inc(i)
   else:
-    if k < j: copyMem(addr(a[k]), addr(b[i]), sizeof(T)*(j-k))
+    if k < j:
+      copyMem(addr(a[k]), addr(b[i]), sizeof(T) * (j - k))
 
-func sort*[T](a: var openArray[T],
-              cmp: proc (x, y: T): int {.closure.},
-              order = SortOrder.Ascending) {.effectsOf: cmp.} =
+func sort*[T](
+    a: var openArray[T],
+    cmp: proc(x, y: T): int {.closure.},
+    order = SortOrder.Ascending,
+) {.effectsOf: cmp.} =
   ## Default Nim sort (an implementation of merge sort). The sorting
   ## is guaranteed to be stable (that is, equal elements stay in the same order)
   ## and the worst case is guaranteed to be O(n log n).
@@ -404,22 +424,21 @@ func sort*[T](a: var openArray[T],
   runnableExamples:
     var d = ["boo", "fo", "barr", "qux"]
     proc myCmp(x, y: string): int =
-      if x.len() > y.len() or x.len() == y.len(): 1
-      else: -1
+      if x.len() > y.len() or x.len() == y.len(): 1 else: -1
+
     sort(d, myCmp)
     assert d == ["fo", "qux", "boo", "barr"]
   var n = a.len
   var b = newSeq[T](n div 2)
   var s = 1
   while s < n:
-    var m = n-1-s
+    var m = n - 1 - s
     while m >= 0:
-      mergeAlt(a, b, max(m-s+1, 0), m, m+s, cmp, order)
-      dec(m, s*2)
-    s = s*2
+      mergeAlt(a, b, max(m - s + 1, 0), m, m + s, cmp, order)
+      dec(m, s * 2)
+    s = s * 2
 
-proc sort*[T](a: var openArray[T], order = SortOrder.Ascending) = sort[T](a,
-    system.cmp[T], order)
+proc sort*[T](a: var openArray[T], order = SortOrder.Ascending) =
   ## Shortcut version of `sort` that uses `system.cmp[T]` as the comparison function.
   ##
   ## **See also:**
@@ -427,9 +446,11 @@ proc sort*[T](a: var openArray[T], order = SortOrder.Ascending) = sort[T](a,
   ## * `sorted proc<#sorted,openArray[T],proc(T,T)>`_ sorted by `cmp` in the specified order
   ## * `sorted proc<#sorted,openArray[T]>`_
   ## * `sortedByIt template<#sortedByIt.t,untyped,untyped>`_
+  sort[T](a, system.cmp[T], order)
 
-proc sorted*[T](a: openArray[T], cmp: proc(x, y: T): int {.closure.},
-                order = SortOrder.Ascending): seq[T] {.effectsOf: cmp.} =
+proc sorted*[T](
+    a: openArray[T], cmp: proc(x, y: T): int {.closure.}, order = SortOrder.Ascending
+): seq[T] {.effectsOf: cmp.} =
   ## Returns `a` sorted by `cmp` in the specified `order`.
   ##
   ## **See also:**
@@ -491,22 +512,35 @@ template sortedByIt*(seq1, op: untyped): untyped =
       p4: Person = (name: "p4", age: 30)
       people = @[p1, p2, p4, p3]
 
-    assert people.sortedByIt(it.name) == @[(name: "p1", age: 60), (name: "p2",
-        age: 20), (name: "p3", age: 30), (name: "p4", age: 30)]
+    assert people.sortedByIt(it.name) ==
+      @[
+        (name: "p1", age: 60),
+        (name: "p2", age: 20),
+        (name: "p3", age: 30),
+        (name: "p4", age: 30),
+      ]
     # Nested sort
-    assert people.sortedByIt((it.age, it.name)) == @[(name: "p2", age: 20),
-       (name: "p3", age: 30), (name: "p4", age: 30), (name: "p1", age: 60)]
-  var result = sorted(seq1, proc(x, y: typeof(items(seq1), typeOfIter)): int =
-    var it {.inject.} = x
-    let a = op
-    it = y
-    let b = op
-    result = cmp(a, b))
+    assert people.sortedByIt((it.age, it.name)) ==
+      @[
+        (name: "p2", age: 20),
+        (name: "p3", age: 30),
+        (name: "p4", age: 30),
+        (name: "p1", age: 60),
+      ]
+  var result = sorted(
+    seq1,
+    proc(x, y: typeof(items(seq1), typeOfIter)): int =
+      var it {.inject.} = x
+      let a = op
+      it = y
+      let b = op
+      result = cmp(a, b),
+  )
   result
 
-func isSorted*[T](a: openArray[T],
-                 cmp: proc(x, y: T): int {.closure.},
-                 order = SortOrder.Ascending): bool {.effectsOf: cmp.} =
+func isSorted*[T](
+    a: openArray[T], cmp: proc(x, y: T): int {.closure.}, order = SortOrder.Ascending
+): bool {.effectsOf: cmp.} =
   ## Checks to see whether `a` is already sorted in `order`
   ## using `cmp` for the comparison. The parameters are identical
   ## to `sort`. Requires O(n) time.
@@ -527,8 +561,8 @@ func isSorted*[T](a: openArray[T],
     assert isSorted(d) == true
     assert isSorted(e) == false
   result = true
-  for i in 0..<len(a)-1:
-    if cmp(a[i], a[i+1]) * order > 0:
+  for i in 0 ..< len(a) - 1:
+    if cmp(a[i], a[i + 1]) * order > 0:
       return false
 
 proc isSorted*[T](a: openArray[T], order = SortOrder.Ascending): bool =
@@ -552,8 +586,7 @@ proc isSorted*[T](a: openArray[T], order = SortOrder.Ascending): bool =
   isSorted(a, system.cmp[T], order)
 
 proc merge*[T](
-  result: var seq[T],
-  x, y: openArray[T], cmp: proc(x, y: T): int {.closure.}
+    result: var seq[T], x, y: openArray[T], cmp: proc(x, y: T): int {.closure.}
 ) {.since: (1, 5, 1), effectsOf: cmp.} =
   ## Merges two sorted `openArray`. `x` and `y` are assumed to be sorted.
   ## If you do not wish to provide your own `cmp`,
@@ -665,14 +698,16 @@ proc product*[T](x: openArray[seq[T]]): seq[seq[T]] =
     index = 0
   var next = newSeq[T](xLen)
   for i in 0 ..< xLen:
-    if len(x[i]) == 0: return
+    if len(x[i]) == 0:
+      return
     initial[i] = len(x[i]) - 1
   indices = initial
   while true:
     while indices[index] == -1:
       indices[index] = initial[index]
       index += 1
-      if index == xLen: return
+      if index == xLen:
+        return
       indices[index] -= 1
     for ni, i in indices:
       next[ni] = x[ni][i]
@@ -705,17 +740,17 @@ proc nextPermutation*[T](x: var openArray[T]): bool {.discardable.} =
     return false
 
   var i = x.high
-  while i > 0 and x[i-1] >= x[i]:
+  while i > 0 and x[i - 1] >= x[i]:
     dec i
 
   if i == 0:
     return false
 
   var j = x.high
-  while j >= i and x[j] <= x[i-1]:
+  while j >= i and x[j] <= x[i - 1]:
     dec j
 
-  swap x[j], x[i-1]
+  swap x[j], x[i - 1]
   x.reverse(i, x.high)
 
   result = true
@@ -739,7 +774,7 @@ proc prevPermutation*[T](x: var openArray[T]): bool {.discardable.} =
     return false
 
   var i = x.high
-  while i > 0 and x[i-1] <= x[i]:
+  while i > 0 and x[i - 1] <= x[i]:
     dec i
 
   if i == 0:
@@ -748,14 +783,14 @@ proc prevPermutation*[T](x: var openArray[T]): bool {.discardable.} =
   x.reverse(i, x.high)
 
   var j = x.high
-  while j >= i and x[j-1] < x[i-1]:
+  while j >= i and x[j - 1] < x[i - 1]:
     dec j
 
-  swap x[i-1], x[j]
+  swap x[i - 1], x[j]
 
   result = true
 
-proc rotateInternal[T](arg: var openArray[T]; first, middle, last: int): int =
+proc rotateInternal[T](arg: var openArray[T], first, middle, last: int): int =
   ## A port of std::rotate from C++.
   ## Ported from [this reference](https://www.cplusplus.com/reference/algorithm/rotate/).
   result = first + last - middle
@@ -795,7 +830,7 @@ proc rotateInternal[T](arg: var openArray[T]; first, middle, last: int): int =
     elif next == last:
       next = mMiddle
 
-proc rotatedInternal[T](arg: openArray[T]; first, middle, last: int): seq[T] =
+proc rotatedInternal[T](arg: openArray[T], first, middle, last: int): seq[T] =
   let argLen = arg.len
   result = newSeq[T](argLen)
   for i in 0 ..< first:
@@ -803,14 +838,15 @@ proc rotatedInternal[T](arg: openArray[T]; first, middle, last: int): seq[T] =
   let n = last - middle
   let m = middle - first
   for i in 0 ..< n:
-    result[first+i] = arg[middle+i]
+    result[first + i] = arg[middle + i]
   for i in 0 ..< m:
-    result[first+n+i] = arg[first+i]
+    result[first + n + i] = arg[first + i]
   for i in last ..< argLen:
     result[i] = arg[i]
 
-proc rotateLeft*[T](arg: var openArray[T]; slice: HSlice[int, int];
-                    dist: int): int {.discardable.} =
+proc rotateLeft*[T](
+    arg: var openArray[T], slice: HSlice[int, int], dist: int
+): int {.discardable.} =
   ## Performs a left rotation on a range of elements. If you want to rotate
   ## right, use a negative `dist`. Specifically, `rotateLeft` rotates
   ## the elements at `slice` by `dist` positions.
@@ -847,7 +883,7 @@ proc rotateLeft*[T](arg: var openArray[T]; slice: HSlice[int, int];
   let distLeft = ((dist mod sliceLen) + sliceLen) mod sliceLen
   arg.rotateInternal(slice.a, slice.a + distLeft, slice.b + 1)
 
-proc rotateLeft*[T](arg: var openArray[T]; dist: int): int {.discardable.} =
+proc rotateLeft*[T](arg: var openArray[T], dist: int): int {.discardable.} =
   ## Same as `rotateLeft`, but with default arguments for slice,
   ## so that this procedure operates on the entire
   ## `arg`, and not just on a part of it.
@@ -867,8 +903,7 @@ proc rotateLeft*[T](arg: var openArray[T]; dist: int): int {.discardable.} =
   let distLeft = ((dist mod argLen) + argLen) mod argLen
   arg.rotateInternal(0, distLeft, argLen)
 
-proc rotatedLeft*[T](arg: openArray[T]; slice: HSlice[int, int],
-                     dist: int): seq[T] =
+proc rotatedLeft*[T](arg: openArray[T], slice: HSlice[int, int], dist: int): seq[T] =
   ## Same as `rotateLeft`, just with the difference that it does
   ## not modify the argument. It creates a new `seq` instead.
   ##
@@ -897,7 +932,7 @@ proc rotatedLeft*[T](arg: openArray[T]; slice: HSlice[int, int],
   let distLeft = ((dist mod sliceLen) + sliceLen) mod sliceLen
   arg.rotatedInternal(slice.a, slice.a + distLeft, slice.b + 1)
 
-proc rotatedLeft*[T](arg: openArray[T]; dist: int): seq[T] =
+proc rotatedLeft*[T](arg: openArray[T], dist: int): seq[T] =
   ## Same as `rotateLeft`, just with the difference that it does
   ## not modify the argument. It creates a new `seq` instead.
   ##

@@ -35,7 +35,7 @@ template excl*[T](x: var set[T], y: set[T]) {.callsite.} =
   runnableExamples:
     var a = {1, 3, 5, 7}
     var b = {3, 4, 5}
-    a.excl(b) 
+    a.excl(b)
     assert a == {1, 7}
   x = x - y
 
@@ -48,9 +48,7 @@ func card*[T](x: set[T]): int {.magic: "Card".} =
     var b = {1, 3, 5, 7, 5}
     assert card(b) == 4 # repeated 5 doesn't count
 
-func len*[T](x: set[T]): int {.magic: "Card".}
-  ## An alias for `card(x)`.
-
+func len*[T](x: set[T]): int {.magic: "Card".} ## An alias for `card(x)`.
 
 func `*`*[T](x, y: set[T]): set[T] {.magic: "MulSet".} =
   ## This operator computes the intersection of two sets.
@@ -77,11 +75,11 @@ func contains*[T](x: set[T], y: T): bool {.magic: "InSet".} =
   ## But for the `in` operator that would be the wrong direction for this
   ## piece of code:
   runnableExamples:
-    var s: set[range['a'..'z']] = {'a'..'c'}
+    var s: set[range['a' .. 'z']] = {'a' .. 'c'}
     assert s.contains('c')
     assert 'b' in s
     assert 'd' notin s
-    assert set['a'..'z'] is set[range['a'..'z']]
+    assert set['a' .. 'z'] is set[range['a' .. 'z']]
   ## If `in` had been declared as `[T](elem: T, s: set[T])` then `T` would
   ## have been bound to `char`. But `s` is not compatible to type
   ## `set[char]`! The solution is to bind `T` to `range['a'..'z']`. This

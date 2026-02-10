@@ -8,9 +8,8 @@ from std/math import trunc
 when defined(nimPreviewSlimSystem):
   import std/assertions
 
-type
-  Int128* = object
-    udata: array[4, uint32]
+type Int128* = object
+  udata: array[4, uint32]
 
 template sdata(arg: Int128, idx: int): int32 =
   # udata and sdata was supposed to be in a union, but unions are
@@ -25,17 +24,22 @@ const
   Ten* = Int128(udata: [10'u32, 0, 0, 0])
   Min = Int128(udata: [0'u32, 0, 0, 0x80000000'u32])
   Max = Int128(udata: [high(uint32), high(uint32), high(uint32), uint32(high(int32))])
-  NegOne* = Int128(udata: [0xffffffff'u32, 0xffffffff'u32, 0xffffffff'u32, 0xffffffff'u32])
+  NegOne* =
+    Int128(udata: [0xffffffff'u32, 0xffffffff'u32, 0xffffffff'u32, 0xffffffff'u32])
 
-template low*(t: typedesc[Int128]): Int128 = Min
-template high*(t: typedesc[Int128]): Int128 = Max
+template low*(t: typedesc[Int128]): Int128 =
+  Min
+
+template high*(t: typedesc[Int128]): Int128 =
+  Max
 
 proc `$`*(a: Int128): string
 
 proc toInt128*[T: SomeInteger | bool](arg: T): Int128 =
   {.noSideEffect.}:
     result = Zero
-    when T is bool: result.sdata(0) = int32(arg)
+    when T is bool:
+      result.sdata(0) = int32(arg)
     elif T is SomeUnsignedInt:
       when sizeof(arg) <= 4:
         result.udata[0] = uint32(arg)
@@ -72,7 +76,7 @@ proc toInt64*(arg: Int128): int64 =
 
   cast[int64](bitconcat(arg.udata[1], arg.udata[0]))
 
-proc toInt64Checked*(arg: Int128; onError: int64): int64 =
+proc toInt64Checked*(arg: Int128, onError: int64): int64 =
   if isNegative(arg):
     if arg.sdata(3) != -1 or arg.sdata(2) != -1:
       return onError
@@ -160,12 +164,12 @@ proc castToUInt64*(arg: Int128): uint64 =
   ## Conversion to uint64 without range check.
   cast[uint64](bitconcat(arg.udata[1], arg.udata[0]))
 
-proc addToHex(result: var string; arg: uint32) =
-  for i in 0..<8:
-    let idx = (arg shr ((7-i) * 4)) and 0xf
+proc addToHex(result: var string, arg: uint32) =
+  for i in 0 ..< 8:
+    let idx = (arg shr ((7 - i) * 4)) and 0xf
     result.add "0123456789abcdef"[idx]
 
-proc addToHex*(result: var string; arg: Int128) =
+proc addToHex*(result: var string, arg: Int128) =
   var i = 3
   while i >= 0:
     result.addToHex(arg.udata[i])
@@ -187,11 +191,14 @@ proc inc*(a: var Int128, y: uint32 = 1) =
 
 proc cmp*(a, b: Int128): int =
   let tmp1 = cmp(a.sdata(3), b.sdata(3))
-  if tmp1 != 0: return tmp1
+  if tmp1 != 0:
+    return tmp1
   let tmp2 = cmp(a.udata[2], b.udata[2])
-  if tmp2 != 0: return tmp2
+  if tmp2 != 0:
+    return tmp2
   let tmp3 = cmp(a.udata[1], b.udata[1])
-  if tmp3 != 0: return tmp3
+  if tmp3 != 0:
+    return tmp3
   let tmp4 = cmp(a.udata[0], b.udata[0])
   return tmp4
 
@@ -202,10 +209,14 @@ proc `<=`*(a, b: Int128): bool =
   cmp(a, b) <= 0
 
 proc `==`*(a, b: Int128): bool =
-  if a.udata[0] != b.udata[0]: return false
-  if a.udata[1] != b.udata[1]: return false
-  if a.udata[2] != b.udata[2]: return false
-  if a.udata[3] != b.udata[3]: return false
+  if a.udata[0] != b.udata[0]:
+    return false
+  if a.udata[1] != b.udata[1]:
+    return false
+  if a.udata[2] != b.udata[2]:
+    return false
+  if a.udata[3] != b.udata[3]:
+    return false
   return true
 
 proc bitnot*(a: Int128): Int128 =
@@ -274,13 +285,16 @@ proc `shl`*(a: Int128, b: int): Int128 =
   elif b < 64:
     result.udata[0] = 0
     result.udata[1] = a.udata[0] shl (b and 31)
-    result.udata[2] = cast[uint32]((bitconcat(a.udata[1], a.udata[0]) shl (b and 31)) shr 32)
-    result.udata[3] = cast[uint32]((bitconcat(a.udata[2], a.udata[1]) shl (b and 31)) shr 32)
+    result.udata[2] =
+      cast[uint32]((bitconcat(a.udata[1], a.udata[0]) shl (b and 31)) shr 32)
+    result.udata[3] =
+      cast[uint32]((bitconcat(a.udata[2], a.udata[1]) shl (b and 31)) shr 32)
   elif b < 96:
     result.udata[0] = 0
     result.udata[1] = 0
     result.udata[2] = a.udata[0] shl (b and 31)
-    result.udata[3] = cast[uint32]((bitconcat(a.udata[1], a.udata[0]) shl (b and 31)) shr 32)
+    result.udata[3] =
+      cast[uint32]((bitconcat(a.udata[1], a.udata[0]) shl (b and 31)) shr 32)
   else:
     result.udata[0] = 0
     result.udata[1] = 0
@@ -318,7 +332,10 @@ proc abs*(a: Int128): Int128 =
     a
 
 proc abs(a: int32): int =
-  if a < 0: -a else: a
+  if a < 0:
+    -a
+  else:
+    a
 
 proc `*`(a: Int128, b: uint32): Int128 =
   result = Zero
@@ -361,7 +378,9 @@ proc `*`*(lhs, rhs: Int128): Int128 =
   let a00 = uint64(lhs.udata[0])
   let b32 = uint64(rhs.udata[1])
   let b00 = uint64(rhs.udata[0])
-  result = makeInt128(high64(lhs) * low64(rhs) + low64(lhs) * high64(rhs) + a32 * b32, a00 * b00)
+  result = makeInt128(
+    high64(lhs) * low64(rhs) + low64(lhs) * high64(rhs) + a32 * b32, a00 * b00
+  )
   result += toInt128(a32 * b00) shl 32
   result += toInt128(a00 * b32) shl 32
 
@@ -416,7 +435,7 @@ proc divMod*(dividend, divisor: Int128): tuple[quotient, remainder: Int128] =
 
   # Uses shift-subtract algorithm to divide dividend by denominator. The
   # remainder will be left in dividend.
-  for i in 0..shift:
+  for i in 0 .. shift:
     quotient = quotient shl 1
     if dividend >= denominator:
       dividend -= denominator
@@ -441,7 +460,7 @@ proc `mod`*(a, b: Int128): Int128 =
   let (_, b) = divMod(a, b)
   return b
 
-proc addInt128*(result: var string; value: Int128) =
+proc addInt128*(result: var string, value: Int128) =
   let initialSize = result.len
   if value == Zero:
     result.add '0'
@@ -471,7 +490,7 @@ proc `$`*(a: Int128): string =
 
 proc parseDecimalInt128*(arg: string, pos: int = 0): Int128 =
   assert(pos < arg.len)
-  assert(arg[pos] in {'-', '0'..'9'})
+  assert(arg[pos] in {'-', '0' .. '9'})
 
   var isNegative = false
   var pos = pos
@@ -480,7 +499,7 @@ proc parseDecimalInt128*(arg: string, pos: int = 0): Int128 =
     pos += 1
 
   result = Zero
-  while pos < arg.len and arg[pos] in '0'..'9':
+  while pos < arg.len and arg[pos] in '0' .. '9':
     result = result * Ten
     result.inc(uint32(arg[pos]) - uint32('0'))
     pos += 1
@@ -533,7 +552,8 @@ proc toFloat64*(arg: Int128): float64 =
 
 proc ldexp(x: float64, exp: cint): float64 {.importc: "ldexp", header: "<math.h>".}
 
-template bitor(a, b, c: Int128): Int128 = bitor(bitor(a, b), c)
+template bitor(a, b, c: Int128): Int128 =
+  bitor(bitor(a, b), c)
 
 proc toInt128*(arg: float64): Int128 =
   let isNegative = arg < 0

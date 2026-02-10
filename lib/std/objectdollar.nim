@@ -8,6 +8,7 @@ proc `$`*[T: object](x: T): string =
   runnableExamples:
     type Foo = object
       a, b: int
+
     let x = Foo(a: 23, b: 45)
     assert $x == "(a: 23, b: 45)"
   tupleObjectDollar(result, x)

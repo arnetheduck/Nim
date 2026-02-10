@@ -14,29 +14,32 @@
 # stack trace is taken. A stack tace is a list of cstrings.
 
 when defined(profiler) and defined(memProfiler):
-  {.error: "profiler and memProfiler cannot be defined at the same time (See Embedded Stack Trace Profiler (ESTP) User Guide) for more details".}
+  {.
+    error:
+      "profiler and memProfiler cannot be defined at the same time (See Embedded Stack Trace Profiler (ESTP) User Guide) for more details"
+  .}
 
 {.push profiler: off.}
 
-const
-  MaxTraceLen = 20 # tracking the last 20 calls is enough
+const MaxTraceLen = 20 # tracking the last 20 calls is enough
 
 type
   StackTrace* = object
-    lines*: array[0..MaxTraceLen-1, cstring]
-    files*: array[0..MaxTraceLen-1, cstring]
-  ProfilerHook* = proc (st: StackTrace) {.nimcall.}
+    lines*: array[0 .. MaxTraceLen - 1, cstring]
+    files*: array[0 .. MaxTraceLen - 1, cstring]
 
-proc `[]`*(st: StackTrace, i: int): cstring = st.lines[i]
+  ProfilerHook* = proc(st: StackTrace) {.nimcall.}
+
+proc `[]`*(st: StackTrace, i: int): cstring =
+  st.lines[i]
 
 proc captureStackTrace(f: PFrame, st: var StackTrace) =
-  const
-    firstCalls = 5
+  const firstCalls = 5
   var
     it = f
     i = 0
     total = 0
-  while it != nil and i <= high(st.lines)-(firstCalls-1):
+  while it != nil and i <= high(st.lines) - (firstCalls - 1):
     # the (-1) is for the "..." entry
     st.lines[i] = it.procname
     st.files[i] = it.filename
@@ -47,8 +50,9 @@ proc captureStackTrace(f: PFrame, st: var StackTrace) =
   while it != nil:
     inc(total)
     it = it.prev
-  for j in 1..total-i-(firstCalls-1):
-    if b != nil: b = b.prev
+  for j in 1 .. total - i - (firstCalls - 1):
+    if b != nil:
+      b = b.prev
   if total != i:
     st.lines[i] = "..."
     st.files[i] = "..."
@@ -59,19 +63,16 @@ proc captureStackTrace(f: PFrame, st: var StackTrace) =
     inc(i)
     b = b.prev
 
-var
-  profilingRequestedHook*: proc (): bool {.nimcall, gcsafe.}
-    ## set this variable to provide a procedure that implements a profiler in
-    ## user space. See the `nimprof` module for a reference implementation.
+var profilingRequestedHook*: proc(): bool {.nimcall, gcsafe.}
+  ## set this variable to provide a procedure that implements a profiler in
+  ## user space. See the `nimprof` module for a reference implementation.
 
 when defined(memProfiler):
-  type
-    MemProfilerHook* = proc (st: StackTrace, requestedSize: int) {.nimcall, gcsafe.}
+  type MemProfilerHook* = proc(st: StackTrace, requestedSize: int) {.nimcall, gcsafe.}
 
-  var
-    profilerHook*: MemProfilerHook
-      ## set this variable to provide a procedure that implements a profiler in
-      ## user space. See the `nimprof` module for a reference implementation.
+  var profilerHook*: MemProfilerHook
+    ## set this variable to provide a procedure that implements a profiler in
+    ## user space. See the `nimprof` module for a reference implementation.
 
   proc callProfilerHook(hook: MemProfilerHook, requestedSize: int) =
     var st: StackTrace
@@ -81,11 +82,11 @@ when defined(memProfiler):
   proc nimProfile(requestedSize: int) =
     if not isNil(profilingRequestedHook) and profilingRequestedHook():
       callProfilerHook(profilerHook, requestedSize)
+
 else:
-  var
-    profilerHook*: ProfilerHook
-      ## set this variable to provide a procedure that implements a profiler in
-      ## user space. See the `nimprof` module for a reference implementation.
+  var profilerHook*: ProfilerHook
+    ## set this variable to provide a procedure that implements a profiler in
+    ## user space. See the `nimprof` module for a reference implementation.
 
   proc callProfilerHook(hook: ProfilerHook) {.noinline.} =
     # 'noinline' so that 'nimProfile' does not perform the stack allocation

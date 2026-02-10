@@ -13,12 +13,12 @@
 ## - To learn more see `Diff on Wikipedia. <https://wikipedia.org/wiki/Diff>`_
 
 runnableExamples:
-  assert diffInt(
-    [0, 1, 2, 3, 4, 5, 6, 7, 8],
-    [-1, 1, 2, 3, 4, 5, 666, 7, 42]) ==
-    @[Item(startA: 0, startB: 0, deletedA: 1, insertedB: 1),
+  assert diffInt([0, 1, 2, 3, 4, 5, 6, 7, 8], [-1, 1, 2, 3, 4, 5, 666, 7, 42]) ==
+    @[
+      Item(startA: 0, startB: 0, deletedA: 1, insertedB: 1),
       Item(startA: 6, startB: 6, deletedA: 1, insertedB: 1),
-      Item(startA: 8, startB: 8, deletedA: 1, insertedB: 1)]
+      Item(startA: 8, startB: 8, deletedA: 1, insertedB: 1),
+    ]
 
 runnableExamples:
   # 2 samples of text (from "The Call of Cthulhu" by Lovecraft)
@@ -32,8 +32,10 @@ abc
 def ghi
 jkl"""
   assert diffText(txt0, txt1) ==
-    @[Item(startA: 0, startB: 0, deletedA: 0, insertedB: 1),
-      Item(startA: 2, startB: 3, deletedA: 1, insertedB: 1)]
+    @[
+      Item(startA: 0, startB: 0, deletedA: 0, insertedB: 1),
+      Item(startA: 2, startB: 3, deletedA: 1, insertedB: 1),
+    ]
 
 # code owner: Arne Döring
 #
@@ -49,32 +51,31 @@ when defined(nimPreviewSlimSystem):
   import std/assertions
 
 type
-  Item* = object    ## An Item in the list of differences.
-    startA*: int    ## Start Line number in Data A.
-    startB*: int    ## Start Line number in Data B.
-    deletedA*: int  ## Number of changes in Data A.
+  Item* = object ## An Item in the list of differences.
+    startA*: int ## Start Line number in Data A.
+    startB*: int ## Start Line number in Data B.
+    deletedA*: int ## Number of changes in Data A.
     insertedB*: int ## Number of changes in Data B.
 
   DiffData = object ## Data on one input file being compared.
     data: seq[int] ## Buffer of numbers that will be compared.
-    modified: seq[bool] ## Array of booleans that flag for modified
-                        ## data. This is the result of the diff.
-                        ## This means deletedA in the first Data or
-                        ## inserted in the second Data.
+    modified: seq[bool]
+      ## Array of booleans that flag for modified
+      ## data. This is the result of the diff.
+      ## This means deletedA in the first Data or
+      ## inserted in the second Data.
 
   Smsrd = object
     x, y: int
 
 # template to avoid a seq copy. Required until `sink` parameters are ready.
-template newDiffData(initData: seq[int]; L: int): DiffData =
-  DiffData(
-    data: initData,
-    modified: newSeq[bool](L + 2)
-  )
+template newDiffData(initData: seq[int], L: int): DiffData =
+  DiffData(data: initData, modified: newSeq[bool](L + 2))
 
-proc len(d: DiffData): int {.inline.} = d.data.len
+proc len(d: DiffData): int {.inline.} =
+  d.data.len
 
-proc diffCodes(aText: string; h: var Table[string, int]): DiffData =
+proc diffCodes(aText: string, h: var Table[string, int]): DiffData =
   ## This function converts all textlines of the text into unique numbers for every unique textline
   ## so further work can work only with simple numbers.
   ## `aText` the input text
@@ -111,8 +112,13 @@ proc optimize(data: var DiffData) =
     else:
       startPos = endPos
 
-proc sms(dataA: var DiffData; lowerA, upperA: int; dataB: DiffData; lowerB, upperB: int;
-         downVector, upVector: var openArray[int]): Smsrd =
+proc sms(
+    dataA: var DiffData,
+    lowerA, upperA: int,
+    dataB: DiffData,
+    lowerB, upperB: int,
+    downVector, upVector: var openArray[int],
+): Smsrd =
   ## This is the algorithm to find the Shortest Middle Snake (sms).
   ## `dataA` sequence A
   ## `lowerA` lower bound of the actual range in dataA
@@ -166,8 +172,7 @@ proc sms(dataA: var DiffData; lowerA, upperA: int; dataB: DiffData; lowerB, uppe
       # overlap ?
       if oddDelta and upK - D < k and k < upK + D:
         if upVector[upOffset + k] <= downVector[downOffset + k]:
-          return Smsrd(x: downVector[downOffset + k],
-                       y: downVector[downOffset + k] - k)
+          return Smsrd(x: downVector[downOffset + k], y: downVector[downOffset + k] - k)
 
     # Extend the reverse path.
     for k in countup(upK - D, upK + D, 2):
@@ -188,15 +193,19 @@ proc sms(dataA: var DiffData; lowerA, upperA: int; dataB: DiffData; lowerB, uppe
       upVector[upOffset + k] = x
 
       # overlap ?
-      if not oddDelta and downK-D <= k and k <= downK+D:
+      if not oddDelta and downK - D <= k and k <= downK + D:
         if upVector[upOffset + k] <= downVector[downOffset + k]:
-          return Smsrd(x: downVector[downOffset + k],
-                       y: downVector[downOffset + k] - k)
+          return Smsrd(x: downVector[downOffset + k], y: downVector[downOffset + k] - k)
 
   assert false, "the algorithm should never come here."
 
-proc lcs(dataA: var DiffData; lowerA, upperA: int; dataB: var DiffData; lowerB, upperB: int;
-         downVector, upVector: var openArray[int]) =
+proc lcs(
+    dataA: var DiffData,
+    lowerA, upperA: int,
+    dataB: var DiffData,
+    lowerB, upperB: int,
+    downVector, upVector: var openArray[int],
+) =
   ## This is the divide-and-conquer implementation of the longes common-subsequence (lcs)
   ## algorithm.
   ## The published algorithm passes recursively parts of the A and B sequences.
@@ -222,7 +231,8 @@ proc lcs(dataA: var DiffData; lowerA, upperA: int; dataB: var DiffData; lowerB, 
     inc lowerB
 
   # Fast walkthrough equal lines at the end
-  while lowerA < upperA and lowerB < upperB and dataA.data[upperA - 1] == dataB.data[upperB - 1]:
+  while lowerA < upperA and lowerB < upperB and
+      dataA.data[upperA - 1] == dataB.data[upperB - 1]:
     dec upperA
     dec upperB
 
@@ -231,13 +241,11 @@ proc lcs(dataA: var DiffData; lowerA, upperA: int; dataB: var DiffData; lowerB, 
     while lowerB < upperB:
       dataB.modified[lowerB] = true
       inc lowerB
-
   elif lowerB == upperB:
     # mark as deleted lines.
     while lowerA < upperA:
       dataA.modified[lowerA] = true
       inc lowerA
-
   else:
     # Find the middle snake and length of an optimal path for A and B
     let smsrd = sms(dataA, lowerA, upperA, dataB, lowerB, upperB, downVector, upVector)
@@ -245,7 +253,8 @@ proc lcs(dataA: var DiffData; lowerA, upperA: int; dataB: var DiffData; lowerB, 
 
     # The path is from LowerX to (x,y) and (x,y) to UpperX
     lcs(dataA, lowerA, smsrd.x, dataB, lowerB, smsrd.y, downVector, upVector)
-    lcs(dataA, smsrd.x, upperA, dataB, smsrd.y, upperB, downVector, upVector)  # 2002.09.20: no need for 2 points
+    lcs(dataA, smsrd.x, upperA, dataB, smsrd.y, upperB, downVector, upVector)
+      # 2002.09.20: no need for 2 points
 
 proc createDiffs(dataA, dataB: DiffData): seq[Item] =
   ## Scan the tables of which lines are inserted and deleted,
@@ -256,8 +265,8 @@ proc createDiffs(dataA, dataB: DiffData): seq[Item] =
   var lineA = 0
   var lineB = 0
   while lineA < dataA.len or lineB < dataB.len:
-    if lineA < dataA.len and not dataA.modified[lineA] and
-       lineB < dataB.len and not dataB.modified[lineB]:
+    if lineA < dataA.len and not dataA.modified[lineA] and lineB < dataB.len and
+        not dataB.modified[lineB]:
       # equal lines
       inc lineA
       inc lineB
@@ -273,11 +282,12 @@ proc createDiffs(dataA, dataB: DiffData): seq[Item] =
         inc lineB
 
       if (startA < lineA) or (startB < lineB):
-        result.add Item(startA: startA,
-                        startB: startB,
-                        deletedA: lineA - startA,
-                        insertedB: lineB - startB)
-
+        result.add Item(
+          startA: startA,
+          startB: startB,
+          deletedA: lineA - startA,
+          insertedB: lineB - startB,
+        )
 
 proc diffInt*(arrayA, arrayB: openArray[int]): seq[Item] =
   ## Find the difference in 2 arrays of integers.
@@ -318,7 +328,8 @@ proc diffText*(textA, textB: string): seq[Item] =
   ## Returns a seq of Items that describe the differences.
   # See also `gitutils.diffStrings`.
   # prepare the input-text and convert to comparable numbers.
-  var h = initTable[string, int]()  # TextA.len + TextB.len  <- probably wrong initial size
+  var h = initTable[string, int]()
+    # TextA.len + TextB.len  <- probably wrong initial size
   # The A-Version of the data (original data) to be compared.
   var dataA = diffCodes(textA, h)
 

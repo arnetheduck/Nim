@@ -18,11 +18,9 @@
 include system/inclrtl
 import std/private/strimpl
 
-
 when defined(js):
   func jsStartsWith(s, prefix: cstring): bool {.importjs: "#.startsWith(#)".}
   func jsEndsWith(s, suffix: cstring): bool {.importjs: "#.endsWith(#)".}
-
 
 func startsWith*(s, prefix: cstring): bool {.rtl, extern: "csuStartsWith".} =
   ## Returns true if `s` starts with `prefix`.
@@ -43,8 +41,10 @@ func startsWith*(s, prefix: cstring): bool {.rtl, extern: "csuStartsWith".} =
       result = false
       var i = 0
       while true:
-        if prefix[i] == '\0': return true
-        if s[i] != prefix[i]: return false
+        if prefix[i] == '\0':
+          return true
+        if s[i] != prefix[i]:
+          return false
         inc(i)
 
 func endsWith*(s, suffix: cstring): bool {.rtl, extern: "csuEndsWith".} =
@@ -68,9 +68,11 @@ func endsWith*(s, suffix: cstring): bool {.rtl, extern: "csuEndsWith".} =
       var i = 0
       var j = slen - len(suffix)
       while i + j <% slen:
-        if s[i + j] != suffix[i]: return false
+        if s[i + j] != suffix[i]:
+          return false
         inc(i)
-      if suffix[i] == '\0': return true
+      if suffix[i] == '\0':
+        return true
 
 func cmpIgnoreStyle*(a, b: cstring): int {.rtl, extern: "csuCmpIgnoreStyle".} =
   ## Semantically the same as `cmp(normalize($a), normalize($b))`. It
@@ -92,12 +94,15 @@ func cmpIgnoreStyle*(a, b: cstring): int {.rtl, extern: "csuCmpIgnoreStyle".} =
       var i = 0
       var j = 0
       while true:
-        while a[i] == '_': inc(i)
-        while b[j] == '_': inc(j) # BUGFIX: typo
+        while a[i] == '_':
+          inc(i)
+        while b[j] == '_':
+          inc(j) # BUGFIX: typo
         var aa = toLowerAscii(a[i])
         var bb = toLowerAscii(b[j])
         result = ord(aa) - ord(bb)
-        if result != 0 or aa == '\0': break
+        if result != 0 or aa == '\0':
+          break
         inc(i)
         inc(j)
 
@@ -122,5 +127,6 @@ func cmpIgnoreCase*(a, b: cstring): int {.rtl, extern: "csuCmpIgnoreCase".} =
         var aa = toLowerAscii(a[i])
         var bb = toLowerAscii(b[i])
         result = ord(aa) - ord(bb)
-        if result != 0 or aa == '\0': break
+        if result != 0 or aa == '\0':
+          break
         inc(i)

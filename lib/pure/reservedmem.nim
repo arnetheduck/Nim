@@ -47,7 +47,7 @@ when defined(windows):
   import std/winlean
   import std/private/win_getsysteminfo
 
-  proc getAllocationGranularity: uint =
+  proc getAllocationGranularity(): uint =
     var sysInfo: SystemInfo
     getSystemInfo(addr sysInfo)
     return uint(sysInfo.dwAllocationGranularity)
@@ -87,43 +87,44 @@ else:
 func nextAlignedOffset(n, alignment: int): int =
   result = n
   let m = n mod alignment
-  if m != 0: result += alignment - m
-
+  if m != 0:
+    result += alignment - m
 
 when defined(windows):
   const
     MEM_DECOMMIT = 0x4000
     MEM_RESERVE = 0x2000
     MEM_COMMIT = 0x1000
-  proc virtualFree(lpAddress: pointer, dwSize: int,
-                   dwFreeType: int32): cint {.header: "<windows.h>", stdcall,
-                   importc: "VirtualFree".}
-  proc virtualAlloc(lpAddress: pointer, dwSize: int, flAllocationType,
-                    flProtect: int32): pointer {.
-                    header: "<windows.h>", stdcall, importc: "VirtualAlloc".}
+  proc virtualFree(
+    lpAddress: pointer, dwSize: int, dwFreeType: int32
+  ): cint {.header: "<windows.h>", stdcall, importc: "VirtualFree".}
 
-proc init*(T: type ReservedMem,
-           maxLen: Natural,
-           initLen: Natural = 0,
-           initCommitLen = initLen,
-           memStart = pointer(nil),
-           accessFlags = memReadWrite,
-           maxCommittedAndUnusedPages = 3): ReservedMem =
+  proc virtualAlloc(
+    lpAddress: pointer, dwSize: int, flAllocationType, flProtect: int32
+  ): pointer {.header: "<windows.h>", stdcall, importc: "VirtualAlloc".}
 
+proc init*(
+    T: type ReservedMem,
+    maxLen: Natural,
+    initLen: Natural = 0,
+    initCommitLen = initLen,
+    memStart = pointer(nil),
+    accessFlags = memReadWrite,
+    maxCommittedAndUnusedPages = 3,
+): ReservedMem =
   assert initLen <= initCommitLen
   let commitSize = nextAlignedOffset(initCommitLen, allocationGranularity)
 
   when defined(windows):
-    result.memStart = virtualAlloc(memStart, maxLen, MEM_RESERVE,
-        accessFlags.cint)
+    result.memStart = virtualAlloc(memStart, maxLen, MEM_RESERVE, accessFlags.cint)
     check result.memStart
     if commitSize > 0:
-      check virtualAlloc(result.memStart, commitSize, MEM_COMMIT,
-          accessFlags.cint)
+      check virtualAlloc(result.memStart, commitSize, MEM_COMMIT, accessFlags.cint)
   else:
-    var allocFlags = MAP_PRIVATE or MAP_ANONYMOUS # or MAP_NORESERVE
-                                                  # if memStart != nil:
-                                                  #  allocFlags = allocFlags or MAP_FIXED_NOREPLACE
+    var allocFlags = MAP_PRIVATE or MAP_ANONYMOUS
+      # or MAP_NORESERVE
+      # if memStart != nil:
+      #  allocFlags = allocFlags or MAP_FIXED_NOREPLACE
     result.memStart = mmap(memStart, maxLen, PROT_NONE, allocFlags, -1, 0)
     check result.memStart != MAP_FAILED
     if commitSize > 0:
@@ -152,14 +153,15 @@ proc setLen*(m: var ReservedMem, newLen: int) =
     if d > 0:
       let commitExtensionSize = nextAlignedOffset(d, allocationGranularity)
       when defined(windows):
-        check virtualAlloc(m.committedMemEnd, commitExtensionSize,
-                           MEM_COMMIT, m.accessFlags.cint)
+        check virtualAlloc(
+          m.committedMemEnd, commitExtensionSize, MEM_COMMIT, m.accessFlags.cint
+        )
       else:
-        check mprotect(m.committedMemEnd, commitExtensionSize,
-            m.accessFlags.cint) == 0
+        check mprotect(m.committedMemEnd, commitExtensionSize, m.accessFlags.cint) == 0
   else:
-    let d = distance(m.usedMemEnd, m.committedMemEnd) -
-            m.maxCommittedAndUnusedPages * allocationGranularity
+    let d =
+      distance(m.usedMemEnd, m.committedMemEnd) -
+      m.maxCommittedAndUnusedPages * allocationGranularity
     if d > 0:
       let commitSizeShrinkage = nextAlignedOffset(d, allocationGranularity)
       let newCommitEnd = m.committedMemEnd.shift(-commitSizeShrinkage)
@@ -167,25 +169,28 @@ proc setLen*(m: var ReservedMem, newLen: int) =
       when defined(windows):
         check virtualFree(newCommitEnd, commitSizeShrinkage, MEM_DECOMMIT)
       else:
-        check posix_madvise(newCommitEnd, commitSizeShrinkage,
-                            POSIX_MADV_DONTNEED) == 0
+        check posix_madvise(newCommitEnd, commitSizeShrinkage, POSIX_MADV_DONTNEED) == 0
 
       m.committedMemEnd = newCommitEnd
 
-proc init*(SeqType: type ReservedMemSeq,
-           maxLen: Natural,
-           initLen: Natural = 0,
-           initCommitLen: Natural = 0,
-           memStart = pointer(nil),
-           accessFlags = memReadWrite,
-           maxCommittedAndUnusedPages = 3): SeqType =
-
+proc init*(
+    SeqType: type ReservedMemSeq,
+    maxLen: Natural,
+    initLen: Natural = 0,
+    initCommitLen: Natural = 0,
+    memStart = pointer(nil),
+    accessFlags = memReadWrite,
+    maxCommittedAndUnusedPages = 3,
+): SeqType =
   let elemSize = sizeof(SeqType.T)
-  result.mem = ReservedMem.init(maxLen * elemSize,
-                                initLen * elemSize,
-                                initCommitLen * elemSize,
-                                memStart, accessFlags,
-                                maxCommittedAndUnusedPages)
+  result.mem = ReservedMem.init(
+    maxLen * elemSize,
+    initLen * elemSize,
+    initCommitLen * elemSize,
+    memStart,
+    accessFlags,
+    maxCommittedAndUnusedPages,
+  )
 
 func `[]`*[T](s: ReservedMemSeq[T], pos: Natural): lent T =
   let elemAddr = s.mem.memStart.shift(pos * sizeof(T))
@@ -226,4 +231,3 @@ func commitedLen*[T](s: ReservedMemSeq[T]): int =
 
 func maxLen*[T](s: ReservedMemSeq[T]): int =
   s.mem.maxLen div sizeof(T)
-

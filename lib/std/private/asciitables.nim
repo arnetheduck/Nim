@@ -13,8 +13,8 @@ iterator parseTableCells*(s: string, delim = '\t'): Cell =
   var widths: seq[int] = @[]
   var cell: Cell = Cell()
   template update() =
-    if widths.len<=cell.col:
-      widths.setLen cell.col+1
+    if widths.len <= cell.col:
+      widths.setLen cell.col + 1
       widths[cell.col] = cell.width
     else:
       widths[cell.col] = max(widths[cell.col], cell.width)
@@ -49,7 +49,7 @@ iterator parseTableCells*(s: string, delim = '\t'): Cell =
     cell.col.inc
 
   template finishRow() =
-    for col in cell.col..<cell.ncols:
+    for col in cell.col ..< cell.ncols:
       cell.col = col
       update2()
     cell.col = 0
@@ -76,9 +76,9 @@ proc alignTable*(s: string, delim = '\t', fill = ' ', sep = " "): string =
   result = ""
   for cell in parseTableCells(s, delim):
     result.add cell.text
-    for i in cell.text.len..<cell.width:
+    for i in cell.text.len ..< cell.width:
       result.add fill
-    if cell.col < cell.ncols-1:
+    if cell.col < cell.ncols - 1:
       result.add sep
-    if cell.col == cell.ncols-1 and cell.row < cell.nrows - 1:
+    if cell.col == cell.ncols - 1 and cell.row < cell.nrows - 1:
       result.add '\n'

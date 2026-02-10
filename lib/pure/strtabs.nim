@@ -50,12 +50,10 @@ runnableExamples:
 
 import std/private/since
 
-import
-  std/[hashes, strutils]
+import std/[hashes, strutils]
 
 when defined(nimPreviewSlimSystem):
   import std/assertions
-
 
 when defined(js) or defined(nimscript) or defined(Standalone):
   {.pragma: rtlFunc.}
@@ -67,9 +65,10 @@ include "system/inclrtl"
 
 type
   StringTableMode* = enum ## Describes the tables operation mode.
-    modeCaseSensitive,    ## the table is case sensitive
-    modeCaseInsensitive,  ## the table is case insensitive
-    modeStyleInsensitive  ## the table is style insensitive
+    modeCaseSensitive ## the table is case sensitive
+    modeCaseInsensitive ## the table is case insensitive
+    modeStyleInsensitive ## the table is style insensitive
+
   KeyValuePair = tuple[key, val: string, hasValue: bool]
   KeyValuePairSeq = seq[KeyValuePair]
   StringTableObj* = object of RootObj
@@ -80,51 +79,60 @@ type
   StringTableRef* = ref StringTableObj
 
   FormatFlag* = enum ## Flags for the `%` operator.
-    useEnvironment,  ## Use environment variable if the ``$key``
-                     ## is not found in the table.
-                     ## Does nothing when using `js` target.
-    useEmpty,        ## Use the empty string as a default, thus it
-                     ## won't throw an exception if ``$key`` is not
-                     ## in the table.
-    useKey           ## Do not replace ``$key`` if it is not found
-                     ## in the table (or in the environment).
+    useEnvironment
+      ## Use environment variable if the ``$key``
+      ## is not found in the table.
+      ## Does nothing when using `js` target.
+    useEmpty
+      ## Use the empty string as a default, thus it
+      ## won't throw an exception if ``$key`` is not
+      ## in the table.
+    useKey
+      ## Do not replace ``$key`` if it is not found
+      ## in the table (or in the environment).
 
 const
   growthFactor = 2
   startSize = 64
 
-proc mode*(t: StringTableRef): StringTableMode {.inline.} = t.mode
+proc mode*(t: StringTableRef): StringTableMode {.inline.} =
+  t.mode
 
 iterator pairs*(t: StringTableRef): tuple[key, value: string] =
   ## Iterates over every `(key, value)` pair in the table `t`.
-  for h in 0..high(t.data):
+  for h in 0 .. high(t.data):
     if t.data[h].hasValue:
       yield (t.data[h].key, t.data[h].val)
 
 iterator keys*(t: StringTableRef): string =
   ## Iterates over every key in the table `t`.
-  for h in 0..high(t.data):
+  for h in 0 .. high(t.data):
     if t.data[h].hasValue:
       yield t.data[h].key
 
 iterator values*(t: StringTableRef): string =
   ## Iterates over every value in the table `t`.
-  for h in 0..high(t.data):
+  for h in 0 .. high(t.data):
     if t.data[h].hasValue:
       yield t.data[h].val
 
-
 proc myhash(t: StringTableRef, key: string): Hash =
   case t.mode
-  of modeCaseSensitive: result = hashes.hash(key)
-  of modeCaseInsensitive: result = hashes.hashIgnoreCase(key)
-  of modeStyleInsensitive: result = hashes.hashIgnoreStyle(key)
+  of modeCaseSensitive:
+    result = hashes.hash(key)
+  of modeCaseInsensitive:
+    result = hashes.hashIgnoreCase(key)
+  of modeStyleInsensitive:
+    result = hashes.hashIgnoreStyle(key)
 
 proc myCmp(t: StringTableRef, a, b: string): bool =
   case t.mode
-  of modeCaseSensitive: result = cmp(a, b) == 0
-  of modeCaseInsensitive: result = cmpIgnoreCase(a, b) == 0
-  of modeStyleInsensitive: result = cmpIgnoreStyle(a, b) == 0
+  of modeCaseSensitive:
+    result = cmp(a, b) == 0
+  of modeCaseInsensitive:
+    result = cmpIgnoreCase(a, b) == 0
+  of modeStyleInsensitive:
+    result = cmpIgnoreStyle(a, b) == 0
 
 proc mustRehash(length, counter: int): bool =
   assert(length > counter)
@@ -139,21 +147,20 @@ proc rawGet(t: StringTableRef, key: string): int =
     if myCmp(t, t.data[h].key, key):
       return h
     h = nextTry(h, high(t.data))
-  result = - 1
+  result = -1
 
 template get(t: StringTableRef, key: string) =
   var index = rawGet(t, key)
-  if index >= 0: result = t.data[index].val
+  if index >= 0:
+    result = t.data[index].val
   else:
     raise newException(KeyError, "key not found: " & key)
-
 
 proc len*(t: StringTableRef): int {.rtlFunc, extern: "nst$1".} =
   ## Returns the number of keys in `t`.
   result = t.counter
 
-proc `[]`*(t: StringTableRef, key: string): var string {.
-           rtlFunc, extern: "nstTake".} =
+proc `[]`*(t: StringTableRef, key: string): var string {.rtlFunc, extern: "nstTake".} =
   ## Retrieves the location at ``t[key]``.
   ##
   ## If `key` is not in `t`, the ``KeyError`` exception is raised.
@@ -173,8 +180,7 @@ proc `[]`*(t: StringTableRef, key: string): var string {.
       echo t["occupation"]
   get(t, key)
 
-proc getOrDefault*(t: StringTableRef; key: string,
-    default: string = ""): string =
+proc getOrDefault*(t: StringTableRef, key: string, default: string = ""): string =
   ## Retrieves the location at ``t[key]``.
   ##
   ## If `key` is not in `t`, the default value is returned (if not specified,
@@ -194,11 +200,12 @@ proc getOrDefault*(t: StringTableRef; key: string,
     doAssert t.getOrDefault("name", "Paul") == "John"
 
   var index = rawGet(t, key)
-  if index >= 0: result = t.data[index].val
-  else: result = default
+  if index >= 0:
+    result = t.data[index].val
+  else:
+    result = default
 
-proc hasKey*(t: StringTableRef, key: string): bool {.rtlFunc,
-    extern: "nst$1".} =
+proc hasKey*(t: StringTableRef, key: string): bool {.rtlFunc, extern: "nst$1".} =
   ## Returns true if `key` is in the table `t`.
   ##
   ## See also:
@@ -231,11 +238,11 @@ proc enlarge(t: StringTableRef) =
   var n: KeyValuePairSeq
   newSeq(n, len(t.data) * growthFactor)
   for i in countup(0, high(t.data)):
-    if t.data[i].hasValue: rawInsert(t, n, move t.data[i].key, move t.data[i].val)
+    if t.data[i].hasValue:
+      rawInsert(t, n, move t.data[i].key, move t.data[i].val)
   swap(t.data, n)
 
-proc `[]=`*(t: StringTableRef, key, val: string) {.
-  rtlFunc, extern: "nstPut".} =
+proc `[]=`*(t: StringTableRef, key, val: string) {.rtlFunc, extern: "nstPut".} =
   ## Inserts a `(key, value)` pair into `t`.
   ##
   ## See also:
@@ -250,12 +257,14 @@ proc `[]=`*(t: StringTableRef, key, val: string) {.
   if index >= 0:
     t.data[index].val = val
   else:
-    if mustRehash(len(t.data), t.counter): enlarge(t)
+    if mustRehash(len(t.data), t.counter):
+      enlarge(t)
     rawInsert(t, t.data, key, val)
     inc(t.counter)
 
-proc newStringTable*(mode: StringTableMode): owned(StringTableRef) {.
-  rtlFunc, extern: "nst$1", noSideEffect.} =
+proc newStringTable*(
+    mode: StringTableMode
+): owned(StringTableRef) {.rtlFunc, extern: "nst$1", noSideEffect.} =
   ## Creates a new empty string table.
   ##
   ## See also:
@@ -263,15 +272,14 @@ proc newStringTable*(mode: StringTableMode): owned(StringTableRef) {.
   ##   <#newStringTable,varargs[tuple[string,string]],StringTableMode>`_
   result = StringTableRef(mode: mode, counter: 0, data: newSeq[KeyValuePair](startSize))
 
-proc newStringTable*(keyValuePairs: varargs[string],
-                     mode: StringTableMode): owned(StringTableRef) {.
-  rtlFunc, extern: "nst$1WithPairs", noSideEffect.} =
+proc newStringTable*(
+    keyValuePairs: varargs[string], mode: StringTableMode
+): owned(StringTableRef) {.rtlFunc, extern: "nst$1WithPairs", noSideEffect.} =
   ## Creates a new string table with given `key, value` string pairs.
   ##
   ## `StringTableMode` must be specified.
   runnableExamples:
-    var mytab = newStringTable("key1", "val1", "key2", "val2",
-                               modeCaseInsensitive)
+    var mytab = newStringTable("key1", "val1", "key2", "val2", modeCaseInsensitive)
 
   result = newStringTable(mode)
   var i = 0
@@ -280,9 +288,10 @@ proc newStringTable*(keyValuePairs: varargs[string],
       result[keyValuePairs[i]] = keyValuePairs[i + 1]
     inc(i, 2)
 
-proc newStringTable*(keyValuePairs: varargs[tuple[key, val: string]],
-    mode: StringTableMode = modeCaseSensitive): owned(StringTableRef) {.
-    rtlFunc, extern: "nst$1WithTableConstr", noSideEffect.} =
+proc newStringTable*(
+    keyValuePairs: varargs[tuple[key, val: string]],
+    mode: StringTableMode = modeCaseSensitive,
+): owned(StringTableRef) {.rtlFunc, extern: "nst$1WithTableConstr", noSideEffect.} =
   ## Creates a new string table with given `(key, value)` tuple pairs.
   ##
   ## The default mode is case sensitive.
@@ -300,18 +309,22 @@ proc raiseFormatException(s: string) =
   raise newException(ValueError, "format string: key not found: " & s)
 
 proc getValue(t: StringTableRef, flags: set[FormatFlag], key: string): string =
-  if hasKey(t, key): return t.getOrDefault(key)
+  if hasKey(t, key):
+    return t.getOrDefault(key)
   when defined(js) or defined(nimscript) or defined(Standalone):
     result = ""
   else:
-    if useEnvironment in flags: result = getEnv(key)
-    else: result = ""
+    if useEnvironment in flags:
+      result = getEnv(key)
+    else:
+      result = ""
   if result.len == 0:
-    if useKey in flags: result = '$' & key
-    elif useEmpty notin flags: raiseFormatException(key)
+    if useKey in flags:
+      result = '$' & key
+    elif useEmpty notin flags:
+      raiseFormatException(key)
 
-proc clear*(s: StringTableRef, mode: StringTableMode) {.
-  rtlFunc, extern: "nst$1".} =
+proc clear*(s: StringTableRef, mode: StringTableMode) {.rtlFunc, extern: "nst$1".} =
   ## Resets a string table to be empty again, perhaps altering the mode.
   ##
   ## See also:
@@ -325,7 +338,7 @@ proc clear*(s: StringTableRef, mode: StringTableMode) {.
   s.mode = mode
   s.counter = 0
   s.data.setLen(startSize)
-  for i in 0..<s.data.len:
+  for i in 0 ..< s.data.len:
     s.data[i].hasValue = false
 
 proc clear*(s: StringTableRef) {.since: (1, 1).} =
@@ -381,38 +394,41 @@ proc `$`*(t: StringTableRef): string {.rtlFunc, extern: "nstDollar".} =
   else:
     result = "{"
     for key, val in pairs(t):
-      if result.len > 1: result.add(", ")
+      if result.len > 1:
+        result.add(", ")
       result.add(key)
       result.add(": ")
       result.add(val)
     result.add("}")
 
-proc `%`*(f: string, t: StringTableRef, flags: set[FormatFlag] = {}): string {.
-  rtlFunc, extern: "nstFormat".} =
+proc `%`*(
+    f: string, t: StringTableRef, flags: set[FormatFlag] = {}
+): string {.rtlFunc, extern: "nstFormat".} =
   ## The `%` operator for string tables.
   runnableExamples:
     var t = {"name": "John", "city": "Monaco"}.newStringTable
     doAssert "${name} lives in ${city}" % t == "John lives in Monaco"
 
-  const
-    PatternChars = {'a'..'z', 'A'..'Z', '0'..'9', '_', '\x80'..'\xFF'}
+  const PatternChars = {'a' .. 'z', 'A' .. 'Z', '0' .. '9', '_', '\x80' .. '\xFF'}
   result = ""
   var i = 0
   while i < len(f):
     if f[i] == '$':
-      case f[i+1]
+      case f[i + 1]
       of '$':
         add(result, '$')
         inc(i, 2)
       of '{':
         var j = i + 1
-        while j < f.len and f[j] != '}': inc(j)
-        add(result, getValue(t, flags, substr(f, i+2, j-1)))
+        while j < f.len and f[j] != '}':
+          inc(j)
+        add(result, getValue(t, flags, substr(f, i + 2, j - 1)))
         i = j + 1
-      of 'a'..'z', 'A'..'Z', '\x80'..'\xFF', '_':
+      of 'a' .. 'z', 'A' .. 'Z', '\x80' .. '\xFF', '_':
         var j = i + 1
-        while j < f.len and f[j] in PatternChars: inc(j)
-        add(result, getValue(t, flags, substr(f, i+1, j-1)))
+        while j < f.len and f[j] in PatternChars:
+          inc(j)
+        add(result, getValue(t, flags, substr(f, i + 1, j - 1)))
         i = j
       else:
         add(result, f[i])

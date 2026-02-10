@@ -15,16 +15,19 @@ elif defined(windows):
 elif defined(posix):
   import std/posix
 
-
 when weirdTarget:
-  {.pragma: noWeirdTarget, error: "this proc is not available on the NimScript/js target".}
+  {.
+    pragma: noWeirdTarget,
+    error: "this proc is not available on the NimScript/js target"
+  .}
 else:
   {.pragma: noWeirdTarget.}
 
-
 when defined(nimscript):
   # for procs already defined in scriptconfig.nim
-  template noNimJs(body): untyped = discard
+  template noNimJs(body): untyped =
+    discard
+
 elif defined(js):
   {.pragma: noNimJs, error: "this proc is not available on the js target".}
 else:

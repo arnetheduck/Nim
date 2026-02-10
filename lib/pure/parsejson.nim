@@ -19,51 +19,57 @@ when defined(nimPreviewSlimSystem):
 
 type
   JsonEventKind* = enum ## enumeration of all events that may occur when parsing
-    jsonError,          ## an error occurred during parsing
-    jsonEof,            ## end of file reached
-    jsonString,         ## a string literal
-    jsonInt,            ## an integer literal
-    jsonFloat,          ## a float literal
-    jsonTrue,           ## the value `true`
-    jsonFalse,          ## the value `false`
-    jsonNull,           ## the value `null`
-    jsonObjectStart,    ## start of an object: the `{` token
-    jsonObjectEnd,      ## end of an object: the `}` token
-    jsonArrayStart,     ## start of an array: the `[` token
-    jsonArrayEnd        ## end of an array: the `]` token
+    jsonError ## an error occurred during parsing
+    jsonEof ## end of file reached
+    jsonString ## a string literal
+    jsonInt ## an integer literal
+    jsonFloat ## a float literal
+    jsonTrue ## the value `true`
+    jsonFalse ## the value `false`
+    jsonNull ## the value `null`
+    jsonObjectStart ## start of an object: the `{` token
+    jsonObjectEnd ## end of an object: the `}` token
+    jsonArrayStart ## start of an array: the `[` token
+    jsonArrayEnd ## end of an array: the `]` token
 
   TokKind* = enum # must be synchronized with TJsonEventKind!
-    tkError,
-    tkEof,
-    tkString,
-    tkInt,
-    tkFloat,
-    tkTrue,
-    tkFalse,
-    tkNull,
-    tkCurlyLe,
-    tkCurlyRi,
-    tkBracketLe,
-    tkBracketRi,
-    tkColon,
+    tkError
+    tkEof
+    tkString
+    tkInt
+    tkFloat
+    tkTrue
+    tkFalse
+    tkNull
+    tkCurlyLe
+    tkCurlyRi
+    tkBracketLe
+    tkBracketRi
+    tkColon
     tkComma
 
-  JsonError* = enum       ## enumeration that lists all errors that can occur
-    errNone,              ## no error
-    errInvalidToken,      ## invalid token
-    errStringExpected,    ## string expected
-    errColonExpected,     ## `:` expected
-    errCommaExpected,     ## `,` expected
-    errBracketRiExpected, ## `]` expected
-    errCurlyRiExpected,   ## `}` expected
-    errQuoteExpected,     ## `"` or `'` expected
-    errEOC_Expected,      ## `*/` expected
-    errEofExpected,       ## EOF expected
-    errExprExpected       ## expr expected
+  JsonError* = enum ## enumeration that lists all errors that can occur
+    errNone ## no error
+    errInvalidToken ## invalid token
+    errStringExpected ## string expected
+    errColonExpected ## `:` expected
+    errCommaExpected ## `,` expected
+    errBracketRiExpected ## `]` expected
+    errCurlyRiExpected ## `}` expected
+    errQuoteExpected ## `"` or `'` expected
+    errEOC_Expected ## `*/` expected
+    errEofExpected ## EOF expected
+    errExprExpected ## expr expected
 
   ParserState = enum
-    stateEof, stateStart, stateObject, stateArray, stateExpectArrayComma,
-    stateExpectObjectComma, stateExpectColon, stateExpectValue
+    stateEof
+    stateStart
+    stateObject
+    stateArray
+    stateExpectArrayComma
+    stateExpectObjectComma
+    stateExpectColon
+    stateExpectValue
 
   JsonParser* = object of BaseLexer ## the parser object.
     a*: string
@@ -74,38 +80,26 @@ type
     filename: string
     rawStringLiterals: bool
 
-  JsonKindError* = object of ValueError ## raised by the `to` macro if the
-                                        ## JSON kind is incorrect.
+  JsonKindError* = object of ValueError
+    ## raised by the `to` macro if the
+    ## JSON kind is incorrect.
+
   JsonParsingError* = object of ValueError ## is raised for a JSON error
 
 const
   errorMessages*: array[JsonError, string] = [
-    "no error",
-    "invalid token",
-    "string expected",
-    "':' expected",
-    "',' expected",
-    "']' expected",
-    "'}' expected",
-    "'\"' or \"'\" expected",
-    "'*/' expected",
-    "EOF expected",
-    "expression expected"
+    "no error", "invalid token", "string expected", "':' expected", "',' expected",
+    "']' expected", "'}' expected", "'\"' or \"'\" expected", "'*/' expected",
+    "EOF expected", "expression expected",
   ]
   tokToStr: array[TokKind, string] = [
-    "invalid token",
-    "EOF",
-    "string literal",
-    "int literal",
-    "float literal",
-    "true",
-    "false",
-    "null",
-    "{", "}", "[", "]", ":", ","
+    "invalid token", "EOF", "string literal", "int literal", "float literal", "true",
+    "false", "null", "{", "}", "[", "]", ":", ",",
   ]
 
-proc open*(my: var JsonParser, input: Stream, filename: string;
-           rawStringLiterals = false) =
+proc open*(
+    my: var JsonParser, input: Stream, filename: string, rawStringLiterals = false
+) =
   ## initializes the parser with an input stream. `Filename` is only used
   ## for nice error messages. If `rawStringLiterals` is true, string literals
   ## are kept with their surrounding quotes and escape sequences in them are
@@ -156,19 +150,22 @@ proc getFilename*(my: JsonParser): string {.inline.} =
 proc errorMsg*(my: JsonParser): string =
   ## returns a helpful error message for the event `jsonError`
   assert(my.kind == jsonError)
-  result = "$1($2, $3) Error: $4" % [
-    my.filename, $getLine(my), $getColumn(my), errorMessages[my.err]]
+  result =
+    "$1($2, $3) Error: $4" %
+    [my.filename, $getLine(my), $getColumn(my), errorMessages[my.err]]
 
 proc errorMsgExpected*(my: JsonParser, e: string): string =
   ## returns an error message "`e` expected" in the same format as the
   ## other error messages
-  result = "$1($2, $3) Error: $4" % [
-    my.filename, $getLine(my), $getColumn(my), e & " expected"]
+  result =
+    "$1($2, $3) Error: $4" % [
+      my.filename, $getLine(my), $getColumn(my), e & " expected"
+    ]
 
 proc parseEscapedUTF16*(buf: cstring, pos: var int): int =
   result = 0
   #UTF-16 escape is always 4 bytes.
-  for _ in 0..3:
+  for _ in 0 .. 3:
     # if char in '0' .. '9', 'a' .. 'f', 'A' .. 'F'
     if handleHexChar(buf[pos], result):
       inc(pos)
@@ -194,9 +191,9 @@ proc parseString(my: var JsonParser): TokKind =
     of '\\':
       if my.rawStringLiterals:
         add(my.a, '\\')
-      case my.buf[pos+1]
+      case my.buf[pos + 1]
       of '\\', '"', '\'', '/':
-        add(my.a, my.buf[pos+1])
+        add(my.a, my.buf[pos + 1])
         inc(pos, 2)
       of 'b':
         add(my.a, '\b')
@@ -227,7 +224,7 @@ proc parseString(my: var JsonParser): TokKind =
           break
         # Deal with surrogates
         if (r and 0xfc00) == 0xd800:
-          if my.buf[pos] != '\\' or my.buf[pos+1] != 'u':
+          if my.buf[pos] != '\\' or my.buf[pos + 1] != 'u':
             my.err = errInvalidToken
             break
           inc(pos, 2)
@@ -240,7 +237,7 @@ proc parseString(my: var JsonParser): TokKind =
         if my.rawStringLiterals:
           let length = pos - pos2
           for i in 1 .. length:
-            if my.buf[pos2] in {'0'..'9', 'A'..'F', 'a'..'f'}:
+            if my.buf[pos2] in {'0' .. '9', 'A' .. 'F', 'a' .. 'f'}:
               add(my.a, my.buf[pos2])
               inc pos2
             else:
@@ -267,7 +264,7 @@ proc skip(my: var JsonParser) =
   while true:
     case my.buf[pos]
     of '/':
-      if my.buf[pos+1] == '/':
+      if my.buf[pos + 1] == '/':
         # skip line comment:
         inc(pos, 2)
         while true:
@@ -282,7 +279,7 @@ proc skip(my: var JsonParser) =
             break
           else:
             inc(pos)
-      elif my.buf[pos+1] == '*':
+      elif my.buf[pos + 1] == '*':
         # skip long comment:
         inc(pos, 2)
         while true:
@@ -355,7 +352,7 @@ proc getTok*(my: var JsonParser): TokKind =
   setLen(my.a, 0)
   skip(my) # skip whitespace, comments
   case my.buf[my.bufpos]
-  of '-', '.', '0'..'9':
+  of '-', '.', '0' .. '9':
     parseNumber(my)
     if {'.', 'e', 'E'} in my.a:
       result = tkFloat
@@ -383,23 +380,26 @@ proc getTok*(my: var JsonParser): TokKind =
     result = tkColon
   of '\0':
     result = tkEof
-  of 'a'..'z', 'A'..'Z', '_':
+  of 'a' .. 'z', 'A' .. 'Z', '_':
     parseName(my)
     case my.a
-    of "null": result = tkNull
-    of "true": result = tkTrue
-    of "false": result = tkFalse
-    else: result = tkError
+    of "null":
+      result = tkNull
+    of "true":
+      result = tkTrue
+    of "false":
+      result = tkFalse
+    else:
+      result = tkError
   else:
     inc(my.bufpos)
     result = tkError
   my.tok = result
 
-
 proc next*(my: var JsonParser) =
   ## retrieves the first/next event. This controls the parser.
   var tk = getTok(my)
-  var i = my.state.len-1
+  var i = my.state.len - 1
   # the following code is a state machine. If we had proper coroutines,
   # the code could be much simpler.
   case my.state[i]
@@ -518,5 +518,7 @@ proc raiseParseErr*(p: JsonParser, msg: string) {.noinline, noreturn.} =
   raise newException(JsonParsingError, errorMsgExpected(p, msg))
 
 proc eat*(p: var JsonParser, tok: TokKind) =
-  if p.tok == tok: discard getTok(p)
-  else: raiseParseErr(p, tokToStr[tok])
+  if p.tok == tok:
+    discard getTok(p)
+  else:
+    raiseParseErr(p, tokToStr[tok])

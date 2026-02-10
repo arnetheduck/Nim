@@ -22,7 +22,6 @@ when hostOS == "standalone":
   func sysFatal(exceptn: typedesc[Defect], message, arg: string) {.inline.} =
     rawoutput(message)
     panic(arg)
-
 elif quirkyExceptions and not defined(nimscript):
   import ansi_c
 
@@ -47,7 +46,6 @@ elif quirkyExceptions and not defined(nimscript):
 
   func sysFatal(exceptn: typedesc[Defect], message: string) {.inline, noreturn.} =
     sysFatal(exceptn, message, "")
-
 else:
   func sysFatal(exceptn: typedesc[Defect], message: string) {.inline, noreturn.} =
     raise (ref exceptn)(msg: message)

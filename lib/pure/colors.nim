@@ -12,8 +12,7 @@
 import std/strutils
 from std/algorithm import binarySearch
 
-type
-  Color* = distinct int ## A color stored as RGB, e.g. `0xff00cc`.
+type Color* = distinct int ## A color stored as RGB, e.g. `0xff00cc`.
 
 proc `==`*(a, b: Color): bool {.borrow.}
   ## Compares two colors.
@@ -42,11 +41,13 @@ template colorOp(op): Color =
 
 proc satPlus(a, b: int): int {.inline.} =
   result = a +% b
-  if result > 255: result = 255
+  if result > 255:
+    result = 255
 
 proc satMinus(a, b: int): int {.inline.} =
   result = a -% b
-  if result < 0: result = 0
+  if result < 0:
+    result = 0
 
 proc `+`*(a, b: Color): Color =
   ## Adds two colors.
@@ -76,22 +77,21 @@ proc `-`*(a, b: Color): Color =
 
   colorOp(satMinus)
 
-proc extractRGB*(a: Color): tuple[r, g, b: range[0..255]] =
+proc extractRGB*(a: Color): tuple[r, g, b: range[0 .. 255]] =
   ## Extracts the red/green/blue components of the color `a`.
   ##
   runnableExamples:
     var
       a = Color(0xff_00_ff)
       b = Color(0x00_ff_cc)
-    type
-      Col = range[0..255]
+    type Col = range[0 .. 255]
     # assert extractRGB(a) == (r: 255.Col, g: 0.Col, b: 255.Col)
     # assert extractRGB(b) == (r: 0.Col, g: 255.Col, b: 204.Col)
     echo extractRGB(a)
     echo typeof(extractRGB(a))
     echo extractRGB(b)
     echo typeof(extractRGB(b))
-  result = default(tuple[r, g, b: range[0..255]])
+  result = default(tuple[r, g, b: range[0 .. 255]])
   result.r = a.int shr 16 and 0xff
   result.g = a.int shr 8 and 0xff
   result.b = a.int and 0xff
@@ -110,9 +110,12 @@ proc intensity*(a: Color, f: float): Color =
   var r = toInt(toFloat(a.int shr 16 and 0xff) * f)
   var g = toInt(toFloat(a.int shr 8 and 0xff) * f)
   var b = toInt(toFloat(a.int and 0xff) * f)
-  if r >% 255: r = 255
-  if g >% 255: g = 255
-  if b >% 255: b = 255
+  if r >% 255:
+    r = 255
+  if g >% 255:
+    g = 255
+  if b >% 255:
+    b = 255
   result = rawRGB(r, g, b)
 
 template mix*(a, b: Color, fn: untyped): untyped =
@@ -132,7 +135,7 @@ template mix*(a, b: Color, fn: untyped): untyped =
 
     assert mix(a, b, myMix) == Color(0x05_32_1f)
 
-  template `><` (x: untyped): untyped =
+  template `><`(x: untyped): untyped =
     # keep it in the range 0..255
     block:
       var y = x # eval only once
@@ -143,7 +146,6 @@ template mix*(a, b: Color, fn: untyped): untyped =
   extract(a, ar, ag, ab)
   extract(b, br, bg, bb)
   rawRGB(><fn(ar, br), ><fn(ag, bg), ><fn(ab, bb))
-
 
 const
   colAliceBlue* = Color(0xF0F8FF)
@@ -443,7 +445,8 @@ const
     "white": colWhite,
     "whitesmoke": colWhiteSmoke,
     "yellow": colYellow,
-    "yellowgreen": colYellowGreen}
+    "yellowgreen": colYellowGreen,
+  }
 
 proc `$`*(c: Color): string =
   ## Converts a color into its textual representation.
@@ -468,13 +471,15 @@ proc parseColor*(name: string): Color =
       c = "#zzmmtt"
     assert parseColor(a) == Color(0xc0_c0_c0)
     assert parseColor(b) == Color(0x01_79_fc)
-    doAssertRaises(ValueError): discard parseColor(c)
+    doAssertRaises(ValueError):
+      discard parseColor(c)
 
   if name.len > 0 and name[0] == '#':
     result = Color(parseHexInt(name))
   else:
     var idx = binarySearch(colorNames, name, colorNameCmp)
-    if idx < 0: raise newException(ValueError, "unknown color: " & name)
+    if idx < 0:
+      raise newException(ValueError, "unknown color: " & name)
     result = colorNames[idx][1]
 
 proc isColor*(name: string): bool =
@@ -490,15 +495,17 @@ proc isColor*(name: string): bool =
     assert b.isColor
     assert not c.isColor
 
-  if name.len == 0: return false
+  if name.len == 0:
+    return false
   if name[0] == '#':
-    for i in 1 .. name.len-1:
-      if name[i] notin HexDigits: return false
+    for i in 1 .. name.len - 1:
+      if name[i] notin HexDigits:
+        return false
     result = true
   else:
     result = binarySearch(colorNames, name, colorNameCmp) >= 0
 
-proc rgb*(r, g, b: range[0..255]): Color =
+proc rgb*(r, g, b: range[0 .. 255]): Color =
   ## Constructs a color from RGB values.
   ##
   runnableExamples:

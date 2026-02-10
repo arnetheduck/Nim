@@ -83,7 +83,7 @@ proc sendSignal*(pid: Pid, signal: int) =
   if kill(pid, signal.cint) != 0:
     raiseOSError(OSErrorCode(errno))
 
-proc mkstemp*(prefix: string, suffix=""): (string, File) =
+proc mkstemp*(prefix: string, suffix = ""): (string, File) =
   ## Creates a unique temporary file from a prefix string. A six-character string
   ## will be added. If suffix is provided it will be added to the string
   ## The file is created with perms 0600.

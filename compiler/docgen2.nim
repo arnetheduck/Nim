@@ -10,8 +10,7 @@
 # This module implements a new documentation generator that runs after
 # semantic checking.
 
-import
-  options, ast, msgs, docgen, lineinfos, pathutils, packages
+import options, ast, msgs, docgen, lineinfos, pathutils, packages
 
 from modulegraphs import ModuleGraph, PPassContext
 
@@ -20,11 +19,15 @@ type
     doc: PDoc
     module: PSym
     config: ConfigRef
+
   PGen = ref TGen
 
 proc shouldProcess(g: PGen): bool =
-  (optWholeProject in g.doc.conf.globalOptions and g.doc.conf.belongsToProjectPackage(g.module)) or
-      sfMainModule in g.module.flags or g.config.projectMainIdx == g.module.info.fileIndex
+  (
+    optWholeProject in g.doc.conf.globalOptions and
+    g.doc.conf.belongsToProjectPackage(g.module)
+  ) or sfMainModule in g.module.flags or
+    g.config.projectMainIdx == g.module.info.fileIndex
 
 template closeImpl(body: untyped) {.dirty.} =
   var g = PGen(p)
@@ -38,12 +41,12 @@ template closeImpl(body: untyped) {.dirty.} =
     except IOError:
       discard
 
-proc closeDoc*(graph: ModuleGraph; p: PPassContext, n: PNode): PNode =
+proc closeDoc*(graph: ModuleGraph, p: PPassContext, n: PNode): PNode =
   result = nil
   closeImpl:
     writeOutput(g.doc, useWarning, groupedToc)
 
-proc closeJson*(graph: ModuleGraph; p: PPassContext, n: PNode): PNode =
+proc closeJson*(graph: ModuleGraph, p: PPassContext, n: PNode): PNode =
   result = nil
   closeImpl:
     writeOutputJson(g.doc, useWarning)
@@ -65,16 +68,22 @@ template myOpenImpl(ext: untyped) {.dirty.} =
   new(g)
   g.module = module
   g.config = graph.config
-  var d = newDocumentor(AbsoluteFile toFullPath(graph.config, FileIndex module.position),
-      graph.cache, graph.config, ext, module, hasToc = true)
+  var d = newDocumentor(
+    AbsoluteFile toFullPath(graph.config, FileIndex module.position),
+    graph.cache,
+    graph.config,
+    ext,
+    module,
+    hasToc = true,
+  )
   g.doc = d
   result = g
 
-proc openHtml*(graph: ModuleGraph; module: PSym; idgen: IdGenerator): PPassContext =
+proc openHtml*(graph: ModuleGraph, module: PSym, idgen: IdGenerator): PPassContext =
   myOpenImpl(HtmlExt)
 
-proc openTex*(graph: ModuleGraph; module: PSym; idgen: IdGenerator): PPassContext =
+proc openTex*(graph: ModuleGraph, module: PSym, idgen: IdGenerator): PPassContext =
   myOpenImpl(TexExt)
 
-proc openJson*(graph: ModuleGraph; module: PSym; idgen: IdGenerator): PPassContext =
+proc openJson*(graph: ModuleGraph, module: PSym, idgen: IdGenerator): PPassContext =
   myOpenImpl(JsonExt)

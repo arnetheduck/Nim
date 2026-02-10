@@ -55,7 +55,6 @@ runnableExamples:
 ## * `random module <random.html>`_
 ##
 
-
 when not defined(js):
   import std/oserrors
 
@@ -93,7 +92,9 @@ when defined(js):
   when defined(nodejs):
     {.emit: "const _nim_nodejs_crypto = require('crypto');".}
 
-    proc randomFillSync(p: Uint8Array) {.importjs: "_nim_nodejs_crypto.randomFillSync(#)".}
+    proc randomFillSync(
+      p: Uint8Array
+    ) {.importjs: "_nim_nodejs_crypto.randomFillSync(#)".}
 
     template urandomImpl(result: var int, dest: var openArray[byte]) =
       let size = dest.len
@@ -149,16 +150,13 @@ elif defined(windows):
     BCRYPT_USE_SYSTEM_PREFERRED_RNG = 0x00000002
 
   proc bCryptGenRandom(
-    hAlgorithm: BCRYPT_ALG_HANDLE,
-    pbBuffer: PUCHAR,
-    cbBuffer: ULONG,
-    dwFlags: ULONG
+    hAlgorithm: BCRYPT_ALG_HANDLE, pbBuffer: PUCHAR, cbBuffer: ULONG, dwFlags: ULONG
   ): NTSTATUS {.stdcall, importc: "BCryptGenRandom", dynlib: "Bcrypt.dll".}
 
-
   proc randomBytes(pbBuffer: pointer, cbBuffer: Natural): int {.inline.} =
-    bCryptGenRandom(nil, cast[PUCHAR](pbBuffer), ULONG(cbBuffer),
-                            BCRYPT_USE_SYSTEM_PREFERRED_RNG)
+    bCryptGenRandom(
+      nil, cast[PUCHAR](pbBuffer), ULONG(cbBuffer), BCRYPT_USE_SYSTEM_PREFERRED_RNG
+    )
 
   template urandomImpl(result: var int, dest: var openArray[byte]) =
     let size = dest.len
@@ -175,8 +173,7 @@ elif defined(linux) and not defined(nimNoGetRandom) and not defined(emscripten):
   const syscallHeader = """#include <unistd.h>
 #include <sys/syscall.h>"""
 
-  proc syscall(n: clong): clong {.
-      importc: "syscall", varargs, header: syscallHeader.}
+  proc syscall(n: clong): clong {.importc: "syscall", varargs, header: syscallHeader.}
     #  When reading from the urandom source (GRND_RANDOM is not set),
     #  getrandom() will block until the entropy pool has been
     #  initialized (unless the GRND_NONBLOCK flag was specified).  If a
@@ -190,19 +187,23 @@ elif defined(linux) and not defined(nimNoGetRandom) and not defined(emscripten):
       return
 
     while result < size:
-      let readBytes = syscall(SYS_getrandom, addr dest[result], cint(size - result), 0).int
+      let readBytes =
+        syscall(SYS_getrandom, addr dest[result], cint(size - result), 0).int
       if readBytes == 0:
         raiseAssert "unreachable"
       elif readBytes > 0:
         inc(result, readBytes)
       else:
-        if osLastError().cint in [EINTR, EAGAIN]: discard
+        if osLastError().cint in [EINTR, EAGAIN]:
+          discard
         else:
           result = -1
           break
 
 elif defined(openbsd):
-  proc getentropy(p: pointer, size: cint): cint {.importc: "getentropy", header: "<unistd.h>".}
+  proc getentropy(
+    p: pointer, size: cint
+  ): cint {.importc: "getentropy", header: "<unistd.h>".}
     # Fills a buffer with high-quality entropy,
     # which can be used as input for process-context pseudorandom generators like `arc4random`.
     # The maximum buffer size permitted is 256 bytes.
@@ -211,7 +212,9 @@ elif defined(openbsd):
     result = getentropy(p, cint(size)).int
 
 elif defined(zephyr):
-  proc sys_csrand_get(dst: pointer, length: csize_t): cint {.importc: "sys_csrand_get", header: "<random/rand32.h>".}
+  proc sys_csrand_get(
+    dst: pointer, length: csize_t
+  ): cint {.importc: "sys_csrand_get", header: "<random/rand32.h>".}
     # Fill the destination buffer with cryptographically secure
     # random data values
     #
@@ -223,7 +226,9 @@ elif defined(zephyr):
 elif defined(freebsd):
   type cssize_t {.importc: "ssize_t", header: "<sys/types.h>".} = int
 
-  proc getrandom(p: pointer, size: csize_t, flags: cuint): cssize_t {.importc: "getrandom", header: "<sys/random.h>".}
+  proc getrandom(
+    p: pointer, size: csize_t, flags: cuint
+  ): cssize_t {.importc: "getrandom", header: "<sys/random.h>".}
     # Upon successful completion, the number of bytes which were actually read
     # is returned. For requests larger than 256 bytes, this can be fewer bytes
     # than were requested. Otherwise, -1 is returned and the global variable
@@ -304,7 +309,8 @@ proc urandom*(dest: var openArray[byte]): bool =
   ##   is provided as-is without guarantees. Use at your own risks. For production
   ##   systems we advise you to request an external audit.
   result = true
-  when defined(js): discard urandomInternalImpl(dest)
+  when defined(js):
+    discard urandomInternalImpl(dest)
   else:
     let ret = urandomInternalImpl(dest)
     when defined(windows):
@@ -321,7 +327,8 @@ proc urandom*(size: Natural): seq[byte] {.inline.} =
   ##   is provided as-is without guarantees. Use at your own risks. For production
   ##   systems we advise you to request an external audit.
   result = newSeq[byte](size)
-  when defined(js): discard urandomInternalImpl(result)
+  when defined(js):
+    discard urandomInternalImpl(result)
   else:
     if not urandom(result):
       raiseOSError(osLastError())

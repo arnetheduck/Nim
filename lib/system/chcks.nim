@@ -19,7 +19,9 @@ proc raiseRangeError(val: BiggestInt) {.compilerproc, noinline.} =
     sysFatal(RangeDefect, "value out of range: ", $val)
 
 proc raiseIndexError4(l1, h1, h2: int) {.compilerproc, noinline.} =
-  sysFatal(IndexDefect, "index out of bounds: " & $l1 & ".." & $h1 & " notin 0.." & $(h2 - 1))
+  sysFatal(
+    IndexDefect, "index out of bounds: " & $l1 & ".." & $h1 & " notin 0.." & $(h2 - 1)
+  )
 
 proc raiseIndexError3(i, a, b: int) {.compilerproc, noinline.} =
   sysFatal(IndexDefect, formatErrorIndexBound(i, a, b))
@@ -42,6 +44,7 @@ when defined(nimV2):
   proc raiseFieldErrorStr(f: string, discVal: string) {.compilerproc, noinline.} =
     ## raised when field is inaccessible given runtime value of discriminant
     sysFatal(FieldDefect, formatFieldDefect(f, discVal))
+
 else:
   proc raiseFieldError2(f: string, discVal: string) {.compilerproc, noinline.} =
     ## raised when field is inaccessible given runtime value of discriminant
@@ -116,11 +119,11 @@ proc chckNilDisp(p: pointer) {.compilerproc.} =
     sysFatal(NilAccessDefect, "cannot dispatch; dispatcher is nil")
 
 when not defined(nimV2):
-
   proc chckObj(obj, subclass: PNimType) {.compilerproc.} =
     # checks if obj is of type subclass:
     var x = obj
-    if x == subclass: return # optimized fast path
+    if x == subclass:
+      return # optimized fast path
     while x != subclass:
       if x == nil:
         sysFatal(ObjectConversionDefect, "invalid object conversion")
@@ -130,10 +133,11 @@ when not defined(nimV2):
     if a != b:
       sysFatal(ObjectAssignmentDefect, "invalid object assignment")
 
-  type ObjCheckCache = array[0..1, PNimType]
+  type ObjCheckCache = array[0 .. 1, PNimType]
 
-  proc isObjSlowPath(obj, subclass: PNimType;
-                    cache: var ObjCheckCache): bool {.noinline.} =
+  proc isObjSlowPath(
+      obj, subclass: PNimType, cache: var ObjCheckCache
+  ): bool {.noinline.} =
     # checks if obj is of type subclass:
     var x = obj.base
     while x != subclass:
@@ -144,20 +148,27 @@ when not defined(nimV2):
     cache[1] = obj
     return true
 
-  proc isObjWithCache(obj, subclass: PNimType;
-                      cache: var ObjCheckCache): bool {.compilerproc, inline.} =
-    if obj == subclass: return true
-    if obj.base == subclass: return true
-    if cache[0] == obj: return false
-    if cache[1] == obj: return true
+  proc isObjWithCache(
+      obj, subclass: PNimType, cache: var ObjCheckCache
+  ): bool {.compilerproc, inline.} =
+    if obj == subclass:
+      return true
+    if obj.base == subclass:
+      return true
+    if cache[0] == obj:
+      return false
+    if cache[1] == obj:
+      return true
     return isObjSlowPath(obj, subclass, cache)
 
   proc isObj(obj, subclass: PNimType): bool {.compilerproc.} =
     # checks if obj is of type subclass:
     var x = obj
-    if x == subclass: return true # optimized fast path
+    if x == subclass:
+      return true # optimized fast path
     while x != subclass:
-      if x == nil: return false
+      if x == nil:
+        return false
       x = x.base
     return true
 

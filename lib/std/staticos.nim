@@ -15,19 +15,19 @@ proc staticDirExists*(dir: string): bool {.compileTime.} =
   ## is returned. Follows symlinks.
   raiseAssert "implemented in the vmops"
 
-type
-  PathComponent* = enum   ## Enumeration specifying a path component.
-    ##
-    ## See also:
-    ## * `walkDirRec iterator`_
-    ## * `FileInfo object`_
-    pcFile,               ## path refers to a file
-    pcLinkToFile,         ## path refers to a symbolic link to a file
-    pcDir,                ## path refers to a directory
-    pcLinkToDir           ## path refers to a symbolic link to a directory
+type PathComponent* = enum ## Enumeration specifying a path component.
+  ##
+  ## See also:
+  ## * `walkDirRec iterator`_
+  ## * `FileInfo object`_
+  pcFile ## path refers to a file
+  pcLinkToFile ## path refers to a symbolic link to a file
+  pcDir ## path refers to a directory
+  pcLinkToDir ## path refers to a symbolic link to a directory
 
-proc staticWalkDir*(dir: string; relative = false): seq[
-                  tuple[kind: PathComponent, path: string]] {.compileTime.} =
+proc staticWalkDir*(
+    dir: string, relative = false
+): seq[tuple[kind: PathComponent, path: string]] {.compileTime.} =
   ## Walks over the directory `dir` and returns a seq with each directory or
   ## file in `dir`. The component type and full path for each item are returned.
   ##

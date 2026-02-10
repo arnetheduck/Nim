@@ -31,7 +31,12 @@ when defined(nimPreviewSlimSystem):
 
 type
   InstrKind* = enum
-    goto, loop, fork, def, use
+    goto
+    loop
+    fork
+    def
+    use
+
   Instr* = object
     case kind*: InstrKind
     of goto, fork, loop: dest*: int
@@ -46,7 +51,8 @@ type
     case isTryBlock: bool
     of false:
       label: PSym
-      breakFixups: seq[(TPosition, seq[PNode])] # Contains the gotos for the breaks along with their pending finales
+      breakFixups: seq[(TPosition, seq[PNode])]
+        # Contains the gotos for the breaks along with their pending finales
     of true:
       finale: PNode
       raiseFixups: seq[TPosition] # Contains the gotos for the raises
@@ -58,18 +64,23 @@ type
     owner: PSym
     root: PSym
 
-proc codeListing(c: ControlFlowGraph, start = 0; last = -1): string =
+proc codeListing(c: ControlFlowGraph, start = 0, last = -1): string =
   # for debugging purposes
   # first iteration: compute all necessary labels:
   result = ""
   var jumpTargets = initIntSet()
-  let last = if last < 0: c.len-1 else: min(last, c.len-1)
-  for i in start..last:
+  let last =
+    if last < 0:
+      c.len - 1
+    else:
+      min(last, c.len - 1)
+  for i in start .. last:
     if c[i].kind in {goto, fork, loop}:
-      jumpTargets.incl(i+c[i].dest)
+      jumpTargets.incl(i + c[i].dest)
   var i = start
   while i <= last:
-    if i in jumpTargets: result.add("L" & $i & ":\n")
+    if i in jumpTargets:
+      result.add("L" & $i & ":\n")
     result.add "\t"
     result.add ($i & " " & $c[i].kind)
     result.add "\t"
@@ -81,11 +92,12 @@ proc codeListing(c: ControlFlowGraph, start = 0; last = -1): string =
       result.add("\n")
     of goto, fork, loop:
       result.add "L"
-      result.addInt c[i].dest+i
+      result.addInt c[i].dest + i
     inc i
-  if i in jumpTargets: result.add("L" & $i & ": End\n")
+  if i in jumpTargets:
+    result.add("L" & $i & ": End\n")
 
-proc echoCfg*(c: ControlFlowGraph; start = 0; last = -1) {.deprecated.} =
+proc echoCfg*(c: ControlFlowGraph, start = 0, last = -1) {.deprecated.} =
   ## echos the ControlFlowGraph for debugging purposes.
   echo codeListing(c, start, last).alignTable
 
@@ -97,7 +109,8 @@ proc gotoI(c: var Con): TPosition =
   result = TPosition(c.code.len)
   c.code.add Instr(kind: goto, dest: 0)
 
-proc genLabel(c: Con): TPosition = TPosition(c.code.len)
+proc genLabel(c: Con): TPosition =
+  TPosition(c.code.len)
 
 template checkedDistance(dist): int =
   doAssert low(int) div 2 + 1 < dist and dist < high(int) div 2
@@ -110,9 +123,9 @@ proc patch(c: var Con, p: TPosition) =
   # patch with current index
   c.code[p.int].dest = checkedDistance(c.code.len - p.int)
 
-proc gen(c: var Con; n: PNode)
+proc gen(c: var Con, n: PNode)
 
-proc popBlock(c: var Con; oldLen: int) =
+proc popBlock(c: var Con, oldLen: int) =
   var exits: seq[TPosition] = @[]
   exits.add c.gotoI()
   for f in c.blocks[oldLen].breakFixups:
@@ -124,7 +137,7 @@ proc popBlock(c: var Con; oldLen: int) =
     c.patch e
   c.blocks.setLen(oldLen)
 
-template withBlock(labl: PSym; body: untyped) =
+template withBlock(labl: PSym, body: untyped) =
   let oldLen = c.blocks.len
   c.blocks.add TBlock(isTryBlock: false, label: labl)
   body
@@ -135,7 +148,7 @@ template forkT(body) =
   body
   c.patch(lab1)
 
-proc genWhile(c: var Con; n: PNode) =
+proc genWhile(c: var Con, n: PNode) =
   # lab1:
   #   cond, tmp
   #   fork tmp, lab2
@@ -186,7 +199,7 @@ proc genIf(c: var Con, n: PNode) =
   let oldInteresting = c.interestingInstructions
   let oldLen = c.code.len
 
-  for i in 0..<n.len:
+  for i in 0 ..< n.len:
     let it = n[i]
     c.gen(it[0])
     if it.len == 2:
@@ -200,7 +213,7 @@ proc genIf(c: var Con, n: PNode) =
     for i in countdown(endings.high, 0):
       c.patch(endings[i])
 
-proc genAndOr(c: var Con; n: PNode) =
+proc genAndOr(c: var Con, n: PNode) =
   #   asgn dest, a
   #   fork lab1
   #   asgn dest, b
@@ -209,7 +222,7 @@ proc genAndOr(c: var Con; n: PNode) =
   forkT:
     c.gen(n[2])
 
-proc genCase(c: var Con; n: PNode) =
+proc genCase(c: var Con, n: PNode) =
   #  if (!expr1) goto lab1;
   #    thenPart
   #    goto LEnd
@@ -220,16 +233,17 @@ proc genCase(c: var Con; n: PNode) =
   #  lab2:
   #    elsePart
   #  Lend:
-  let isExhaustive = skipTypes(n[0].typ,
-    abstractVarRange-{tyTypeDesc}).kind notin {tyFloat..tyFloat128, tyString, tyCstring}
+  let isExhaustive =
+    skipTypes(n[0].typ, abstractVarRange - {tyTypeDesc}).kind notin
+    {tyFloat .. tyFloat128, tyString, tyCstring}
 
   var endings: seq[TPosition] = @[]
   c.gen(n[0])
   let oldInteresting = c.interestingInstructions
   let oldLen = c.code.len
-  for i in 1..<n.len:
+  for i in 1 ..< n.len:
     let it = n[i]
-    if it.len == 1 or (i == n.len-1 and isExhaustive):
+    if it.len == 1 or (i == n.len - 1 and isExhaustive):
       # treat the last branch as 'else' if this is an exhaustive case statement.
       c.gen(it.lastSon)
     else:
@@ -243,7 +257,7 @@ proc genCase(c: var Con; n: PNode) =
     for i in countdown(endings.high, 0):
       c.patch(endings[i])
 
-proc genBlock(c: var Con; n: PNode) =
+proc genBlock(c: var Con, n: PNode) =
   withBlock(n[0].sym):
     c.gen(n[1])
 
@@ -261,7 +275,7 @@ proc genBreakOrRaiseAux(c: var Con, i: int, n: PNode) =
 
     c.blocks[i].breakFixups.add (lab1, trailingFinales)
 
-proc genBreak(c: var Con; n: PNode) =
+proc genBreak(c: var Con, n: PNode) =
   inc c.interestingInstructions
   if n[0].kind == nkSym:
     for i in countdown(c.blocks.high, 0):
@@ -275,11 +289,18 @@ proc genBreak(c: var Con; n: PNode) =
         genBreakOrRaiseAux(c, i, n)
         return
 
-proc genTry(c: var Con; n: PNode) =
+proc genTry(c: var Con, n: PNode) =
   var endings: seq[TPosition] = @[]
 
   let oldLen = c.blocks.len
-  c.blocks.add TBlock(isTryBlock: true, finale: if n[^1].kind == nkFinally: n[^1] else: newNode(nkEmpty))
+  c.blocks.add TBlock(
+    isTryBlock: true,
+    finale:
+      if n[^1].kind == nkFinally:
+        n[^1]
+      else:
+        newNode(nkEmpty),
+  )
 
   inc c.inTryStmt
   c.gen(n[0])
@@ -290,7 +311,7 @@ proc genTry(c: var Con; n: PNode) =
 
   c.blocks.setLen oldLen
 
-  for i in 1..<n.len:
+  for i in 1 ..< n.len:
     let it = n[i]
     if it.kind != nkFinally:
       forkT:
@@ -307,7 +328,7 @@ template genNoReturn(c: var Con) =
   # leave the graph
   c.code.add Instr(kind: goto, dest: high(int) - c.code.len)
 
-proc genRaise(c: var Con; n: PNode) =
+proc genRaise(c: var Con, n: PNode) =
   inc c.interestingInstructions
   gen(c, n[0])
   if c.inTryStmt > 0:
@@ -320,10 +341,11 @@ proc genRaise(c: var Con; n: PNode) =
     genNoReturn(c)
 
 proc genImplicitReturn(c: var Con) =
-  if c.owner.kind in {skProc, skFunc, skMethod, skIterator, skConverter} and resultPos < c.owner.ast.len:
+  if c.owner.kind in {skProc, skFunc, skMethod, skIterator, skConverter} and
+      resultPos < c.owner.ast.len:
     gen(c, c.owner.ast[resultPos])
 
-proc genReturn(c: var Con; n: PNode) =
+proc genReturn(c: var Con, n: PNode) =
   inc c.interestingInstructions
   if n[0].kind != nkEmpty:
     gen(c, n[0])
@@ -331,8 +353,7 @@ proc genReturn(c: var Con; n: PNode) =
     genImplicitReturn(c)
   genBreakOrRaiseAux(c, 0, n)
 
-const
-  InterestingSyms = {skVar, skResult, skLet, skParam, skForVar, skTemp}
+const InterestingSyms = {skVar, skResult, skLet, skParam, skForVar, skTemp}
 
 proc skipTrivials(c: var Con, n: PNode): PNode =
   result = n
@@ -345,9 +366,10 @@ proc skipTrivials(c: var Con, n: PNode): PNode =
       result = result[0]
     of PathKinds1:
       result = result[1]
-    else: break
+    else:
+      break
 
-proc genUse(c: var Con; orig: PNode) =
+proc genUse(c: var Con, orig: PNode) =
   let n = c.skipTrivials(orig)
 
   if n.kind == nkSym:
@@ -357,7 +379,7 @@ proc genUse(c: var Con; orig: PNode) =
   else:
     gen(c, n)
 
-proc genDef(c: var Con; orig: PNode) =
+proc genDef(c: var Con, orig: PNode) =
   let n = c.skipTrivials(orig)
 
   if n.kind == nkSym and n.sym.kind in InterestingSyms:
@@ -365,11 +387,12 @@ proc genDef(c: var Con; orig: PNode) =
       c.code.add Instr(kind: def, n: orig)
       inc c.interestingInstructions
 
-proc genCall(c: var Con; n: PNode) =
+proc genCall(c: var Con, n: PNode) =
   gen(c, n[0])
   var t = n[0].typ
-  if t != nil: t = t.skipTypes(abstractInst)
-  for i in 1..<n.len:
+  if t != nil:
+    t = t.skipTypes(abstractInst)
+  for i in 1 ..< n.len:
     gen(c, n[i])
     if t != nil and i < t.signatureLen and isOutParam(t[i]):
       # Pass by 'out' is a 'must def'. Good enough for a move optimizer.
@@ -387,30 +410,34 @@ proc genCall(c: var Con; n: PNode) =
           genBreakOrRaiseAux(c, i, n)
           break
 
-proc genMagic(c: var Con; n: PNode; m: TMagic) =
+proc genMagic(c: var Con, n: PNode, m: TMagic) =
   case m
-  of mAnd, mOr: c.genAndOr(n)
+  of mAnd, mOr:
+    c.genAndOr(n)
   of mNew, mNewFinalize:
     genDef(c, n[1])
-    for i in 2..<n.len: gen(c, n[i])
+    for i in 2 ..< n.len:
+      gen(c, n[i])
   else:
     genCall(c, n)
 
-proc genVarSection(c: var Con; n: PNode) =
+proc genVarSection(c: var Con, n: PNode) =
   for a in n:
     if a.kind == nkCommentStmt:
       discard
     elif a.kind == nkVarTuple:
       gen(c, a.lastSon)
-      for i in 0..<a.len-2: genDef(c, a[i])
+      for i in 0 ..< a.len - 2:
+        genDef(c, a[i])
     else:
       gen(c, a.lastSon)
       if a.lastSon.kind != nkEmpty:
         genDef(c, a[0])
 
-proc gen(c: var Con; n: PNode) =
+proc gen(c: var Con, n: PNode) =
   case n.kind
-  of nkSym: genUse(c, n)
+  of nkSym:
+    genUse(c, n)
   of nkCallKinds:
     if n[0].kind == nkSym:
       let s = n[0].sym
@@ -422,7 +449,8 @@ proc gen(c: var Con; n: PNode) =
         genNoReturn(c)
     else:
       genCall(c, n)
-  of nkCharLit..nkNilLit: discard
+  of nkCharLit .. nkNilLit:
+    discard
   of nkAsgn, nkFastAsgn, nkSinkAsgn:
     gen(c, n[1])
 
@@ -437,32 +465,45 @@ proc gen(c: var Con; n: PNode) =
     genDef(c, n[0])
   of PathKinds0 - {nkObjDownConv, nkObjUpConv}:
     genUse(c, n)
-  of nkIfStmt, nkIfExpr: genIf(c, n)
+  of nkIfStmt, nkIfExpr:
+    genIf(c, n)
   of nkWhenStmt:
     # This is "when nimvm" node. Chose the second branch.
     gen(c, n[1][0])
-  of nkCaseStmt: genCase(c, n)
-  of nkWhileStmt: genWhile(c, n)
-  of nkBlockExpr, nkBlockStmt: genBlock(c, n)
-  of nkReturnStmt: genReturn(c, n)
-  of nkRaiseStmt: genRaise(c, n)
-  of nkBreakStmt: genBreak(c, n)
-  of nkTryStmt, nkHiddenTryStmt: genTry(c, n)
-  of nkStmtList, nkStmtListExpr, nkChckRangeF, nkChckRange64, nkChckRange,
-     nkBracket, nkCurly, nkPar, nkTupleConstr, nkClosure, nkObjConstr, nkYieldStmt:
-    for x in n: gen(c, x)
-  of nkPragmaBlock: gen(c, n.lastSon)
+  of nkCaseStmt:
+    genCase(c, n)
+  of nkWhileStmt:
+    genWhile(c, n)
+  of nkBlockExpr, nkBlockStmt:
+    genBlock(c, n)
+  of nkReturnStmt:
+    genReturn(c, n)
+  of nkRaiseStmt:
+    genRaise(c, n)
+  of nkBreakStmt:
+    genBreak(c, n)
+  of nkTryStmt, nkHiddenTryStmt:
+    genTry(c, n)
+  of nkStmtList, nkStmtListExpr, nkChckRangeF, nkChckRange64, nkChckRange, nkBracket,
+      nkCurly, nkPar, nkTupleConstr, nkClosure, nkObjConstr, nkYieldStmt:
+    for x in n:
+      gen(c, x)
+  of nkPragmaBlock:
+    gen(c, n.lastSon)
   of nkDiscardStmt, nkObjDownConv, nkObjUpConv, nkStringToCString, nkCStringToString:
     gen(c, n[0])
   of nkConv, nkExprColonExpr, nkExprEqExpr, nkCast, PathKinds1:
     gen(c, n[1])
-  of nkVarSection, nkLetSection: genVarSection(c, n)
-  of nkDefer: raiseAssert "dfa construction pass requires the elimination of 'defer'"
-  else: discard
+  of nkVarSection, nkLetSection:
+    genVarSection(c, n)
+  of nkDefer:
+    raiseAssert "dfa construction pass requires the elimination of 'defer'"
+  else:
+    discard
 
 when false:
   proc optimizeJumps(c: var ControlFlowGraph) =
-    for i in 0..<c.len:
+    for i in 0 ..< c.len:
       case c[i].kind
       of goto, fork:
         var pc = i + c[i].dest
@@ -474,9 +515,10 @@ when false:
             else:
               break
           c[i].dest = pc - i
-      of loop, def, use: discard
+      of loop, def, use:
+        discard
 
-proc constructCfg*(s: PSym; body: PNode; root: PSym): ControlFlowGraph =
+proc constructCfg*(s: PSym, body: PNode, root: PSym): ControlFlowGraph =
   ## constructs a control flow graph for ``body``.
   var c = Con(code: @[], blocks: @[], owner: s, root: root)
   withBlock(s):

@@ -30,8 +30,9 @@ runnableExamples:
     for i, c in haystack:
       if c == needle:
         return some(i)
-    return none(int)  # This line is actually optional,
-                      # because the default is empty
+    return none(int)
+      # This line is actually optional,
+      # because the default is empty
 
   let found = "abc".find('c')
   assert found.isSome and found.get() == 2
@@ -79,13 +80,10 @@ import std/typetraits
 when defined(nimPreviewSlimSystem):
   import std/assertions
 
-
 when (NimMajor, NimMinor) >= (1, 1):
-  type
-    SomePointer = ref | ptr | pointer | proc | iterator {.closure.}
+  type SomePointer = ref | ptr | pointer | proc | iterator {.closure.}
 else:
-  type
-    SomePointer = ref | ptr | pointer
+  type SomePointer = ref | ptr | pointer
 
 type
   Option*[T] = object
@@ -109,10 +107,9 @@ proc option*[T](val: sink T): Option[T] {.inline.} =
   ## * `some proc <#some,T>`_
   ## * `none proc <#none,typedesc>`_
   runnableExamples:
-    type
-      Foo = ref object
-        a: int
-        b: string
+    type Foo = ref object
+      a: int
+      b: string
 
     assert option[Foo](nil).isNone
     assert option(42).isSome
@@ -154,7 +151,7 @@ proc none*(T: typedesc): Option[T] {.inline.} =
   # the default is the none type
   result = Option[T]()
 
-proc none*[T]: Option[T] {.inline.} =
+proc none*[T](): Option[T] {.inline.} =
   ## Alias for `none(T) <#none,typedesc>`_.
   none(T)
 
@@ -210,10 +207,7 @@ proc get*[T](self: Option[T], otherwise: T): T {.inline.} =
     assert some(42).get(9999) == 42
     assert none(int).get(9999) == 9999
 
-  if self.isSome:
-    self.val
-  else:
-    otherwise
+  if self.isSome: self.val else: otherwise
 
 proc get*[T](self: var Option[T]): var T {.inline.} =
   ## Returns the content of the `var Option` mutably. If it has no value,
@@ -231,7 +225,9 @@ proc get*[T](self: var Option[T]): var T {.inline.} =
     raise newException(UnpackDefect, "Can't obtain a value from a `none`")
   return self.val
 
-proc map*[T](self: Option[T], callback: proc (input: T)) {.inline, effectsOf: callback.} =
+proc map*[T](
+    self: Option[T], callback: proc(input: T)
+) {.inline, effectsOf: callback.} =
   ## Applies a `callback` function to the value of the `Option`, if it has one.
   ##
   ## **See also:**
@@ -250,7 +246,9 @@ proc map*[T](self: Option[T], callback: proc (input: T)) {.inline, effectsOf: ca
   if self.isSome:
     callback(self.val)
 
-proc map*[T, R](self: Option[T], callback: proc (input: T): R): Option[R] {.inline, effectsOf: callback.} =
+proc map*[T, R](
+    self: Option[T], callback: proc(input: T): R
+): Option[R] {.inline, effectsOf: callback.} =
   ## Applies a `callback` function to the value of the `Option` and returns an
   ## `Option` containing the new value.
   ##
@@ -286,8 +284,9 @@ proc flatten*[T](self: Option[Option[T]]): Option[T] {.inline.} =
   else:
     none(T)
 
-proc flatMap*[T, R](self: Option[T],
-                    callback: proc (input: T): Option[R]): Option[R] {.inline, effectsOf: callback.} =
+proc flatMap*[T, R](
+    self: Option[T], callback: proc(input: T): Option[R]
+): Option[R] {.inline, effectsOf: callback.} =
   ## Applies a `callback` function to the value of the `Option` and returns the new value.
   ##
   ## If the `Option` has no value, `none(R)` will be returned.
@@ -312,7 +311,9 @@ proc flatMap*[T, R](self: Option[T],
 
   map(self, callback).flatten()
 
-proc filter*[T](self: Option[T], callback: proc (input: T): bool): Option[T] {.inline, effectsOf: callback.} =
+proc filter*[T](
+    self: Option[T], callback: proc(input: T): bool
+): Option[T] {.inline, effectsOf: callback.} =
   ## Applies a `callback` to the value of the `Option`.
   ##
   ## If the `callback` returns `true`, the option is returned as `some`.
@@ -371,7 +372,7 @@ proc `$`*[T](self: Option[T]): string =
     else:
       result = "none(" & name(T) & ")"
 
-proc unsafeGet*[T](self: Option[T]): lent T {.inline.}=
+proc unsafeGet*[T](self: Option[T]): lent T {.inline.} =
   ## Returns the value of a `some`. The behavior is undefined for `none`.
   ##
   ## **Note:** Use this only when you are **absolutely sure** the value is present

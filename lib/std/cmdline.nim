@@ -14,7 +14,6 @@
 ## * `parseopt module <parseopt.html>`_ for command-line parser beyond
 ##   `parseCmdLine proc`_
 
-
 include system/inclrtl
 
 when defined(nimPreviewSlimSystem):
@@ -23,9 +22,7 @@ when defined(nimPreviewSlimSystem):
 when defined(nodejs):
   from std/private/oscommon import ReadDirEffect
 
-
 const weirdTarget = defined(nimscript) or defined(js)
-
 
 when weirdTarget:
   discard
@@ -34,15 +31,13 @@ elif defined(windows):
 elif defined(posix):
   import std/posix
 
-
 # Needed by windows in order to obtain the command line for targets
 # other than command line targets
 when defined(windows) and not weirdTarget:
-  template getCommandLine*(): untyped = getCommandLineW()
+  template getCommandLine*(): untyped =
+    getCommandLineW()
 
-
-proc parseCmdLine*(c: string): seq[string] {.
-  noSideEffect, rtl, extern: "nos$1".} =
+proc parseCmdLine*(c: string): seq[string] {.noSideEffect, rtl, extern: "nos$1".} =
   ## Splits a `command line`:idx: into several components.
   ##
   ## **Note**: This proc is only occasionally useful, better use the
@@ -87,8 +82,10 @@ proc parseCmdLine*(c: string): seq[string] {.
   while true:
     setLen(a, 0)
     # eat all delimiting whitespace
-    while i < c.len and c[i] in {' ', '\t', '\l', '\r'}: inc(i)
-    if i >= c.len: break
+    while i < c.len and c[i] in {' ', '\t', '\l', '\r'}:
+      inc(i)
+    if i >= c.len:
+      break
     when defined(windows):
       # parse a single argument according to the above rules:
       var inQuote = false
@@ -96,20 +93,23 @@ proc parseCmdLine*(c: string): seq[string] {.
         case c[i]
         of '\\':
           var j = i
-          while j < c.len and c[j] == '\\': inc(j)
+          while j < c.len and c[j] == '\\':
+            inc(j)
           if j < c.len and c[j] == '"':
-            for k in 1..(j-i) div 2: a.add('\\')
-            if (j-i) mod 2 == 0:
+            for k in 1 .. (j - i) div 2:
+              a.add('\\')
+            if (j - i) mod 2 == 0:
               i = j
             else:
               a.add('"')
-              i = j+1
+              i = j + 1
           else:
             a.add(c[i])
             inc(i)
         of '"':
           inc(i)
-          if not inQuote: inQuote = true
+          if not inQuote:
+            inQuote = true
           elif i < c.len and c[i] == '"':
             a.add(c[i])
             inc(i)
@@ -117,7 +117,8 @@ proc parseCmdLine*(c: string): seq[string] {.
             inQuote = false
             break
         of ' ', '\t':
-          if not inQuote: break
+          if not inQuote:
+            break
           a.add(c[i])
           inc(i)
         else:
@@ -131,7 +132,8 @@ proc parseCmdLine*(c: string): seq[string] {.
         while i < c.len and c[i] != delim:
           add a, c[i]
           inc(i)
-        if i < c.len: inc(i)
+        if i < c.len:
+          inc(i)
       else:
         while i < c.len and c[i] > ' ':
           add(a, c[i])
@@ -201,10 +203,11 @@ when defined(nimdoc):
     ##     # Do something else!
     ##   ```
 
-elif defined(nimscript): discard
+elif defined(nimscript):
+  discard
 elif defined(nodejs):
   type Argv = object of JsRoot
-  let argv {.importjs: "process.argv".} : Argv
+  let argv {.importjs: "process.argv".}: Argv
   proc len(argv: Argv): int {.importjs: "#.length".}
   proc `[]`(argv: Argv, i: int): cstring {.importjs: "#[#]".}
 
@@ -217,6 +220,7 @@ elif defined(nodejs):
       result = $argv[i]
     else:
       raise newException(IndexDefect, formatErrorIndexBound(i - 1, argv.len - 2))
+
 elif defined(windows):
   # Since we support GUI applications with Nim, we sometimes generate
   # a WinMain entry proc. But a WinMain proc has no access to the parsed
@@ -232,10 +236,9 @@ elif defined(windows):
     if not ownParsedArgv:
       ownArgv = parseCmdLine($getCommandLine())
       ownParsedArgv = true
-    result = ownArgv.len-1
+    result = ownArgv.len - 1
 
-  proc paramStr*(i: int): string {.rtl, extern: "nos$1",
-    tags: [ReadIOEffect].} =
+  proc paramStr*(i: int): string {.rtl, extern: "nos$1", tags: [ReadIOEffect].} =
     # Docstring in nimdoc block.
     if not ownParsedArgv:
       ownArgv = parseCmdLine($getCommandLine())
@@ -243,7 +246,7 @@ elif defined(windows):
     if i < ownArgv.len and i >= 0:
       result = ownArgv[i]
     else:
-      raise newException(IndexDefect, formatErrorIndexBound(i, ownArgv.len-1))
+      raise newException(IndexDefect, formatErrorIndexBound(i, ownArgv.len - 1))
 
 elif defined(genode):
   proc paramStr*(i: int): string =
@@ -251,14 +254,15 @@ elif defined(genode):
 
   proc paramCount*(): int =
     raise newException(OSError, "paramCount is not implemented on Genode")
+
 elif weirdTarget or (defined(posix) and appType == "lib"):
   proc paramStr*(i: int): string {.tags: [ReadIOEffect].} =
     raise newException(OSError, "paramStr is not implemented on current platform")
 
   proc paramCount*(): int {.tags: [ReadIOEffect].} =
     raise newException(OSError, "paramCount is not implemented on current platform")
-elif not defined(createNimRtl) and
-  not(defined(posix) and appType == "lib"):
+
+elif not defined(createNimRtl) and not (defined(posix) and appType == "lib"):
   # On Posix, there is no portable way to get the command line from a DLL.
   var
     cmdCount {.importc: "cmdCount".}: cint
@@ -269,11 +273,11 @@ elif not defined(createNimRtl) and
     if i < cmdCount and i >= 0:
       result = $cmdLine[i]
     else:
-      raise newException(IndexDefect, formatErrorIndexBound(i, cmdCount-1))
+      raise newException(IndexDefect, formatErrorIndexBound(i, cmdCount - 1))
 
   proc paramCount*(): int {.tags: [ReadIOEffect].} =
     # Docstring in nimdoc block.
-    result = cmdCount-1
+    result = cmdCount - 1
 
 when declared(paramCount) or defined(nimdoc):
   proc commandLineParams*(): seq[string] =
@@ -303,9 +307,11 @@ when declared(paramCount) or defined(nimdoc):
     ##     # Do something else!
     ##   ```
     result = @[]
-    for i in 1..paramCount():
+    for i in 1 .. paramCount():
       result.add(paramStr(i))
+
 else:
-  proc commandLineParams*(): seq[string] {.error:
-  "commandLineParams() unsupported by dynamic libraries".} =
+  proc commandLineParams*(): seq[string] {.
+      error: "commandLineParams() unsupported by dynamic libraries"
+  .} =
     discard

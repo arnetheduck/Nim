@@ -34,9 +34,12 @@ elif defined(useNimRtl):
   `{.rtl.}` should only be used for non-generic procs.
   ]#
   const nimrtl* =
-    when defined(windows): "nimrtl.dll"
-    elif defined(macosx): "libnimrtl.dylib"
-    else: "libnimrtl.so"
+    when defined(windows):
+      "nimrtl.dll"
+    elif defined(macosx):
+      "libnimrtl.dylib"
+    else:
+      "libnimrtl.so"
   {.pragma: rtl, importc: "nimrtl_$1", dynlib: nimrtl, gcsafe.}
   {.pragma: inl.}
   {.pragma: compilerRtl, compilerproc, importc: "nimrtl_$1", dynlib: nimrtl.}

@@ -74,11 +74,9 @@ import std/private/since
 type
   Future*[T] = ref object
     future*: T
+
   ## Wraps the return type of an asynchronous procedure.
-
-  PromiseJs* {.importjs: "Promise".} = ref object
-  ## A JavaScript Promise.
-
+  PromiseJs* {.importjs: "Promise".} = ref object ## A JavaScript Promise.
 
 proc replaceReturn(node: var NimNode) =
   var z = 0
@@ -86,7 +84,11 @@ proc replaceReturn(node: var NimNode) =
     var son = node[z]
     let jsResolve = ident("jsResolve")
     if son.kind == nnkReturnStmt:
-      let value = if son[0].kind != nnkEmpty: nnkCall.newTree(jsResolve, son[0]) else: jsResolve
+      let value =
+        if son[0].kind != nnkEmpty:
+          nnkCall.newTree(jsResolve, son[0])
+        else:
+          jsResolve
       node[z] = nnkReturnStmt.newTree(value)
     elif son.kind == nnkAsgn and son[0].kind == nnkIdent and $son[0] == "result":
       node[z] = nnkAsgn.newTree(son[0], nnkCall.newTree(jsResolve, son[1]))
@@ -97,21 +99,24 @@ proc replaceReturn(node: var NimNode) =
     inc z
 
 proc isFutureVoid(node: NimNode): bool =
-  result = node.kind == nnkBracketExpr and
-           node[0].kind == nnkIdent and $node[0] == "Future" and
-           node[1].kind == nnkIdent and $node[1] == "void"
+  result =
+    node.kind == nnkBracketExpr and node[0].kind == nnkIdent and $node[0] == "Future" and
+    node[1].kind == nnkIdent and $node[1] == "void"
 
 proc generateJsasync(arg: NimNode): NimNode =
   if arg.kind notin {nnkProcDef, nnkLambda, nnkMethodDef, nnkDo, nnkProcTy}:
-      error("Cannot transform this node kind into an async proc." &
-            " proc/method definition or lambda node expected.")
+    error(
+      "Cannot transform this node kind into an async proc." &
+        " proc/method definition or lambda node expected."
+    )
 
   # Transform type X = proc (): something {.async.}
   # into      type X = proc (): Future[something]
   if arg.kind == nnkProcTy:
     result = arg
     if arg[0][0].kind == nnkEmpty:
-      result[0][0] = quote do: Future[void]
+      result[0][0] = quote:
+        Future[void]
     return result
 
   result = arg
@@ -166,19 +171,24 @@ macro async*(arg: untyped): untyped =
   else:
     result = generateJsasync(arg)
 
-proc newPromise*[T](handler: proc(resolve: proc(response: T))): Future[T] {.importjs: "(new Promise(#))".}
+proc newPromise*[T](
+  handler: proc(resolve: proc(response: T))
+): Future[T] {.importjs: "(new Promise(#))".}
   ## A helper for wrapping callback-based functions
   ## into promises and async procedures.
 
-proc newPromise*(handler: proc(resolve: proc())): Future[void] {.importjs: "(new Promise(#))".}
+proc newPromise*(
+  handler: proc(resolve: proc())
+): Future[void] {.importjs: "(new Promise(#))".}
   ## A helper for wrapping callback-based functions
   ## into promises and async procedures.
 
 template maybeFuture(T): untyped =
   # avoids `Future[Future[T]]`
-  when T is Future: T
-  else: Future[T]
-
+  when T is Future:
+    T
+  else:
+    Future[T]
 
 since (1, 5, 1):
   #[
@@ -192,7 +202,7 @@ since (1, 5, 1):
   and https://stackoverflow.com/questions/61377358/javascript-wait-for-async-call-to-finish-before-returning-from-function-witho
   ]#
 
-  type Error*  {.importjs: "Error".} = ref object of JsRoot
+  type Error* {.importjs: "Error".} = ref object of JsRoot
     ## https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Error
     message*: cstring
     name*: cstring
@@ -206,22 +216,24 @@ since (1, 5, 1):
       from std/sugar import `=>`
 
       proc fn(n: int): Future[int] {.async.} =
-        if n >= 7: raise newException(ValueError, "foobar: " & $n)
-        else: result = n * 2
+        if n >= 7:
+          raise newException(ValueError, "foobar: " & $n)
+        else:
+          result = n * 2
 
       proc asyncFact(n: int): Future[int] {.async.} =
-        if n > 0: result = n * await asyncFact(n-1)
-        else: result = 1
+        if n > 0:
+          result = n * await asyncFact(n - 1)
+        else:
+          result = 1
 
       proc main() {.async.} =
         block: # then
-          assert asyncFact(3).await == 3*2
-          assert asyncFact(3).then(asyncFact).await == 6*5*4*3*2
+          assert asyncFact(3).await == 3 * 2
+          assert asyncFact(3).then(asyncFact).await == 6 * 5 * 4 * 3 * 2
           let x1 = await fn(3)
           assert x1 == 3 * 2
-          let x2 = await fn(4)
-            .then((a: int) => a.float)
-            .then((a: float) => $a)
+          let x2 = await fn(4).then((a: int) => a.float).then((a: float) => $a)
           assert x2 == "8.0"
 
         block: # then with `onReject` callback
@@ -233,11 +245,15 @@ since (1, 5, 1):
 
     template impl(call): untyped =
       # see D20210421T014713
-      when typeof(block: call) is void:
+      when typeof(
+        block:
+          call
+      ) is void:
         var ret: Future[void]
       else:
         var ret = default(maybeFuture(typeof(call)))
       typeof(ret)
+
     when T is void:
       type A = impl(onSuccess())
     else:
@@ -253,16 +269,19 @@ since (1, 5, 1):
       from std/strutils import contains
 
       proc fn(n: int): Future[int] {.async.} =
-        if n >= 7: raise newException(ValueError, "foobar: " & $n)
-        else: result = n * 2
+        if n >= 7:
+          raise newException(ValueError, "foobar: " & $n)
+        else:
+          result = n * 2
 
       proc main() {.async.} =
         var reason: Error
-        await fn(6).catch((r: Error) => (reason = r)) # note: `()` are needed, `=> reason = r` would not work
+        await fn(6).catch((r: Error) => (reason = r))
+          # note: `()` are needed, `=> reason = r` would not work
         assert reason == nil
         await fn(7).catch((r: Error) => (reason = r))
         assert reason != nil
-        assert  "foobar: 7" in $reason.message
+        assert "foobar: 7" in $reason.message
 
       discard main()
 

@@ -29,7 +29,7 @@ func expandTabs*(s: string, tabSize: int = 8): string =
   result = newStringOfCap(s.len + s.len shr 2)
 
   template addSpaces(n) =
-    for _ in 1..n:
+    for _ in 1 .. n:
       result.add(' ')
     pos += n
 
@@ -45,8 +45,7 @@ func expandTabs*(s: string, tabSize: int = 8): string =
     if c == '\l':
       pos = 0
 
-func partition*(s: string, sep: string,
-                right: bool = false): (string, string, string) =
+func partition*(s: string, sep: string, right: bool = false): (string, string, string) =
   ## Splits the string at the first (if `right` is false)
   ## or last (if `right` is true) occurrence of `sep` into a 3-tuple.
   ##
@@ -62,10 +61,18 @@ func partition*(s: string, sep: string,
     doAssert partition("foobar", ":") == ("foobar", "", "")
     doAssert partition("foobar", ":", right = true) == ("", "", "foobar")
 
-  let position = if right: s.rfind(sep) else: s.find(sep)
+  let position =
+    if right:
+      s.rfind(sep)
+    else:
+      s.find(sep)
   if position != -1:
     return (s[0 ..< position], sep, s[position + sep.len ..< s.len])
-  return if right: ("", "", s) else: (s, "", "")
+  return
+    if right:
+      ("", "", s)
+    else:
+      (s, "", "")
 
 func rpartition*(s: string, sep: string): (string, string, string) =
   ## Splits the string at the last occurrence of `sep` into a 3-tuple.

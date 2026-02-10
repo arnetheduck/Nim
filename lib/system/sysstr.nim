@@ -21,12 +21,15 @@ proc dataPointer(a: PGenericSeq, elemAlign: int): pointer =
   cast[pointer](cast[int](a) +% align(GenericSeqSize, elemAlign))
 
 proc dataPointer(a: PGenericSeq, elemAlign, elemSize, index: int): pointer =
-  cast[pointer](cast[int](a) +% align(GenericSeqSize, elemAlign) +% (index*%elemSize))
+  cast[pointer](cast[int](a) +% align(GenericSeqSize, elemAlign) +% (index *% elemSize))
 
 proc resize(old: int): int {.inline.} =
-  if old <= 0: result = 4
-  elif old < 65536: result = old * 2
-  else: result = old div 2 + old # for large arrays * 3/2 is better
+  if old <= 0:
+    result = 4
+  elif old < 65536:
+    result = old * 2
+  else:
+    result = old div 2 + old # for large arrays * 3/2 is better
 
 when declared(allocAtomic):
   template allocStr(size: untyped): untyped =
@@ -34,6 +37,7 @@ when declared(allocAtomic):
 
   template allocStrNoInit(size: untyped): untyped =
     cast[NimString](boehmAllocAtomic(size))
+
 elif defined(gcRegions):
   template allocStr(size: untyped): untyped =
     cast[NimString](newStr(addr(strDesc), size, true))
@@ -81,8 +85,9 @@ proc copyStrLast(s: NimString, start, last: int): NimString {.compilerproc.} =
   # This is not used by most recent versions of the compiler anymore, but
   # required for bootstrapping purposes.
   let start = max(start, 0)
-  if s == nil: return nil
-  let len = min(last, s.len-1) - start + 1
+  if s == nil:
+    return nil
+  let len = min(last, s.len - 1) - start + 1
   result = rawNewStringNoInit(len)
   result.len = len
   copyMem(addr(result.data), addr(s.data[start]), len)
@@ -91,12 +96,15 @@ proc copyStrLast(s: NimString, start, last: int): NimString {.compilerproc.} =
 proc copyStr(s: NimString, start: int): NimString {.compilerproc.} =
   # This is not used by most recent versions of the compiler anymore, but
   # required for bootstrapping purposes.
-  if s == nil: return nil
-  result = copyStrLast(s, start, s.len-1)
+  if s == nil:
+    return nil
+  result = copyStrLast(s, start, s.len - 1)
 
 proc nimToCStringConv(s: NimString): cstring {.compilerproc, nonReloadable, inline.} =
-  if s == nil or s.len == 0: result = cstring""
-  else: result = cast[cstring](addr s.data)
+  if s == nil or s.len == 0:
+    result = cstring""
+  else:
+    result = cast[cstring](addr s.data)
 
 proc toNimStr(str: cstring, len: int): NimString {.compilerproc.} =
   result = rawNewStringNoInit(len)
@@ -111,8 +119,10 @@ proc toOwnedCopy(src: NimString): NimString {.inline, raises: [].} =
   copyMem(addr(result.data), addr(src.data), src.len + 1)
 
 proc cstrToNimstr(str: cstring): NimString {.compilerRtl.} =
-  if str == nil: NimString(nil)
-  else: toNimStr(str, str.len)
+  if str == nil:
+    NimString(nil)
+  else:
+    toNimStr(str, str.len)
 
 proc copyString(src: NimString): NimString {.compilerRtl.} =
   ## Expects `src` to be initialized (len and terminating zero set)
@@ -135,9 +145,9 @@ proc copyStringRC1(src: NimString): NimString {.compilerRtl.} =
     else:
       when declared(newObjRC1) and not defined(gcRegions):
         var s = src.len
-        if s < 7: s = 7
-        result = cast[NimString](newObjRC1(addr(strDesc), sizeof(TGenericSeq) +
-                                s+1))
+        if s < 7:
+          s = 7
+        result = cast[NimString](newObjRC1(addr(strDesc), sizeof(TGenericSeq) + s + 1))
         result.reserved = s
         when defined(gogc):
           result.elemSize = 1
@@ -203,7 +213,7 @@ proc resizeString(dest: NimString, addlen: int): NimString {.compilerRtl.} =
 
 proc appendChar(dest: NimString, c: char) {.compilerproc, inline.} =
   dest.data[dest.len] = c
-  dest.data[dest.len+1] = '\0'
+  dest.data[dest.len + 1] = '\0'
   inc(dest.len)
 
 proc addChar(s: NimString, c: char): NimString =
@@ -233,7 +243,11 @@ proc setLengthStr(s: NimString, newLen: int): NimString {.compilerRtl.} =
   ## Negative `newLen` is bound to zero.
   let n = max(newLen, 0)
   if s == nil: # early return check
-    return if n == 0: s else: mnewString(n) # sets everything required
+    return
+      if n == 0:
+        s
+      else:
+        mnewString(n) # sets everything required
   if n <= s.space:
     result = s # len and null-byte still need updating
   else:
@@ -256,7 +270,9 @@ proc incrSeq(seq: PGenericSeq, elemSize, elemAlign: int): PGenericSeq {.compiler
   result = seq
   if result.len >= result.space:
     let r = resize(result.space)
-    result = cast[PGenericSeq](growObj(result, align(GenericSeqSize, elemAlign) + elemSize * r))
+    result = cast[PGenericSeq](growObj(
+      result, align(GenericSeqSize, elemAlign) + elemSize * r
+    ))
     result.reserved = r
   inc(result.len)
 
@@ -270,35 +286,48 @@ proc incrSeqV3(s: PGenericSeq, typ: PNimType): PGenericSeq {.compilerproc.} =
       let r = resize(result.space)
       result = cast[PGenericSeq](newSeq(typ, r))
       result.len = s.len
-      copyMem(dataPointer(result, typ.base.align), dataPointer(s, typ.base.align), s.len * typ.base.size)
+      copyMem(
+        dataPointer(result, typ.base.align),
+        dataPointer(s, typ.base.align),
+        s.len * typ.base.size,
+      )
       # since we steal the content from 's', it's crucial to set s's len to 0.
       s.len = 0
 
-proc extendCapacityRaw(src: PGenericSeq; typ: PNimType;
-                      elemSize, elemAlign, newLen: int): PGenericSeq {.inline.} =
+proc extendCapacityRaw(
+    src: PGenericSeq, typ: PNimType, elemSize, elemAlign, newLen: int
+): PGenericSeq {.inline.} =
   ## Reallocs `src` to fit `newLen` elements without any checks.
   ## Capacity always increases to at least next `resize` step.
   let newCap = max(resize(src.space), newLen)
   result = cast[PGenericSeq](newSeq(typ, newCap))
-  copyMem(dataPointer(result, elemAlign), dataPointer(src, elemAlign), src.len * elemSize)
+  copyMem(
+    dataPointer(result, elemAlign), dataPointer(src, elemAlign), src.len * elemSize
+  )
   # since we steal the content from 's', it's crucial to set s's len to 0.
   src.len = 0
 
-proc truncateRaw(src: PGenericSeq; baseFlags: set[TNimTypeFlag]; isTrivial: bool;
-              elemSize, elemAlign, newLen: int): PGenericSeq {.inline.} =
+proc truncateRaw(
+    src: PGenericSeq,
+    baseFlags: set[TNimTypeFlag],
+    isTrivial: bool,
+    elemSize, elemAlign, newLen: int,
+): PGenericSeq {.inline.} =
   ## Truncates `src` to `newLen` without any checks.
   ## Does not set `src.len`
   # sysAssert src.space > newlen
   # sysAssert newLen < src.len
   result = src
   # we need to decref here, otherwise the GC leaks!
-  when not defined(boehmGC) and not defined(nogc) and
-      not defined(gcMarkAndSweep) and not defined(gogc) and
-      not defined(gcRegions):
+  when not defined(boehmGC) and not defined(nogc) and not defined(gcMarkAndSweep) and
+      not defined(gogc) and not defined(gcRegions):
     if ntfNoRefs notin baseFlags:
-      for i in newLen..<result.len:
-        forAllChildrenAux(dataPointer(result, elemAlign, elemSize, i),
-                          extGetCellType(result).base, waZctDecRef)
+      for i in newLen ..< result.len:
+        forAllChildrenAux(
+          dataPointer(result, elemAlign, elemSize, i),
+          extGetCellType(result).base,
+          waZctDecRef,
+        )
   # XXX: zeroing out the memory can still result in crashes if a wiped-out
   # cell is aliased by another pointer (ie proc parameter or a let variable).
   # This is a tough problem, because even if we don't zeroMem here, in the
@@ -306,34 +335,44 @@ proc truncateRaw(src: PGenericSeq; baseFlags: set[TNimTypeFlag]; isTrivial: bool
   # "destroyed" thus creating the same problem. We can destroy the cell in the
   # finalizer of the sequence, but this makes destruction non-deterministic.
   if not isTrivial: # optimization for trivial types
-    zeroMem(dataPointer(result, elemAlign, elemSize, newLen),
-            ((result.len-%newLen) *% elemSize))
+    zeroMem(
+      dataPointer(result, elemAlign, elemSize, newLen),
+      ((result.len -% newLen) *% elemSize),
+    )
 
-template setLengthSeqImpl(s: PGenericSeq, typ: PNimType, newLen: int; isTrivial: bool;
-                          doInit: static bool) = 
+template setLengthSeqImpl(
+    s: PGenericSeq, typ: PNimType, newLen: int, isTrivial: bool, doInit: static bool
+) =
   if s == nil:
-    if newLen == 0: return s
-    else: return cast[PGenericSeq](newSeq(typ, newLen)) # newSeq zeroes!
+    if newLen == 0:
+      return s
+    else:
+      return cast[PGenericSeq](newSeq(typ, newLen)) # newSeq zeroes!
   else:
     let elemSize = typ.base.size
     let elemAlign = typ.base.align
-    result = if newLen > s.space:
+    result =
+      if newLen > s.space:
         s.extendCapacityRaw(typ, elemSize, elemAlign, newLen)
       elif newLen < s.len:
         s.truncateRaw(typ.base.flags, isTrivial, elemSize, elemAlign, newLen)
       else:
         when doInit:
-          zeroMem(dataPointer(s, elemAlign, elemSize, s.len), (newLen-%s.len) *% elemSize)
+          zeroMem(
+            dataPointer(s, elemAlign, elemSize, s.len), (newLen -% s.len) *% elemSize
+          )
         s
     result.len = newLen
 
-proc setLengthSeqUninit(s: PGenericSeq; typ: PNimType; newLen: int; isTrivial: bool): PGenericSeq {.
-    compilerRtl.} =
+proc setLengthSeqUninit(
+    s: PGenericSeq, typ: PNimType, newLen: int, isTrivial: bool
+): PGenericSeq {.compilerRtl.} =
   sysAssert typ.kind == tySequence, "setLengthSeqUninit: type is not a seq"
   setLengthSeqImpl(s, typ, newLen, isTrivial, doInit = false)
 
-proc setLengthSeqV2(s: PGenericSeq, typ: PNimType, newLen: int, isTrivial: bool): PGenericSeq {.
-    compilerRtl.} =
+proc setLengthSeqV2(
+    s: PGenericSeq, typ: PNimType, newLen: int, isTrivial: bool
+): PGenericSeq {.compilerRtl.} =
   sysAssert typ.kind == tySequence, "setLengthSeqV2: type is not a seq"
   setLengthSeqImpl(s, typ, newLen, isTrivial, doInit = true)
 

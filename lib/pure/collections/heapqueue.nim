@@ -6,7 +6,6 @@
 #    See the file "copying.txt", included in this
 #    distribution, for details about the copyright.
 
-
 ## The `heapqueue` module implements a
 ## `binary heap data structure<https://en.wikipedia.org/wiki/Binary_heap>`_
 ## that can be used as a `priority queue<https://en.wikipedia.org/wiki/Priority_queue>`_.
@@ -36,7 +35,8 @@ runnableExamples:
   type Job = object
     priority: int
 
-  proc `<`(a, b: Job): bool = a.priority < b.priority
+  proc `<`(a, b: Job): bool =
+    a.priority < b.priority
 
   var jobs = initHeapQueue[Job]()
   jobs.push(Job(priority: 1))
@@ -44,14 +44,12 @@ runnableExamples:
 
   assert jobs[0].priority == 1
 
-
 import std/private/since
 
 when defined(nimPreviewSlimSystem):
   import std/assertions
 
-type HeapQueue*[T] = object
-  ## A heap queue, commonly known as a priority queue.
+type HeapQueue*[T] = object ## A heap queue, commonly known as a priority queue.
   data: seq[T]
 
 proc initHeapQueue*[T](): HeapQueue[T] =
@@ -81,9 +79,12 @@ iterator items*[T](heap: HeapQueue[T]): lent T {.inline, since: (2, 1, 1).} =
   let L = len(heap)
   for i in 0 .. high(heap.data):
     yield heap.data[i]
-    assert(len(heap) == L, "the length of the HeapQueue changed while iterating over it")
+    assert(
+      len(heap) == L, "the length of the HeapQueue changed while iterating over it"
+    )
 
-proc heapCmp[T](x, y: T): bool {.inline.} = x < y
+proc heapCmp[T](x, y: T): bool {.inline.} =
+  x < y
 
 proc siftup[T](heap: var HeapQueue[T], startpos, p: int) =
   ## `heap` is a heap at all indices >= `startpos`, except possibly for `p`. `p`
@@ -186,7 +187,8 @@ proc find*[T](heap: HeapQueue[T], x: T): int {.since: (1, 3).} =
 
   result = -1
   for i in 0 ..< heap.len:
-    if heap[i] == x: return i
+    if heap[i] == x:
+      return i
 
 proc contains*[T](heap: HeapQueue[T], x: T): bool {.since: (2, 1, 1).} =
   ## Returns true if `x` is in `heap` or false if not found. This is a shortcut
@@ -261,6 +263,7 @@ proc `$`*[T](heap: HeapQueue[T]): string =
 
   result = "["
   for x in heap.data:
-    if result.len > 1: result.add(", ")
+    if result.len > 1:
+      result.add(", ")
     result.addQuoted(x)
   result.add("]")

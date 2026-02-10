@@ -1,11 +1,11 @@
-
 import ast, idents, lineinfos, modulegraphs, magicsys
 
 when defined(nimPreviewSlimSystem):
   import std/assertions
 
-
-proc genEnumToStrProc*(t: PType; info: TLineInfo; g: ModuleGraph; idgen: IdGenerator): PSym =
+proc genEnumToStrProc*(
+    t: PType, info: TLineInfo, g: ModuleGraph, idgen: IdGenerator
+): PSym =
   result = newSym(skProc, getIdent(g.cache, "$"), idgen, t.owner, info)
 
   let dest = newSym(skParam, getIdent(g.cache, "e"), idgen, result, info)
@@ -26,22 +26,27 @@ proc genEnumToStrProc*(t: PType; info: TLineInfo; g: ModuleGraph; idgen: IdGener
   caseStmt.add(newSymNode dest)
 
   # copy the branches over, but replace the fields with the for loop body:
-  for i in 0..<t.n.len:
+  for i in 0 ..< t.n.len:
     assert(t.n[i].kind == nkSym)
     var field = t.n[i].sym
     let val = if field.ast == nil: field.name.s else: field.ast.strVal
-    caseStmt.add newTree(nkOfBranch, newIntTypeNode(field.position, t),
-      newTree(nkStmtList, newTree(nkFastAsgn, newSymNode(res), newStrNode(val, info))))
+    caseStmt.add newTree(
+      nkOfBranch,
+      newIntTypeNode(field.position, t),
+      newTree(nkStmtList, newTree(nkFastAsgn, newSymNode(res), newStrNode(val, info))),
+    )
     #newIntTypeNode(nkIntLit, field.position, t)
   # safety branch for invalid data:
-  caseStmt.add newTree(nkElse,
-    newTree(nkStmtList, newTree(nkFastAsgn, newSymNode(res),
-      newStrNode("", info))))
+  caseStmt.add newTree(
+    nkElse,
+    newTree(nkStmtList, newTree(nkFastAsgn, newSymNode(res), newStrNode("", info))),
+  )
 
   body.add(caseStmt)
 
-  var n = newNodeI(nkProcDef, info, bodyPos+2)
-  for i in 0..<n.len: n[i] = newNodeI(nkEmpty, info)
+  var n = newNodeI(nkProcDef, info, bodyPos + 2)
+  for i in 0 ..< n.len:
+    n[i] = newNodeI(nkEmpty, info)
   n[namePos] = newSymNode(result)
   n[paramsPos] = result.typ.n
   n[bodyPos] = body
@@ -50,7 +55,7 @@ proc genEnumToStrProc*(t: PType; info: TLineInfo; g: ModuleGraph; idgen: IdGener
   incl result.flags, sfFromGeneric
   incl result.flags, sfNeverRaises
 
-proc searchObjCaseImpl(obj: PNode; field: PSym): PNode =
+proc searchObjCaseImpl(obj: PNode, field: PSym): PNode =
   case obj.kind
   of nkSym:
     result = nil
@@ -63,15 +68,20 @@ proc searchObjCaseImpl(obj: PNode; field: PSym): PNode =
       result = nil
       for x in obj:
         result = searchObjCaseImpl(x, field)
-        if result != nil: break
+        if result != nil:
+          break
 
-proc searchObjCase(t: PType; field: PSym): PNode =
+proc searchObjCase(t: PType, field: PSym): PNode =
   result = searchObjCaseImpl(t.n, field)
   if result == nil and t.baseClass != nil:
-    result = searchObjCase(t.baseClass.skipTypes({tyAlias, tyGenericInst, tyRef, tyPtr}), field)
+    result = searchObjCase(
+      t.baseClass.skipTypes({tyAlias, tyGenericInst, tyRef, tyPtr}), field
+    )
   doAssert result != nil
 
-proc genCaseObjDiscMapping*(t: PType; field: PSym; info: TLineInfo; g: ModuleGraph; idgen: IdGenerator): PSym =
+proc genCaseObjDiscMapping*(
+    t: PType, field: PSym, info: TLineInfo, g: ModuleGraph, idgen: IdGenerator
+): PSym =
   result = newSym(skProc, getIdent(g.cache, "objDiscMapping"), idgen, t.owner, info)
 
   let dest = newSym(skParam, getIdent(g.cache, "e"), idgen, result, info)
@@ -92,19 +102,22 @@ proc genCaseObjDiscMapping*(t: PType; field: PSym; info: TLineInfo; g: ModuleGra
   caseStmt.add(newSymNode dest)
 
   let subObj = searchObjCase(t, field)
-  for i in 1..<subObj.len:
+  for i in 1 ..< subObj.len:
     let ofBranch = subObj[i]
     var newBranch = newNodeI(ofBranch.kind, ofBranch.info)
-    for j in 0..<ofBranch.len-1:
+    for j in 0 ..< ofBranch.len - 1:
       newBranch.add ofBranch[j]
 
-    newBranch.add newTree(nkStmtList, newTree(nkFastAsgn, newSymNode(res), newIntNode(nkInt8Lit, i)))
+    newBranch.add newTree(
+      nkStmtList, newTree(nkFastAsgn, newSymNode(res), newIntNode(nkInt8Lit, i))
+    )
     caseStmt.add newBranch
 
   body.add(caseStmt)
 
-  var n = newNodeI(nkProcDef, info, bodyPos+2)
-  for i in 0..<n.len: n[i] = newNodeI(nkEmpty, info)
+  var n = newNodeI(nkProcDef, info, bodyPos + 2)
+  for i in 0 ..< n.len:
+    n[i] = newNodeI(nkEmpty, info)
   n[namePos] = newSymNode(result)
   n[paramsPos] = result.typ.n
   n[bodyPos] = body

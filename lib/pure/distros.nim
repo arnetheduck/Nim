@@ -32,112 +32,108 @@ when not defined(nimscript):
   from std/osproc import execProcess
   from std/envvars import existsEnv
 
-type
-  Distribution* {.pure.} = enum ## the list of known distributions
-    Windows                     ## some version of Windows
-    Posix                       ## some POSIX system
-    MacOSX                      ## some version of OSX
-    Linux                       ## some version of Linux
-    Ubuntu
-    Debian
-    Gentoo
-    Fedora
-    RedHat
+type Distribution* {.pure.} = enum ## the list of known distributions
+  Windows ## some version of Windows
+  Posix ## some POSIX system
+  MacOSX ## some version of OSX
+  Linux ## some version of Linux
+  Ubuntu
+  Debian
+  Gentoo
+  Fedora
+  RedHat
+  OpenSUSE
+  Manjaro
+  Elementary
+  Zorin
+  CentOS
+  Deepin
+  ArchLinux
+  Artix
+  Antergos
+  PCLinuxOS
+  Mageia
+  LXLE
+  Solus
+  Lite
+  Slackware
+  Androidx86
+  Puppy
+  Peppermint
+  Tails
+  AntiX
+  Kali
+  SparkyLinux
+  Apricity
+  BlackLab
+  Bodhi
+  TrueOS
+  ArchBang
+  KaOS
+  WattOS
+  Korora
+  Simplicity
+  RemixOS
+  OpenMandriva
+  Netrunner
+  Alpine
+  BlackArch
+  Ultimate
+  Gecko
+  Parrot
+  KNOPPIX
+  GhostBSD
+  Sabayon
+  Salix
+  Q4OS
+  ClearOS
+  Container
+  ROSA
+  Zenwalk
+  Parabola
+  ChaletOS
+  BackBox
+  MXLinux
+  Vector
+  Maui
+  Qubes
+  RancherOS
+  Oracle
+  TinyCore
+  Robolinux
+  Trisquel
+  Voyager
+  Clonezilla
+  SteamOS
+  Absolute
+  NixOS ## NixOS or a Nix build environment
+  AUSTRUMI
+  Arya
+  Porteus
+  AVLinux
+  Elive
+  Bluestar
+  SliTaz
+  Solaris
+  Chakra
+  Wifislax
+  Scientific
+  ExTiX
+  Rockstor
+  GoboLinux
+  Void
+  BSD
+  FreeBSD
+  NetBSD
+  OpenBSD
+  DragonFlyBSD
+  Haiku
 
-    OpenSUSE
-    Manjaro
-    Elementary
-    Zorin
-    CentOS
-    Deepin
-    ArchLinux
-    Artix
-    Antergos
-    PCLinuxOS
-    Mageia
-    LXLE
-    Solus
-    Lite
-    Slackware
-    Androidx86
-    Puppy
-    Peppermint
-    Tails
-    AntiX
-    Kali
-    SparkyLinux
-    Apricity
-    BlackLab
-    Bodhi
-    TrueOS
-    ArchBang
-    KaOS
-    WattOS
-    Korora
-    Simplicity
-    RemixOS
-    OpenMandriva
-    Netrunner
-    Alpine
-    BlackArch
-    Ultimate
-    Gecko
-    Parrot
-    KNOPPIX
-    GhostBSD
-    Sabayon
-    Salix
-    Q4OS
-    ClearOS
-    Container
-    ROSA
-    Zenwalk
-    Parabola
-    ChaletOS
-    BackBox
-    MXLinux
-    Vector
-    Maui
-    Qubes
-    RancherOS
-    Oracle
-    TinyCore
-    Robolinux
-    Trisquel
-    Voyager
-    Clonezilla
-    SteamOS
-    Absolute
-    NixOS                       ## NixOS or a Nix build environment
-    AUSTRUMI
-    Arya
-    Porteus
-    AVLinux
-    Elive
-    Bluestar
-    SliTaz
-    Solaris
-    Chakra
-    Wifislax
-    Scientific
-    ExTiX
-    Rockstor
-    GoboLinux
-    Void
-
-    BSD
-    FreeBSD
-    NetBSD
-    OpenBSD
-    DragonFlyBSD
-
-    Haiku
-
-
-const
-  LacksDevPackages* = {Distribution.Gentoo, Distribution.Slackware,
-      Distribution.ArchLinux, Distribution.Artix, Distribution.Antergos,
-      Distribution.BlackArch, Distribution.ArchBang}
+const LacksDevPackages* = {
+  Distribution.Gentoo, Distribution.Slackware, Distribution.ArchLinux,
+  Distribution.Artix, Distribution.Antergos, Distribution.BlackArch,
+  Distribution.ArchBang,
+}
 
 # we cache the result of the 'cmdRelease'
 # execution for faster platform detections.
@@ -148,24 +144,37 @@ template cmdRelease(cmd, cache): untyped =
     cache = (when defined(nimscript): gorge(cmd) else: execProcess(cmd))
   cache
 
-template uname(): untyped = cmdRelease("uname -a", unameRes)
-template osReleaseID(): untyped = cmdRelease("cat /etc/os-release | grep ^ID=", osReleaseIDRes)
-template release(): untyped = cmdRelease("lsb_release -d", releaseRes)
-template hostnamectl(): untyped = cmdRelease("hostnamectl", hostnamectlRes)
+template uname(): untyped =
+  cmdRelease("uname -a", unameRes)
+
+template osReleaseID(): untyped =
+  cmdRelease("cat /etc/os-release | grep ^ID=", osReleaseIDRes)
+
+template release(): untyped =
+  cmdRelease("lsb_release -d", releaseRes)
+
+template hostnamectl(): untyped =
+  cmdRelease("hostnamectl", hostnamectlRes)
 
 proc detectOsWithAllCmd(d: Distribution): bool =
   let dd = toLowerAscii($d)
-  result = dd in toLowerAscii(osReleaseID()) or dd in toLowerAscii(release()) or
-            dd in toLowerAscii(uname()) or ("operating system: " & dd) in
-                toLowerAscii(hostnamectl())
+  result =
+    dd in toLowerAscii(osReleaseID()) or dd in toLowerAscii(release()) or
+    dd in toLowerAscii(uname()) or
+    ("operating system: " & dd) in toLowerAscii(hostnamectl())
 
 proc detectOsImpl(d: Distribution): bool =
   case d
-  of Distribution.Windows: result = defined(windows)
-  of Distribution.Posix: result = defined(posix)
-  of Distribution.MacOSX: result = defined(macosx)
-  of Distribution.Linux: result = defined(linux)
-  of Distribution.BSD: result = defined(bsd)
+  of Distribution.Windows:
+    result = defined(windows)
+  of Distribution.Posix:
+    result = defined(posix)
+  of Distribution.MacOSX:
+    result = defined(macosx)
+  of Distribution.Linux:
+    result = defined(linux)
+  of Distribution.BSD:
+    result = defined(bsd)
   else:
     when defined(bsd):
       case d
@@ -178,8 +187,9 @@ proc detectOsImpl(d: Distribution): bool =
       of Distribution.Gentoo:
         result = ("-" & $d & " ") in uname()
       of Distribution.Elementary, Distribution.Ubuntu, Distribution.Debian,
-        Distribution.Fedora, Distribution.OpenMandriva, Distribution.CentOS,
-        Distribution.Alpine, Distribution.Mageia, Distribution.Zorin, Distribution.Void:
+          Distribution.Fedora, Distribution.OpenMandriva, Distribution.CentOS,
+          Distribution.Alpine, Distribution.Mageia, Distribution.Zorin,
+          Distribution.Void:
         result = toLowerAscii($d) in osReleaseID()
       of Distribution.RedHat:
         result = "rhel" in osReleaseID()
@@ -211,9 +221,9 @@ template detectOs*(d: untyped): bool =
   detectOsImpl(Distribution.d)
 
 when not defined(nimble):
-  var foreignDeps*: seq[string] = @[]  ## Registered foreign deps.
+  var foreignDeps*: seq[string] = @[] ## Registered foreign deps.
 
-proc foreignCmd*(cmd: string; requiresSudo = false) =
+proc foreignCmd*(cmd: string, requiresSudo = false) =
   ## Registers a foreign command to the internal list of commands
   ## that can be queried later.
   let c = (if requiresSudo: "sudo " else: "") & cmd
@@ -231,8 +241,8 @@ proc foreignDepInstallCmd*(foreignPackageName: string): (string, bool) =
   elif defined(bsd):
     result = ("ports install " & p, true)
   elif defined(linux):
-    if detectOs(Ubuntu) or detectOs(Elementary) or detectOs(Debian) or
-        detectOs(KNOPPIX) or detectOs(SteamOS):
+    if detectOs(Ubuntu) or detectOs(Elementary) or detectOs(Debian) or detectOs(KNOPPIX) or
+        detectOs(SteamOS):
       result = ("apt-get install " & p, true)
     elif detectOs(Gentoo):
       result = ("emerge install " & p, true)

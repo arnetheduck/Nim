@@ -62,31 +62,33 @@ const
   colorMask = 0b011
 
 type
-  TraceProc = proc (p, env: pointer) {.nimcall, benign, raises: [].}
-  DisposeProc = proc (p: pointer) {.nimcall, benign, raises: [].}
+  TraceProc = proc(p, env: pointer) {.nimcall, benign, raises: [].}
+  DisposeProc = proc(p: pointer) {.nimcall, benign, raises: [].}
 
-template color(c): untyped = c.rc and colorMask
+template color(c): untyped =
+  c.rc and colorMask
+
 template setColor(c, col) =
   c.rc = c.rc and not colorMask or col
 
-proc nimIncRefCyclic(p: pointer; cyclic: bool) {.compilerRtl, inl.} =
+proc nimIncRefCyclic(p: pointer, cyclic: bool) {.compilerRtl, inl.} =
   let h = head(p)
   inc h.rc, rcIncrement
 
-proc nimMarkCyclic(p: pointer) {.compilerRtl, inl.} = discard
+proc nimMarkCyclic(p: pointer) {.compilerRtl, inl.} =
+  discard
 
-type
-  GcEnv = object
-    traceStack: CellSeq[ptr pointer]
+type GcEnv = object
+  traceStack: CellSeq[ptr pointer]
 
-proc trace(p: pointer; desc: PNimTypeV2; j: var GcEnv) {.inline.} =
+proc trace(p: pointer, desc: PNimTypeV2, j: var GcEnv) {.inline.} =
   when false:
     cprintf("[Trace] desc: %p %p\n", desc, p)
     cprintf("[Trace] trace: %p\n", desc.traceImpl)
   if desc.traceImpl != nil:
     cast[TraceProc](desc.traceImpl)(p, addr(j))
 
-proc nimTraceRef(q: pointer; desc: PNimTypeV2; env: pointer) {.compilerRtl.} =
+proc nimTraceRef(q: pointer, desc: PNimTypeV2, env: pointer) {.compilerRtl.} =
   let p = cast[ptr pointer](q)
   when traceCollector:
     cprintf("[Trace] raw: %p\n", p)
@@ -95,7 +97,7 @@ proc nimTraceRef(q: pointer; desc: PNimTypeV2; env: pointer) {.compilerRtl.} =
     var j = cast[ptr GcEnv](env)
     j.traceStack.add(p, desc)
 
-proc nimTraceRefDyn(q: pointer; env: pointer) {.compilerRtl.} =
+proc nimTraceRefDyn(q: pointer, env: pointer) {.compilerRtl.} =
   let p = cast[ptr pointer](q)
   when traceCollector:
     cprintf("[TraceDyn] raw: %p\n", p)
@@ -106,13 +108,17 @@ proc nimTraceRefDyn(q: pointer; env: pointer) {.compilerRtl.} =
 
 var markerGeneration: int
 
-proc breakCycles(s: Cell; desc: PNimTypeV2) =
-  let markerColor = if (markerGeneration and 1) == 0: colRed
-                    else: colYellow
+proc breakCycles(s: Cell, desc: PNimTypeV2) =
+  let markerColor = if (markerGeneration and 1) == 0: colRed else: colYellow
   atomicInc markerGeneration
   when traceCollector:
-    cprintf("[BreakCycles] starting: %p %s RC %ld trace proc %p\n",
-      s, desc.name, s.rc shr rcShift, desc.traceImpl)
+    cprintf(
+      "[BreakCycles] starting: %p %s RC %ld trace proc %p\n",
+      s,
+      desc.name,
+      s.rc shr rcShift,
+      desc.traceImpl,
+    )
 
   var j: GcEnv
   init j.traceStack
@@ -155,9 +161,11 @@ proc thinout*[T](x: ref T) {.inline.} =
 
 proc thinout*[T: proc](x: T) {.inline.} =
   proc rawEnv[T: proc](x: T): pointer {.noSideEffect, inline.} =
-    {.emit: """
+    {.
+      emit: """
     `result` = `x`.ClE_0;
-    """.}
+    """
+    .}
 
   let p = rawEnv(x)
   breakCycles(head(p), cast[ptr PNimTypeV2](p)[])
@@ -173,7 +181,9 @@ proc nimDecRefIsLastCyclicDyn(p: pointer): bool {.compilerRtl, inl.} =
       # According to Lins it's correct to do nothing else here.
       #cprintf("[DeCREF] %p\n", p)
 
-proc nimDecRefIsLastCyclicStatic(p: pointer; desc: PNimTypeV2): bool {.compilerRtl, inl.} =
+proc nimDecRefIsLastCyclicStatic(
+    p: pointer, desc: PNimTypeV2
+): bool {.compilerRtl, inl.} =
   if p != nil:
     var cell = head(p)
     if (cell.rc and not rcMask) == 0:

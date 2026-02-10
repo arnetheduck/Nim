@@ -32,10 +32,8 @@ from std/strutils import startsWith, toLowerAscii, strip
 when defined(nimPreviewSlimSystem):
   import std/assertions
 
-
-type
-  MimeDB* = object
-    mimes: OrderedTable[string, string]
+type MimeDB* = object
+  mimes: OrderedTable[string, string]
 
 const mimes* = {
   "ez": "application/andrew-inset",
@@ -1032,7 +1030,6 @@ const mimes* = {
   "smv": "video/x-smv",
   "ice": "x-conference/x-cooltalk",
 }
-
 
 func newMimetypes*(): MimeDB =
   ## Creates a new Mimetypes database. The database will contain the most

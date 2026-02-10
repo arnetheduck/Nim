@@ -15,7 +15,6 @@ import std/private/digitsutils
 when defined(nimPreviewSlimSystem):
   import std/assertions
 
-
 template sf_Assert(x: untyped): untyped =
   assert(x)
 
@@ -55,12 +54,12 @@ proc isFinite(this: Single): bool {.noSideEffect.} =
   return (this.bits and exponentMask) != exponentMask
 
 proc isInf(this: Single): bool {.noSideEffect.} =
-  return (this.bits and exponentMask) == exponentMask and
-      (this.bits and significandMask) == 0
+  return
+    (this.bits and exponentMask) == exponentMask and (this.bits and significandMask) == 0
 
 proc isNaN(this: Single): bool {.noSideEffect.} =
-  return (this.bits and exponentMask) == exponentMask and
-      (this.bits and significandMask) != 0
+  return
+    (this.bits and exponentMask) == exponentMask and (this.bits and significandMask) != 0
 
 proc isZero(this: Single): bool {.noSideEffect.} =
   return (this.bits and not signMask) == 0
@@ -74,7 +73,7 @@ proc signBit(this: Single): int {.noSideEffect.} =
 ##  Technically, right-shift of negative integers is implementation defined...
 ##  Should easily be optimized into SAR (or equivalent) instruction.
 
-proc floorDivPow2(x: int32; n: int32): int32 {.inline.} =
+proc floorDivPow2(x: int32, n: int32): int32 {.inline.} =
   return x shr n
 
 ##  Returns floor(log_10(2^e))
@@ -105,32 +104,34 @@ proc floorLog2Pow10(e: int32): int32 {.inline.} =
 const
   kMin: int32 = -31
   kMax: int32 = 45
-  g: array[kMax - kMin + 1, uint64] = [0x81CEB32C4B43FCF5'u64, 0xA2425FF75E14FC32'u64,
-    0xCAD2F7F5359A3B3F'u64, 0xFD87B5F28300CA0E'u64, 0x9E74D1B791E07E49'u64,
-    0xC612062576589DDB'u64, 0xF79687AED3EEC552'u64, 0x9ABE14CD44753B53'u64,
-    0xC16D9A0095928A28'u64, 0xF1C90080BAF72CB2'u64, 0x971DA05074DA7BEF'u64,
-    0xBCE5086492111AEB'u64, 0xEC1E4A7DB69561A6'u64, 0x9392EE8E921D5D08'u64,
-    0xB877AA3236A4B44A'u64, 0xE69594BEC44DE15C'u64, 0x901D7CF73AB0ACDA'u64,
-    0xB424DC35095CD810'u64, 0xE12E13424BB40E14'u64, 0x8CBCCC096F5088CC'u64,
-    0xAFEBFF0BCB24AAFF'u64, 0xDBE6FECEBDEDD5BF'u64, 0x89705F4136B4A598'u64,
-    0xABCC77118461CEFD'u64, 0xD6BF94D5E57A42BD'u64, 0x8637BD05AF6C69B6'u64,
-    0xA7C5AC471B478424'u64, 0xD1B71758E219652C'u64, 0x83126E978D4FDF3C'u64,
-    0xA3D70A3D70A3D70B'u64, 0xCCCCCCCCCCCCCCCD'u64, 0x8000000000000000'u64,
-    0xA000000000000000'u64, 0xC800000000000000'u64, 0xFA00000000000000'u64,
-    0x9C40000000000000'u64, 0xC350000000000000'u64, 0xF424000000000000'u64,
-    0x9896800000000000'u64, 0xBEBC200000000000'u64, 0xEE6B280000000000'u64,
-    0x9502F90000000000'u64, 0xBA43B74000000000'u64, 0xE8D4A51000000000'u64,
-    0x9184E72A00000000'u64, 0xB5E620F480000000'u64, 0xE35FA931A0000000'u64,
-    0x8E1BC9BF04000000'u64, 0xB1A2BC2EC5000000'u64, 0xDE0B6B3A76400000'u64,
-    0x8AC7230489E80000'u64, 0xAD78EBC5AC620000'u64, 0xD8D726B7177A8000'u64,
-    0x878678326EAC9000'u64, 0xA968163F0A57B400'u64, 0xD3C21BCECCEDA100'u64,
-    0x84595161401484A0'u64, 0xA56FA5B99019A5C8'u64, 0xCECB8F27F4200F3A'u64,
-    0x813F3978F8940985'u64, 0xA18F07D736B90BE6'u64, 0xC9F2C9CD04674EDF'u64,
-    0xFC6F7C4045812297'u64, 0x9DC5ADA82B70B59E'u64, 0xC5371912364CE306'u64,
-    0xF684DF56C3E01BC7'u64, 0x9A130B963A6C115D'u64, 0xC097CE7BC90715B4'u64,
-    0xF0BDC21ABB48DB21'u64, 0x96769950B50D88F5'u64, 0xBC143FA4E250EB32'u64,
-    0xEB194F8E1AE525FE'u64, 0x92EFD1B8D0CF37BF'u64, 0xB7ABC627050305AE'u64,
-    0xE596B7B0C643C71A'u64, 0x8F7E32CE7BEA5C70'u64, 0xB35DBF821AE4F38C'u64]
+  g: array[kMax - kMin + 1, uint64] = [
+    0x81CEB32C4B43FCF5'u64, 0xA2425FF75E14FC32'u64, 0xCAD2F7F5359A3B3F'u64,
+    0xFD87B5F28300CA0E'u64, 0x9E74D1B791E07E49'u64, 0xC612062576589DDB'u64,
+    0xF79687AED3EEC552'u64, 0x9ABE14CD44753B53'u64, 0xC16D9A0095928A28'u64,
+    0xF1C90080BAF72CB2'u64, 0x971DA05074DA7BEF'u64, 0xBCE5086492111AEB'u64,
+    0xEC1E4A7DB69561A6'u64, 0x9392EE8E921D5D08'u64, 0xB877AA3236A4B44A'u64,
+    0xE69594BEC44DE15C'u64, 0x901D7CF73AB0ACDA'u64, 0xB424DC35095CD810'u64,
+    0xE12E13424BB40E14'u64, 0x8CBCCC096F5088CC'u64, 0xAFEBFF0BCB24AAFF'u64,
+    0xDBE6FECEBDEDD5BF'u64, 0x89705F4136B4A598'u64, 0xABCC77118461CEFD'u64,
+    0xD6BF94D5E57A42BD'u64, 0x8637BD05AF6C69B6'u64, 0xA7C5AC471B478424'u64,
+    0xD1B71758E219652C'u64, 0x83126E978D4FDF3C'u64, 0xA3D70A3D70A3D70B'u64,
+    0xCCCCCCCCCCCCCCCD'u64, 0x8000000000000000'u64, 0xA000000000000000'u64,
+    0xC800000000000000'u64, 0xFA00000000000000'u64, 0x9C40000000000000'u64,
+    0xC350000000000000'u64, 0xF424000000000000'u64, 0x9896800000000000'u64,
+    0xBEBC200000000000'u64, 0xEE6B280000000000'u64, 0x9502F90000000000'u64,
+    0xBA43B74000000000'u64, 0xE8D4A51000000000'u64, 0x9184E72A00000000'u64,
+    0xB5E620F480000000'u64, 0xE35FA931A0000000'u64, 0x8E1BC9BF04000000'u64,
+    0xB1A2BC2EC5000000'u64, 0xDE0B6B3A76400000'u64, 0x8AC7230489E80000'u64,
+    0xAD78EBC5AC620000'u64, 0xD8D726B7177A8000'u64, 0x878678326EAC9000'u64,
+    0xA968163F0A57B400'u64, 0xD3C21BCECCEDA100'u64, 0x84595161401484A0'u64,
+    0xA56FA5B99019A5C8'u64, 0xCECB8F27F4200F3A'u64, 0x813F3978F8940985'u64,
+    0xA18F07D736B90BE6'u64, 0xC9F2C9CD04674EDF'u64, 0xFC6F7C4045812297'u64,
+    0x9DC5ADA82B70B59E'u64, 0xC5371912364CE306'u64, 0xF684DF56C3E01BC7'u64,
+    0x9A130B963A6C115D'u64, 0xC097CE7BC90715B4'u64, 0xF0BDC21ABB48DB21'u64,
+    0x96769950B50D88F5'u64, 0xBC143FA4E250EB32'u64, 0xEB194F8E1AE525FE'u64,
+    0x92EFD1B8D0CF37BF'u64, 0xB7ABC627050305AE'u64, 0xE596B7B0C643C71A'u64,
+    0x8F7E32CE7BEA5C70'u64, 0xB35DBF821AE4F38C'u64,
+  ]
 
 proc computePow10Single(k: int32): uint64 {.inline.} =
   ##  There are unique beta and r such that 10^k = beta 2^r and
@@ -151,15 +152,18 @@ proc hi32(x: uint64): uint32 {.inline.} =
   return cast[uint32](x shr 32)
 
 when defined(sizeof_Int128):
-  proc roundToOdd(g: uint64; cp: uint32): uint32 {.inline.} =
+  proc roundToOdd(g: uint64, cp: uint32): uint32 {.inline.} =
     let p: uint128 = uint128(g) * cp
     let y1: uint32 = lo32(cast[uint64](p shr 64))
     let y0: uint32 = hi32(cast[uint64](p))
     return y1 or uint32(y0 > 1)
 
 elif defined(vcc) and defined(cpu64):
-  proc umul128(x, y: uint64, z: ptr uint64): uint64 {.importc: "_umul128", header: "<intrin.h>".}
-  proc roundToOdd(g: uint64; cpHi: uint32): uint32 {.inline.} =
+  proc umul128(
+    x, y: uint64, z: ptr uint64
+  ): uint64 {.importc: "_umul128", header: "<intrin.h>".}
+
+  proc roundToOdd(g: uint64, cpHi: uint32): uint32 {.inline.} =
     var p1: uint64 = 0
     var p0: uint64 = umul128(g, cpHi, addr(p1))
     let y1: uint32 = lo32(p1)
@@ -167,7 +171,7 @@ elif defined(vcc) and defined(cpu64):
     return y1 or uint32(y0 > 1)
 
 else:
-  proc roundToOdd(g: uint64; cp: uint32): uint32 {.inline.} =
+  proc roundToOdd(g: uint64, cp: uint32): uint32 {.inline.} =
     let b01: uint64 = uint64(lo32(g)) * cp
     let b11: uint64 = uint64(hi32(g)) * cp
     let hi: uint64 = b11 + hi32(b01)
@@ -177,18 +181,18 @@ else:
 
 ##  Returns whether value is divisible by 2^e2
 
-proc multipleOfPow2(value: uint32; e2: int32): bool {.inline.} =
+proc multipleOfPow2(value: uint32, e2: int32): bool {.inline.} =
   sf_Assert(e2 >= 0)
   sf_Assert(e2 <= 31)
   return (value and ((uint32(1) shl e2) - 1)) == 0
 
-type
-  FloatingDecimal32 {.bycopy.} = object
-    digits: uint32            ##  num_digits <= 9
-    exponent: int32
+type FloatingDecimal32 {.bycopy.} = object
+  digits: uint32 ##  num_digits <= 9
+  exponent: int32
 
-proc toDecimal32(ieeeSignificand: uint32; ieeeExponent: uint32): FloatingDecimal32 {.
-    inline.} =
+proc toDecimal32(
+    ieeeSignificand: uint32, ieeeExponent: uint32
+): FloatingDecimal32 {.inline.} =
   var c: uint32
   var q: int32
   if ieeeExponent != 0:
@@ -209,7 +213,8 @@ proc toDecimal32(ieeeSignificand: uint32; ieeeExponent: uint32): FloatingDecimal
   ##  (q * 1262611 - 524031) >> 22 == floor(log_10(3/4 2^q))
   sf_Assert(q >= -1500)
   sf_Assert(q <= 1500)
-  let k: int32 = floorDivPow2(q * 1262611 - (if lowerBoundaryIsCloser: 524031 else: 0), 22)
+  let k: int32 =
+    floorDivPow2(q * 1262611 - (if lowerBoundaryIsCloser: 524031 else: 0), 22)
   let h: int32 = q + floorLog2Pow10(-k) + 1
   sf_Assert(h >= 1)
   sf_Assert(h <= 4)
@@ -244,7 +249,9 @@ proc toDecimal32(ieeeSignificand: uint32; ieeeExponent: uint32): FloatingDecimal
 ##  ToChars
 ## ==================================================================================================
 
-proc printDecimalDigitsBackwards[T: Ordinal](buf: var openArray[char]; pos: T; output: uint32): int {.inline.} =
+proc printDecimalDigitsBackwards[T: Ordinal](
+    buf: var openArray[char], pos: T, output: uint32
+): int {.inline.} =
   var output = output
   var pos = pos
   var tz = 0
@@ -321,8 +328,13 @@ proc decimalLength(v: uint32): int {.inline.} =
     return 2
   return 1
 
-proc formatDigits[T: Ordinal](buffer: var openArray[char]; pos: T; digits: uint32; decimalExponent: int;
-                  forceTrailingDotZero: bool = false): int {.inline.} =
+proc formatDigits[T: Ordinal](
+    buffer: var openArray[char],
+    pos: T,
+    digits: uint32,
+    decimalExponent: int,
+    forceTrailingDotZero: bool = false,
+): int {.inline.} =
   const
     minFixedDecimalPoint: int32 = -4
     maxFixedDecimalPoint: int32 = 9
@@ -335,11 +347,12 @@ proc formatDigits[T: Ordinal](buffer: var openArray[char]; pos: T; digits: uint3
   sf_Assert(decimalExponent <= 99)
   var numDigits = decimalLength(digits)
   let decimalPoint = numDigits + decimalExponent
-  let useFixed: bool = minFixedDecimalPoint <= decimalPoint and
-      decimalPoint <= maxFixedDecimalPoint
+  let useFixed: bool =
+    minFixedDecimalPoint <= decimalPoint and decimalPoint <= maxFixedDecimalPoint
   ##  Prepare the buffer.
   ##  Avoid calling memset/memcpy with variable arguments below...
-  for i in 0..<32: buffer[pos+i] = '0'
+  for i in 0 ..< 32:
+    buffer[pos + i] = '0'
   assert(minFixedDecimalPoint >= -30, "internal error")
   assert(maxFixedDecimalPoint <= 32, "internal error")
   var decimalDigitsPosition: int
@@ -362,36 +375,39 @@ proc formatDigits[T: Ordinal](buffer: var openArray[char]; pos: T; digits: uint3
   if useFixed:
     if decimalPoint <= 0:
       ##  0.[000]digits
-      buffer[pos+1] = '.'
+      buffer[pos + 1] = '.'
       pos = digitsEnd
     elif decimalPoint < numDigits:
       ##  dig.its
       for i in countdown(7, 0):
         buffer[i + decimalPoint + 1] = buffer[i + decimalPoint]
-      buffer[pos+decimalPoint] = '.'
+      buffer[pos + decimalPoint] = '.'
       pos = digitsEnd + 1
     else:
       ##  digits[000]
       inc(pos, decimalPoint)
       if forceTrailingDotZero:
         buffer[pos] = '.'
-        buffer[pos+1] = '0'
+        buffer[pos + 1] = '0'
         inc(pos, 2)
   else:
-    buffer[pos] = buffer[pos+1]
+    buffer[pos] = buffer[pos + 1]
     if numDigits == 1:
       ##  dE+123
       inc(pos)
     else:
       ##  d.igitsE+123
-      buffer[pos+1] = '.'
+      buffer[pos + 1] = '.'
       pos = digitsEnd
     let scientificExponent = decimalPoint - 1
     ##       SF_ASSERT(scientific_exponent != 0);
     buffer[pos] = 'e'
-    buffer[pos+1] = if scientificExponent < 0: '-' else: '+'
+    buffer[pos + 1] = if scientificExponent < 0: '-' else: '+'
     inc(pos, 2)
-    let k: uint32 = cast[uint32](if scientificExponent < 0: -scientificExponent else: scientificExponent)
+    let k: uint32 = cast[uint32](if scientificExponent < 0:
+      -scientificExponent
+    else:
+      scientificExponent)
     if k < 10:
       buffer[pos] = chr(uint32('0') + k)
       inc pos
@@ -400,8 +416,9 @@ proc formatDigits[T: Ordinal](buffer: var openArray[char]; pos: T; digits: uint3
       inc(pos, 2)
   return pos
 
-proc float32ToChars*(buffer: var openArray[char]; v: float32; forceTrailingDotZero = false): int {.
-    inline.} =
+proc float32ToChars*(
+    buffer: var openArray[char], v: float32, forceTrailingDotZero = false
+): int {.inline.} =
   let significand: uint32 = physicalSignificand(constructSingle(v))
   let exponent: uint32 = physicalExponent(constructSingle(v))
   var pos = 0
@@ -412,25 +429,26 @@ proc float32ToChars*(buffer: var openArray[char]; v: float32; forceTrailingDotZe
     if exponent != 0 or significand != 0:
       ##  != 0
       let dec: auto = toDecimal32(significand, exponent)
-      return formatDigits(buffer, pos, dec.digits, dec.exponent.int, forceTrailingDotZero)
+      return
+        formatDigits(buffer, pos, dec.digits, dec.exponent.int, forceTrailingDotZero)
     else:
       buffer[pos] = '0'
-      buffer[pos+1] = '.'
-      buffer[pos+2] = '0'
-      buffer[pos+3] = ' '
+      buffer[pos + 1] = '.'
+      buffer[pos + 2] = '0'
+      buffer[pos + 3] = ' '
       inc(pos, if forceTrailingDotZero: 3 else: 1)
       return pos
   if significand == 0:
     buffer[pos] = '-'
     inc(pos, signBit(constructSingle(v)))
     buffer[pos] = 'i'
-    buffer[pos+1] = 'n'
-    buffer[pos+2] = 'f'
-    buffer[pos+3] = ' '
+    buffer[pos + 1] = 'n'
+    buffer[pos + 2] = 'f'
+    buffer[pos + 3] = ' '
     return pos + 3
   else:
     buffer[pos] = 'n'
-    buffer[pos+1] = 'a'
-    buffer[pos+2] = 'n'
-    buffer[pos+3] = ' '
+    buffer[pos + 1] = 'a'
+    buffer[pos + 2] = 'n'
+    buffer[pos + 3] = ' '
     return pos + 3

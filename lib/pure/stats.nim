@@ -40,9 +40,10 @@
 runnableExamples:
   from std/math import almostEqual
 
-  template `~=`(a, b: float): bool = almostEqual(a, b)
+  template `~=`(a, b: float): bool =
+    almostEqual(a, b)
 
-  var statistics: RunningStat  # must be var
+  var statistics: RunningStat # must be var
   statistics.push(@[1.0, 2.0, 1.0, 4.0, 1.0, 4.0, 1.0, 2.0])
   doAssert statistics.n == 8
   doAssert statistics.mean() ~= 2.0
@@ -58,21 +59,22 @@ from std/math import FloatClass, sqrt, pow, round
 when defined(nimPreviewSlimSystem):
   import std/[assertions, formatfloat]
 
-{.push debugger: off.} # the user does not want to trace a part
-                       # of the standard library!
+{.push debugger: off.}
+  # the user does not want to trace a part
+  # of the standard library!
 {.push checks: off, line_dir: off, stack_trace: off.}
 
 type
-  RunningStat* = object           ## An accumulator for statistical data.
-    n*: int                       ## amount of pushed data
-    min*, max*, sum*: float       ## self-explaining
+  RunningStat* = object ## An accumulator for statistical data.
+    n*: int ## amount of pushed data
+    min*, max*, sum*: float ## self-explaining
     mom1, mom2, mom3, mom4: float ## statistical moments, mom1 is mean
 
   RunningRegress* = object ## An accumulator for regression calculations.
-    n*: int                ## amount of pushed data
-    x_stats*: RunningStat  ## stats for the first set of data
-    y_stats*: RunningStat  ## stats for the second set of data
-    s_xy: float            ## accumulated data for combined xy
+    n*: int ## amount of pushed data
+    x_stats*: RunningStat ## stats for the first set of data
+    y_stats*: RunningStat ## stats for the second set of data
+    s_xy: float ## accumulated data for combined xy
 
 # ----------- RunningStat --------------------------
 
@@ -93,8 +95,10 @@ proc push*(s: var RunningStat, x: float) =
     s.min = x
     s.max = x
   else:
-    if s.min > x: s.min = x
-    if s.max < x: s.max = x
+    if s.min > x:
+      s.min = x
+    if s.max < x:
+      s.max = x
   inc(s.n)
   # See Knuth TAOCP vol 2, 3rd edition, page 232
   s.sum += x
@@ -103,9 +107,9 @@ proc push*(s: var RunningStat, x: float) =
   let delta_n = delta / toFloat(s.n)
   let delta_n2 = delta_n * delta_n
   let term1 = delta * delta_n * toFloat(s.n - 1)
-  s.mom4 += term1 * delta_n2 * (n*n - 3*n + 3) +
-              6*delta_n2*s.mom2 - 4*delta_n*s.mom3
-  s.mom3 += term1 * delta_n * (n - 2) - 3*delta_n*s.mom2
+  s.mom4 +=
+    term1 * delta_n2 * (n * n - 3 * n + 3) + 6 * delta_n2 * s.mom2 - 4 * delta_n * s.mom3
+  s.mom3 += term1 * delta_n * (n - 2) - 3 * delta_n * s.mom2
   s.mom2 += term1
   s.mom1 += delta_n
 
@@ -116,7 +120,7 @@ proc push*(s: var RunningStat, x: int) =
   ## and the other push operation is called.
   s.push(toFloat(x))
 
-proc push*(s: var RunningStat, x: openArray[float|int]) =
+proc push*(s: var RunningStat, x: openArray[float | int]) =
   ## Pushes all values of `x` for processing.
   ##
   ## Int values of `x` are simply converted to `float` and
@@ -134,8 +138,10 @@ proc variance*(s: RunningStat): float =
 
 proc varianceS*(s: RunningStat): float =
   ## Computes the current sample variance of `s`.
-  if s.n > 1: result = s.mom2 / toFloat(s.n - 1)
-  else: result = 0.0
+  if s.n > 1:
+    result = s.mom2 / toFloat(s.n - 1)
+  else:
+    result = 0.0
 
 proc standardDeviation*(s: RunningStat): float =
   ## Computes the current population standard deviation of `s`.
@@ -152,7 +158,7 @@ proc skewness*(s: RunningStat): float =
 proc skewnessS*(s: RunningStat): float =
   ## Computes the current sample skewness of `s`.
   let s2 = skewness(s)
-  result = sqrt(toFloat(s.n*(s.n-1)))*s2 / toFloat(s.n-2)
+  result = sqrt(toFloat(s.n * (s.n - 1))) * s2 / toFloat(s.n - 2)
 
 proc kurtosis*(s: RunningStat): float =
   ## Computes the current population kurtosis of `s`.
@@ -160,8 +166,9 @@ proc kurtosis*(s: RunningStat): float =
 
 proc kurtosisS*(s: RunningStat): float =
   ## Computes the current sample kurtosis of `s`.
-  result = toFloat(s.n-1) / toFloat((s.n-2)*(s.n-3)) *
-              (toFloat(s.n+1)*kurtosis(s) + 6)
+  result =
+    toFloat(s.n - 1) / toFloat((s.n - 2) * (s.n - 3)) *
+    (toFloat(s.n + 1) * kurtosis(s) + 6)
 
 proc `+`*(a, b: RunningStat): RunningStat =
   ## Combines two `RunningStat`s.
@@ -173,22 +180,23 @@ proc `+`*(a, b: RunningStat): RunningStat =
   result.n = a.n + b.n
 
   let delta = b.mom1 - a.mom1
-  let delta2 = delta*delta
-  let delta3 = delta*delta2
-  let delta4 = delta2*delta2
+  let delta2 = delta * delta
+  let delta3 = delta * delta2
+  let delta4 = delta2 * delta2
   let n = toFloat(result.n)
 
-  result.mom1 = (a.n.float*a.mom1 + b.n.float*b.mom1) / n
+  result.mom1 = (a.n.float * a.mom1 + b.n.float * b.mom1) / n
   result.mom2 = a.mom2 + b.mom2 + delta2 * a.n.float * b.n.float / n
-  result.mom3 = a.mom3 + b.mom3 +
-                delta3 * a.n.float * b.n.float * (a.n.float - b.n.float)/(n*n);
-  result.mom3 += 3.0*delta * (a.n.float*b.mom2 - b.n.float*a.mom2) / n
-  result.mom4 = a.mom4 + b.mom4 +
-            delta4*a.n.float*b.n.float * toFloat(a.n*a.n - a.n*b.n + b.n*b.n) /
-                (n*n*n)
-  result.mom4 += 6.0*delta2 * (a.n.float*a.n.float*b.mom2 + b.n.float*b.n.float*a.mom2) /
-                (n*n) +
-                4.0*delta*(a.n.float*b.mom3 - b.n.float*a.mom3) / n
+  result.mom3 =
+    a.mom3 + b.mom3 + delta3 * a.n.float * b.n.float * (a.n.float - b.n.float) / (n * n)
+  result.mom3 += 3.0 * delta * (a.n.float * b.mom2 - b.n.float * a.mom2) / n
+  result.mom4 =
+    a.mom4 + b.mom4 +
+    delta4 * a.n.float * b.n.float * toFloat(a.n * a.n - a.n * b.n + b.n * b.n) /
+    (n * n * n)
+  result.mom4 +=
+    6.0 * delta2 * (a.n.float * a.n.float * b.mom2 + b.n.float * b.n.float * a.mom2) /
+    (n * n) + 4.0 * delta * (a.n.float * b.mom3 - b.n.float * a.mom3) / n
   result.max = max(a.max, b.max)
   result.min = min(a.min, b.min)
 
@@ -280,8 +288,8 @@ proc clear*(r: var RunningRegress) =
 
 proc push*(r: var RunningRegress, x, y: float) =
   ## Pushes two values `x` and `y` for processing.
-  r.s_xy += (r.x_stats.mean() - x)*(r.y_stats.mean() - y) *
-                toFloat(r.n) / toFloat(r.n + 1)
+  r.s_xy +=
+    (r.x_stats.mean() - x) * (r.y_stats.mean() - y) * toFloat(r.n) / toFloat(r.n + 1)
   r.x_stats.push(x)
   r.y_stats.push(y)
   inc(r.n)
@@ -293,20 +301,20 @@ proc push*(r: var RunningRegress, x, y: int) {.inline.} =
   ## and the other push operation is called.
   r.push(toFloat(x), toFloat(y))
 
-proc push*(r: var RunningRegress, x, y: openArray[float|int]) =
+proc push*(r: var RunningRegress, x, y: openArray[float | int]) =
   ## Pushes two sets of values `x` and `y` for processing.
   assert(x.len == y.len)
-  for i in 0..<x.len:
+  for i in 0 ..< x.len:
     r.push(x[i], y[i])
 
 proc slope*(r: RunningRegress): float =
   ## Computes the current slope of `r`.
-  let s_xx = r.x_stats.varianceS()*toFloat(r.n - 1)
+  let s_xx = r.x_stats.varianceS() * toFloat(r.n - 1)
   result = r.s_xy / s_xx
 
 proc intercept*(r: RunningRegress): float =
   ## Computes the current intercept of `r`.
-  result = r.y_stats.mean() - r.slope()*r.x_stats.mean()
+  result = r.y_stats.mean() - r.slope() * r.x_stats.mean()
 
 proc correlation*(r: RunningRegress): float =
   ## Computes the current correlation of the two data
@@ -327,8 +335,8 @@ proc `+`*(a, b: RunningRegress): RunningRegress =
 
   let delta_x = b.x_stats.mean() - a.x_stats.mean()
   let delta_y = b.y_stats.mean() - a.y_stats.mean()
-  result.s_xy = a.s_xy + b.s_xy +
-      toFloat(a.n*b.n)*delta_x*delta_y/toFloat(result.n)
+  result.s_xy =
+    a.s_xy + b.s_xy + toFloat(a.n * b.n) * delta_x * delta_y / toFloat(result.n)
 
 proc `+=`*(a: var RunningRegress, b: RunningRegress) =
   ## Adds the `RunningRegress` `b` to `a`.

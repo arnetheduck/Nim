@@ -20,16 +20,15 @@ from std/private/decode_helpers import handleHexChar
 when defined(nimPreviewSlimSystem):
   import std/sysatomics
 
-type
-  Oid* = object ## An OID.
-    time: int64
-    fuzz: int32
-    count: int32
+type Oid* = object ## An OID.
+  time: int64
+  fuzz: int32
+  count: int32
 
 proc `==`*(oid1: Oid, oid2: Oid): bool {.inline.} =
   ## Compares two OIDs for equality.
-  result = (oid1.time == oid2.time) and (oid1.fuzz == oid2.fuzz) and
-          (oid1.count == oid2.count)
+  result =
+    (oid1.time == oid2.time) and (oid1.fuzz == oid2.fuzz) and (oid1.count == oid2.count)
 
 proc hash*(oid: Oid): Hash =
   ## Generates the hash of an OID for use in hashtables.
@@ -66,15 +65,13 @@ proc `$`*(oid: Oid): string =
     result[2 * i + 1] = hex[b and 0xF]
     inc(i)
 
-let
-  t = getTime().toUnix
+let t = getTime().toUnix
 
 var
   seed = initRand(t)
   incr: int = seed.rand(int.high)
 
 let fuzz = cast[int32](seed.rand(high(int)))
-
 
 template genOid(result: var Oid, incr: var int, fuzz: int32) =
   var time = getTime().toUnix

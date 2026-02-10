@@ -9,8 +9,7 @@
 
 ## The builtin 'system.locals' implemented as a plugin.
 
-import ".." / [ast, astalgo,
-  magicsys, lookups, semdata, lowerings]
+import ".."/[ast, astalgo, magicsys, lookups, semdata, lowerings]
 
 proc semLocals*(c: PContext, n: PNode): PNode =
   var counter = 0
@@ -23,8 +22,7 @@ proc semLocals*(c: PContext, n: PNode): PNode =
     for it in items(scope.symbols):
       if it.kind in skLocalVars and
           it.typ.skipTypes({tyGenericInst, tyVar}).kind notin
-            {tyVarargs, tyOpenArray, tyTypeDesc, tyStatic, tyUntyped, tyTyped, tyEmpty}:
-
+          {tyVarargs, tyOpenArray, tyTypeDesc, tyStatic, tyUntyped, tyTyped, tyEmpty}:
         if it.owner == owner:
           var field = newSym(skField, it.name, c.idgen, owner, n.info)
           field.typ = it.typ.skipTypes({tyVar})
@@ -35,5 +33,6 @@ proc semLocals*(c: PContext, n: PNode): PNode =
           addSonSkipIntLit(tupleType, field.typ, c.idgen)
 
           var a = newSymNode(it, result.info)
-          if it.typ.skipTypes({tyGenericInst}).kind == tyVar: a = newDeref(a)
+          if it.typ.skipTypes({tyGenericInst}).kind == tyVar:
+            a = newDeref(a)
           result.add(a)

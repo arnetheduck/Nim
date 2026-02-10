@@ -23,8 +23,7 @@
 ## it quits with a failure error code.
 ##
 runnableExamples:
-  type
-    GreetFunction = proc (): cstring {.gcsafe, stdcall.}
+  type GreetFunction = proc(): cstring {.gcsafe, stdcall.}
 
   proc loadGreet(lang: string) =
     let lib =
@@ -42,11 +41,9 @@ runnableExamples:
 
     unloadLib(lib)
 
-
 import std/strutils
 
-type
-  LibHandle* = pointer ## A handle to a dynamically loaded library.
+type LibHandle* = pointer ## A handle to a dynamically loaded library.
 
 proc loadLib*(path: string, globalSymbols = false): LibHandle {.gcsafe.}
   ## Loads a library from `path`. Returns nil if the library could not
@@ -56,8 +53,7 @@ proc loadLib*(): LibHandle {.gcsafe.}
   ## Gets the handle from the current executable. Returns nil if the
   ## library could not be loaded.
 
-proc unloadLib*(lib: LibHandle) {.gcsafe.}
-  ## Unloads the library `lib`.
+proc unloadLib*(lib: LibHandle) {.gcsafe.} ## Unloads the library `lib`.
 
 proc raiseInvalidLibrary*(name: cstring) {.noinline, noreturn.} =
   ## Raises a `LibraryError` exception.
@@ -71,12 +67,13 @@ proc checkedSymAddr*(lib: LibHandle, name: cstring): pointer =
   ## Retrieves the address of a procedure/variable from `lib`. Raises
   ## `LibraryError` if the symbol could not be found.
   result = symAddr(lib, name)
-  if result == nil: raiseInvalidLibrary(name)
+  if result == nil:
+    raiseInvalidLibrary(name)
 
 proc libCandidates*(s: string, dest: var seq[string]) =
   ## Given a library name pattern `s`, write possible library names to `dest`.
   var le = strutils.find(s, '(')
-  var ri = strutils.find(s, ')', le+1)
+  var ri = strutils.find(s, ')', le + 1)
   if le >= 0 and ri > le:
     var prefix = substr(s, 0, le - 1)
     var suffix = substr(s, ri + 1)
@@ -95,7 +92,8 @@ proc loadLibPattern*(pattern: string, globalSymbols = false): LibHandle =
   libCandidates(pattern, candidates)
   for c in candidates:
     result = loadLib(c, globalSymbols)
-    if not result.isNil: break
+    if not result.isNil:
+      break
 
 when defined(posix) and not defined(nintendoswitch):
   #
@@ -110,14 +108,21 @@ when defined(posix) and not defined(nintendoswitch):
 
   proc loadLib(path: string, globalSymbols = false): LibHandle =
     let flags =
-      if globalSymbols: RTLD_NOW or RTLD_GLOBAL
-      else: RTLD_NOW
+      if globalSymbols:
+        RTLD_NOW or RTLD_GLOBAL
+      else:
+        RTLD_NOW
 
     dlopen(path, flags)
 
-  proc loadLib(): LibHandle = dlopen(nil, RTLD_NOW)
-  proc unloadLib(lib: LibHandle) = discard dlclose(lib)
-  proc symAddr(lib: LibHandle, name: cstring): pointer = dlsym(lib, name)
+  proc loadLib(): LibHandle =
+    dlopen(nil, RTLD_NOW)
+
+  proc unloadLib(lib: LibHandle) =
+    discard dlclose(lib)
+
+  proc symAddr(lib: LibHandle, name: cstring): pointer =
+    dlsym(lib, name)
 
 elif defined(nintendoswitch):
   #
@@ -128,16 +133,22 @@ elif defined(nintendoswitch):
 
   proc dlclose(lib: LibHandle) =
     raise newException(OSError, "dlclose not implemented on Nintendo Switch!")
+
   proc dlopen(path: cstring, mode: int): LibHandle =
     raise newException(OSError, "dlopen not implemented on Nintendo Switch!")
+
   proc dlsym(lib: LibHandle, name: cstring): pointer =
     raise newException(OSError, "dlsym not implemented on Nintendo Switch!")
+
   proc loadLib(path: string, global_symbols = false): LibHandle =
     raise newException(OSError, "loadLib not implemented on Nintendo Switch!")
+
   proc loadLib(): LibHandle =
     raise newException(OSError, "loadLib not implemented on Nintendo Switch!")
+
   proc unloadLib(lib: LibHandle) =
     raise newException(OSError, "unloadLib not implemented on Nintendo Switch!")
+
   proc symAddr(lib: LibHandle, name: cstring): pointer =
     raise newException(OSError, "symAddr not implemented on Nintendo Switch!")
 
@@ -153,19 +164,24 @@ elif defined(genode):
 
   proc dlclose(lib: LibHandle) =
     raiseErr(OSError, "dlclose")
+
   proc dlopen(path: cstring, mode: int): LibHandle =
     raiseErr(OSError, "dlopen")
+
   proc dlsym(lib: LibHandle, name: cstring): pointer =
     raiseErr(OSError, "dlsym")
+
   proc loadLib(path: string, global_symbols = false): LibHandle =
     raiseErr(OSError, "loadLib")
+
   proc loadLib(): LibHandle =
     raiseErr(OSError, "loadLib")
+
   proc unloadLib(lib: LibHandle) =
     raiseErr(OSError, "unloadLib")
+
   proc symAddr(lib: LibHandle, name: cstring): pointer =
     raiseErr(OSError, "symAddr")
-
 
 elif defined(windows) or defined(dos):
   #
@@ -178,16 +194,22 @@ elif defined(windows) or defined(dos):
     FARPROC {.importc: "FARPROC".} = pointer
 
   proc FreeLibrary(lib: HMODULE) {.importc, header: "<windows.h>", stdcall.}
-  proc winLoadLibrary(path: cstring): HMODULE {.
-      importc: "LoadLibraryA", header: "<windows.h>", stdcall.}
-  proc getProcAddress(lib: HMODULE, name: cstring): FARPROC {.
-      importc: "GetProcAddress", header: "<windows.h>", stdcall.}
+  proc winLoadLibrary(
+    path: cstring
+  ): HMODULE {.importc: "LoadLibraryA", header: "<windows.h>", stdcall.}
+
+  proc getProcAddress(
+    lib: HMODULE, name: cstring
+  ): FARPROC {.importc: "GetProcAddress", header: "<windows.h>", stdcall.}
 
   proc loadLib(path: string, globalSymbols = false): LibHandle =
     result = cast[LibHandle](winLoadLibrary(path))
+
   proc loadLib(): LibHandle =
     result = cast[LibHandle](winLoadLibrary(nil))
-  proc unloadLib(lib: LibHandle) = FreeLibrary(cast[HMODULE](lib))
+
+  proc unloadLib(lib: LibHandle) =
+    FreeLibrary(cast[HMODULE](lib))
 
   proc symAddr(lib: LibHandle, name: cstring): pointer =
     result = cast[pointer](getProcAddress(cast[HMODULE](lib), name))

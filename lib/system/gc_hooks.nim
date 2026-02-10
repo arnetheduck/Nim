@@ -10,13 +10,12 @@
 ## Hooks for memory management. Can be used to implement custom garbage
 ## collectors etc.
 
-type
-  GlobalMarkerProc = proc () {.nimcall, benign, raises: [], tags: [].}
+type GlobalMarkerProc = proc() {.nimcall, benign, raises: [], tags: [].}
 var
   globalMarkersLen: int
-  globalMarkers: array[0..3499, GlobalMarkerProc]
+  globalMarkers: array[0 .. 3499, GlobalMarkerProc]
   threadLocalMarkersLen: int
-  threadLocalMarkers: array[0..3499, GlobalMarkerProc]
+  threadLocalMarkers: array[0 .. 3499, GlobalMarkerProc]
 
 proc nimRegisterGlobalMarker(markerProc: GlobalMarkerProc) {.compilerproc.} =
   if globalMarkersLen <= high(globalMarkers):
@@ -31,20 +30,23 @@ proc nimRegisterThreadLocalMarker(markerProc: GlobalMarkerProc) {.compilerproc.}
     threadLocalMarkers[threadLocalMarkersLen] = markerProc
     inc threadLocalMarkersLen
   else:
-    cstderr.rawWrite("[GC] cannot register thread local variable; too many thread local variables")
+    cstderr.rawWrite(
+      "[GC] cannot register thread local variable; too many thread local variables"
+    )
     rawQuit 1
 
 proc traverseGlobals*() =
-  for i in 0..globalMarkersLen-1:
+  for i in 0 .. globalMarkersLen - 1:
     globalMarkers[i]()
 
 proc traverseThreadLocals*() =
-  for i in 0..threadLocalMarkersLen-1:
+  for i in 0 .. threadLocalMarkersLen - 1:
     threadLocalMarkers[i]()
 
 var
-  newObjHook*: proc (typ: PNimType, size: int): pointer {.nimcall, tags: [], raises: [], gcsafe.}
-  traverseObjHook*: proc (p: pointer, op: int) {.nimcall, tags: [], raises: [], gcsafe.}
+  newObjHook*:
+    proc(typ: PNimType, size: int): pointer {.nimcall, tags: [], raises: [], gcsafe.}
+  traverseObjHook*: proc(p: pointer, op: int) {.nimcall, tags: [], raises: [], gcsafe.}
 
 proc nimGCvisit(p: pointer, op: int) {.inl, compilerRtl, raises: [].} =
   traverseObjHook(p, op)

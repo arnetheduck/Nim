@@ -18,22 +18,24 @@ template retryCall*(maxRetry = 3, backoffDuration = 1.0, call: untyped): bool =
   runnableExamples:
     doAssert not retryCall(maxRetry = 2, backoffDuration = 0.1, false)
     var i = 0
-    doAssert: retryCall(maxRetry = 3, backoffDuration = 0.1, (i.inc; i >= 3))
+    doAssert:
+      retryCall(maxRetry = 3, backoffDuration = 0.1, (i.inc; i >= 3))
     doAssert retryCall(call = true)
   var result = false
   var t = backoffDuration
-  for i in 0..<maxRetry:
+  for i in 0 ..< maxRetry:
     if call:
       result = true
       break
-    if i == maxRetry - 1: break
+    if i == maxRetry - 1:
+      break
     sleep(int(t * 1000))
     t = t * 2 # exponential backoff
   result
 
 proc isGitRepo*(dir: string): bool =
   ## Avoid calling git since it depends on /bin/sh existing and fails in Nix.
-  return fileExists(dir/".git/HEAD")
+  return fileExists(dir / ".git/HEAD")
 
 proc diffFiles*(path1, path2: string): tuple[output: string, same: bool] =
   ## Returns a human readable diff of files `path1`, `path2`, the exact form of
@@ -43,7 +45,8 @@ proc diffFiles*(path1, path2: string): tuple[output: string, same: bool] =
   # in general, `git diff` has more options than `diff`.
   result = default(tuple[output: string, same: bool])
   var status = 0
-  (result.output, status) = execCmdEx("git diff --no-index $1 $2" % [path1.quoteShell, path2.quoteShell])
+  (result.output, status) =
+    execCmdEx("git diff --no-index $1 $2" % [path1.quoteShell, path2.quoteShell])
   doAssert (status == 0) or (status == 1)
   result.same = status == 0
 
@@ -67,6 +70,7 @@ proc diffStrings*(a, b: string): tuple[output: string, same: bool] =
     let path = genTempPath(prefix, "")
     writeFile(path, str)
     path
+
   let patha = tmpFileImpl("diffStrings_a_", a)
   let pathb = tmpFileImpl("diffStrings_b_", b)
   defer:

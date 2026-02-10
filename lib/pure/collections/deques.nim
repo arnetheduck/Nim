@@ -52,24 +52,22 @@ import std/private/since
 
 import std/[assertions, hashes, math]
 
-type
-  Deque*[T] = object
-    ## A double-ended queue backed with a ringed `seq` buffer.
-    ##
-    ## To initialize an empty deque,
-    ## use the `initDeque proc <#initDeque,int>`_.
-    data: seq[T]
+type Deque*[T] = object
+  ## A double-ended queue backed with a ringed `seq` buffer.
+  ##
+  ## To initialize an empty deque,
+  ## use the `initDeque proc <#initDeque,int>`_.
+  data: seq[T]
 
-    # `head` and `tail` are masked only when accessing an element of `data`
-    # so that `tail - head == data.len` when the deque is full.
-    # They are uint so that incrementing/decrementing them doesn't cause
-    # over/underflow. You can get a number of items with `tail - head`
-    # even if `tail` or `head` is wraps around and `tail < head`, because
-    # `tail - head == (uint.high + 1 + tail) - head` when `tail < head`.
-    head, tail: uint
+  # `head` and `tail` are masked only when accessing an element of `data`
+  # so that `tail - head == data.len` when the deque is full.
+  # They are uint so that incrementing/decrementing them doesn't cause
+  # over/underflow. You can get a number of items with `tail - head`
+  # even if `tail` or `head` is wraps around and `tail < head`, because
+  # `tail - head == (uint.high + 1 + tail) - head` when `tail < head`.
+  head, tail: uint
 
-const
-  defaultInitialSize* = 4
+const defaultInitialSize* = 4
 
 template initImpl(result: typed, initialSize: int) =
   let correctSize = nextPowerOfTwo(initialSize)
@@ -106,13 +104,12 @@ template emptyCheck(deq) =
 
 template xBoundsCheck(deq, i) =
   # Bounds check for the array like accesses.
-  when compileOption("boundChecks"): # `-d:danger` or `--checks:off` should disable this.
+  when compileOption("boundChecks"):
+    # `-d:danger` or `--checks:off` should disable this.
     if unlikely(i >= deq.len): # x < deq.low is taken care by the Natural parameter
-      raise newException(IndexDefect,
-                         "Out of bounds: " & $i & " > " & $(deq.len - 1))
+      raise newException(IndexDefect, "Out of bounds: " & $i & " > " & $(deq.len - 1))
     if unlikely(i < 0): # when used with BackwardsIndex
-      raise newException(IndexDefect,
-                         "Out of bounds: " & $i & " < 0")
+      raise newException(IndexDefect, "Out of bounds: " & $i & " < 0")
 
 proc `[]`*[T](deq: Deque[T], i: Natural): lent T {.inline.} =
   ## Accesses the `i`-th element of `deq`.
@@ -246,7 +243,8 @@ proc contains*[T](deq: Deque[T], item: T): bool {.inline.} =
     assert 8 notin q
 
   for e in deq:
-    if e == item: return true
+    if e == item:
+      return true
   return false
 
 proc expandIfNeeded[T](deq: var Deque[T]) =
@@ -257,8 +255,10 @@ proc expandIfNeeded[T](deq: var Deque[T]) =
     var n = newSeq[T](cap * 2)
     var i = 0
     for x in mitems(deq):
-      when nimvm: n[i] = x # workaround for VM bug
-      else: n[i] = move(x)
+      when nimvm:
+        n[i] = x # workaround for VM bug
+      else:
+        n[i] = move(x)
       inc i
     deq.data = move(n)
     deq.tail = cap.uint
@@ -414,7 +414,8 @@ proc clear*[T](deq: var Deque[T]) {.inline.} =
     clear(a)
     assert len(a) == 0
 
-  for el in mitems(deq): destroy(el)
+  for el in mitems(deq):
+    destroy(el)
   deq.tail = deq.head
 
 proc shrink*[T](deq: var Deque[T], fromFirst = 0, fromLast = 0) =
@@ -454,7 +455,8 @@ proc `$`*[T](deq: Deque[T]): string =
 
   result = "["
   for x in deq:
-    if result.len > 1: result.add(", ")
+    if result.len > 1:
+      result.add(", ")
     result.addQuoted(x)
   result.add("]")
 
@@ -473,7 +475,8 @@ func `==`*[T](deq1, deq2: Deque[T]): bool =
     return false
 
   for i in 0 ..< deq1.len:
-    if deq1.data[(deq1.head + i.uint) and deq1.mask] != deq2.data[(deq2.head + i.uint) and deq2.mask]:
+    if deq1.data[(deq1.head + i.uint) and deq1.mask] !=
+        deq2.data[(deq2.head + i.uint) and deq2.mask]:
       return false
 
   true

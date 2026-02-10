@@ -4,14 +4,19 @@ proc `==`*[Enum: enum](x, y: Enum): bool {.magic: "EqEnum", noSideEffect.} =
   runnableExamples:
     type
       Enum1 = enum
-        field1 = 3, field2
+        field1 = 3
+        field2
+
       Enum2 = enum
-        place1, place2 = 3
+        place1
+        place2 = 3
+
     var
       e1 = field1
       e2 = place2.ord.Enum1
     assert e1 == e2
     assert not compiles(e1 == place2) # raises error
+
 proc `==`*(x, y: pointer): bool {.magic: "EqRef", noSideEffect.} =
   ## Checks for equality between two `pointer` variables.
   runnableExamples:
@@ -19,13 +24,16 @@ proc `==`*(x, y: pointer): bool {.magic: "EqRef", noSideEffect.} =
       a = cast[pointer](0)
       b = cast[pointer](nil)
     assert a == b # true due to the special meaning of `nil`/0 as a pointer
+
 proc `==`*(x, y: string): bool {.magic: "EqStr", noSideEffect.}
   ## Checks for equality between two `string` variables.
 
 proc `==`*(x, y: char): bool {.magic: "EqCh", noSideEffect.}
   ## Checks for equality between two `char` variables.
+
 proc `==`*(x, y: bool): bool {.magic: "EqB", noSideEffect.}
   ## Checks for equality between two `bool` variables.
+
 proc `==`*[T](x, y: set[T]): bool {.magic: "EqSet", noSideEffect.} =
   ## Checks for equality between two variables of type `set`.
   runnableExamples:
@@ -33,8 +41,10 @@ proc `==`*[T](x, y: set[T]): bool {.magic: "EqSet", noSideEffect.} =
 
 proc `==`*[T](x, y: ref T): bool {.magic: "EqRef", noSideEffect.}
   ## Checks that two `ref` variables refer to the same item.
+
 proc `==`*[T](x, y: ptr T): bool {.magic: "EqRef", noSideEffect.}
   ## Checks that two `ptr` variables refer to the same item.
+
 proc `==`*[T: proc | iterator](x, y: T): bool {.magic: "EqProc", noSideEffect.}
   ## Checks that two `proc` variables refer to the same procedure.
 
@@ -140,9 +150,9 @@ template `>`*(x, y: untyped): untyped {.callsite.} =
   ## "is greater" operator. This is the same as `y < x`.
   y < x
 
-
 proc `==`*(x, y: int): bool {.magic: "EqI", noSideEffect.}
   ## Compares two integers for equality.
+
 proc `==`*(x, y: int8): bool {.magic: "EqI", noSideEffect.}
 proc `==`*(x, y: int16): bool {.magic: "EqI", noSideEffect.}
 proc `==`*(x, y: int32): bool {.magic: "EqI", noSideEffect.}
@@ -150,6 +160,7 @@ proc `==`*(x, y: int64): bool {.magic: "EqI", noSideEffect.}
 
 proc `<=`*(x, y: int): bool {.magic: "LeI", noSideEffect.}
   ## Returns true if `x` is less than or equal to `y`.
+
 proc `<=`*(x, y: int8): bool {.magic: "LeI", noSideEffect.}
 proc `<=`*(x, y: int16): bool {.magic: "LeI", noSideEffect.}
 proc `<=`*(x, y: int32): bool {.magic: "LeI", noSideEffect.}
@@ -157,20 +168,19 @@ proc `<=`*(x, y: int64): bool {.magic: "LeI", noSideEffect.}
 
 proc `<`*(x, y: int): bool {.magic: "LtI", noSideEffect.}
   ## Returns true if `x` is less than `y`.
+
 proc `<`*(x, y: int8): bool {.magic: "LtI", noSideEffect.}
 proc `<`*(x, y: int16): bool {.magic: "LtI", noSideEffect.}
 proc `<`*(x, y: int32): bool {.magic: "LtI", noSideEffect.}
 proc `<`*(x, y: int64): bool {.magic: "LtI", noSideEffect.}
 
-proc `<=`*(x, y: uint): bool {.magic: "LeU", noSideEffect.}
-  ## Returns true if `x <= y`.
+proc `<=`*(x, y: uint): bool {.magic: "LeU", noSideEffect.} ## Returns true if `x <= y`.
 proc `<=`*(x, y: uint8): bool {.magic: "LeU", noSideEffect.}
 proc `<=`*(x, y: uint16): bool {.magic: "LeU", noSideEffect.}
 proc `<=`*(x, y: uint32): bool {.magic: "LeU", noSideEffect.}
 proc `<=`*(x, y: uint64): bool {.magic: "LeU", noSideEffect.}
 
-proc `<`*(x, y: uint): bool {.magic: "LtU", noSideEffect.}
-  ## Returns true if `x < y`.
+proc `<`*(x, y: uint): bool {.magic: "LtU", noSideEffect.} ## Returns true if `x < y`.
 proc `<`*(x, y: uint8): bool {.magic: "LtU", noSideEffect.}
 proc `<`*(x, y: uint16): bool {.magic: "LtU", noSideEffect.}
 proc `<`*(x, y: uint32): bool {.magic: "LtU", noSideEffect.}
@@ -180,30 +190,49 @@ proc `<=%`*(x, y: int): bool {.inline.} =
   ## Treats `x` and `y` as unsigned and compares them.
   ## Returns true if `unsigned(x) <= unsigned(y)`.
   cast[uint](x) <= cast[uint](y)
-proc `<=%`*(x, y: int8): bool {.inline.} = cast[uint8](x) <= cast[uint8](y)
-proc `<=%`*(x, y: int16): bool {.inline.} = cast[uint16](x) <= cast[uint16](y)
-proc `<=%`*(x, y: int32): bool {.inline.} = cast[uint32](x) <= cast[uint32](y)
-proc `<=%`*(x, y: int64): bool {.inline.} = cast[uint64](x) <= cast[uint64](y)
+
+proc `<=%`*(x, y: int8): bool {.inline.} =
+  cast[uint8](x) <= cast[uint8](y)
+
+proc `<=%`*(x, y: int16): bool {.inline.} =
+  cast[uint16](x) <= cast[uint16](y)
+
+proc `<=%`*(x, y: int32): bool {.inline.} =
+  cast[uint32](x) <= cast[uint32](y)
+
+proc `<=%`*(x, y: int64): bool {.inline.} =
+  cast[uint64](x) <= cast[uint64](y)
 
 proc `<%`*(x, y: int): bool {.inline.} =
   ## Treats `x` and `y` as unsigned and compares them.
   ## Returns true if `unsigned(x) < unsigned(y)`.
   cast[uint](x) < cast[uint](y)
-proc `<%`*(x, y: int8): bool {.inline.} = cast[uint8](x) < cast[uint8](y)
-proc `<%`*(x, y: int16): bool {.inline.} = cast[uint16](x) < cast[uint16](y)
-proc `<%`*(x, y: int32): bool {.inline.} = cast[uint32](x) < cast[uint32](y)
-proc `<%`*(x, y: int64): bool {.inline.} = cast[uint64](x) < cast[uint64](y)
 
-template `>=%`*(x, y: untyped): untyped = y <=% x
+proc `<%`*(x, y: int8): bool {.inline.} =
+  cast[uint8](x) < cast[uint8](y)
+
+proc `<%`*(x, y: int16): bool {.inline.} =
+  cast[uint16](x) < cast[uint16](y)
+
+proc `<%`*(x, y: int32): bool {.inline.} =
+  cast[uint32](x) < cast[uint32](y)
+
+proc `<%`*(x, y: int64): bool {.inline.} =
+  cast[uint64](x) < cast[uint64](y)
+
+template `>=%`*(x, y: untyped): untyped =
   ## Treats `x` and `y` as unsigned and compares them.
   ## Returns true if `unsigned(x) >= unsigned(y)`.
+  y <=% x
 
-template `>%`*(x, y: untyped): untyped = y <% x
+template `>%`*(x, y: untyped): untyped =
   ## Treats `x` and `y` as unsigned and compares them.
   ## Returns true if `unsigned(x) > unsigned(y)`.
+  y <% x
 
 proc `==`*(x, y: uint): bool {.magic: "EqI", noSideEffect.}
   ## Compares two unsigned integers for equality.
+
 proc `==`*(x, y: uint8): bool {.magic: "EqI", noSideEffect.}
 proc `==`*(x, y: uint16): bool {.magic: "EqI", noSideEffect.}
 proc `==`*(x, y: uint32): bool {.magic: "EqI", noSideEffect.}
@@ -222,57 +251,71 @@ proc `==`*(x, y: float): bool {.magic: "EqF64", noSideEffect.}
 
 proc min*(x, y: int): int {.magic: "MinI", noSideEffect.} =
   if x <= y: x else: y
+
 proc min*(x, y: int8): int8 {.magic: "MinI", noSideEffect.} =
   if x <= y: x else: y
+
 proc min*(x, y: int16): int16 {.magic: "MinI", noSideEffect.} =
   if x <= y: x else: y
+
 proc min*(x, y: int32): int32 {.magic: "MinI", noSideEffect.} =
   if x <= y: x else: y
+
 proc min*(x, y: int64): int64 {.magic: "MinI", noSideEffect.} =
   ## The minimum value of two integers.
   if x <= y: x else: y
+
 proc min*(x, y: float32): float32 {.noSideEffect, inline.} =
   if x <= y or y != y: x else: y
+
 proc min*(x, y: float64): float64 {.noSideEffect, inline.} =
   if x <= y or y != y: x else: y
+
 proc min*[T: not SomeFloat](x, y: T): T {.inline.} =
   ## Generic minimum operator of 2 values based on `<=`.
   if x <= y: x else: y
 
 proc max*(x, y: int): int {.magic: "MaxI", noSideEffect.} =
   if y <= x: x else: y
+
 proc max*(x, y: int8): int8 {.magic: "MaxI", noSideEffect.} =
   if y <= x: x else: y
+
 proc max*(x, y: int16): int16 {.magic: "MaxI", noSideEffect.} =
   if y <= x: x else: y
+
 proc max*(x, y: int32): int32 {.magic: "MaxI", noSideEffect.} =
   if y <= x: x else: y
+
 proc max*(x, y: int64): int64 {.magic: "MaxI", noSideEffect.} =
   ## The maximum value of two integers.
   if y <= x: x else: y
+
 proc max*(x, y: float32): float32 {.noSideEffect, inline.} =
   if y <= x or y != y: x else: y
+
 proc max*(x, y: float64): float64 {.noSideEffect, inline.} =
   if y <= x or y != y: x else: y
+
 proc max*[T: not SomeFloat](x, y: T): T {.inline.} =
   ## Generic maximum operator of 2 values based on `<=`.
   if y <= x: x else: y
 
-
 proc min*[T](x: openArray[T]): T =
   ## The minimum value of `x`. `T` needs to have a `<` operator.
   result = x[0]
-  for i in 1..high(x):
-    if x[i] < result: result = x[i]
+  for i in 1 .. high(x):
+    if x[i] < result:
+      result = x[i]
 
 proc max*[T](x: openArray[T]): T =
   ## The maximum value of `x`. `T` needs to have a `<` operator.
   result = x[0]
-  for i in 1..high(x):
-    if result < x[i]: result = x[i]
+  for i in 1 .. high(x):
+    if result < x[i]:
+      result = x[i]
 
 {.pop.} # stackTrace: off
-
 
 proc clamp*[T](x, a, b: T): T =
   ## Limits the value `x` within the interval \[a, b].
@@ -286,13 +329,14 @@ proc clamp*[T](x, a, b: T): T =
     assert (1.4).clamp(0.0, 1.0) == 1.0
     assert (0.5).clamp(0.0, 1.0) == 0.5
     assert 4.clamp(1, 3) == max(1, min(3, 4))
-  if x < a: return a
-  if x > b: return b
+  if x < a:
+    return a
+  if x > b:
+    return b
   return x
 
-
 proc `==`*[I, T](x, y: array[I, T]): bool =
-  for f in low(x)..high(x):
+  for f in low(x) .. high(x):
     if x[f] != y[f]:
       return
   result = true
@@ -300,11 +344,10 @@ proc `==`*[I, T](x, y: array[I, T]): bool =
 proc `==`*[T](x, y: openArray[T]): bool =
   if x.len != y.len:
     return false
-  for f in low(x)..high(x):
+  for f in low(x) .. high(x):
     if x[f] != y[f]:
       return false
   result = true
-
 
 proc `==`*[T](x, y: seq[T]): bool {.noSideEffect.} =
   ## Generic equals operator for sequences: relies on a equals operator for
@@ -325,12 +368,13 @@ proc `==`*[T](x, y: seq[T]): bool {.noSideEffect.} =
     else:
       var sameObject = false
       {.emit: """`sameObject` = `x` === `y`;""".}
-      if sameObject: return true
+      if sameObject:
+        return true
 
   if x.len != y.len:
     return false
 
-  for i in 0..x.len-1:
+  for i in 0 .. x.len - 1:
     if x[i] != y[i]:
       return false
 

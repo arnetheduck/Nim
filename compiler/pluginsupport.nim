@@ -14,12 +14,10 @@
 import ast, semdata, idents
 
 type
-  Transformation* = proc (c: PContext; n: PNode): PNode {.nimcall.}
-  Plugin* = tuple
-    package, module, fn: string
-    t: Transformation
+  Transformation* = proc(c: PContext, n: PNode): PNode {.nimcall.}
+  Plugin* = tuple[package, module, fn: string, t: Transformation]
 
-proc pluginMatches*(ic: IdentCache; p: Plugin; s: PSym): bool =
+proc pluginMatches*(ic: IdentCache, p: Plugin, s: PSym): bool =
   if s.name.id != ic.getIdent(p.fn).id:
     return false
   let module = s.skipGenericOwner

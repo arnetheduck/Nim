@@ -1,7 +1,8 @@
 when sizeof(int) <= 2:
-  type IntLikeForCount = int|int8|int16|char|bool|uint8|enum
+  type IntLikeForCount = int | int8 | int16 | char | bool | uint8 | enum
 else:
-  type IntLikeForCount = int|int8|int16|int32|char|bool|uint8|uint16|enum
+  type IntLikeForCount =
+    int | int8 | int16 | int32 | char | bool | uint8 | uint16 | enum
 
 iterator countdown*[T](a, b: T, step: Positive = 1): T {.inline.} =
   ## Counts from ordinal value `a` down to `b` (inclusive) with the given
@@ -23,11 +24,12 @@ iterator countdown*[T](a, b: T, step: Positive = 1): T {.inline.} =
       for i in countdown(9, 2, 3):
         i
     assert y == @[9, 6, 3]
-  when T is (uint|uint64):
+  when T is (uint | uint64):
     var res = a
     while res >= b:
       yield res
-      if res == b: break
+      if res == b:
+        break
       dec(res, step)
   elif T is IntLikeForCount and T is Ordinal:
     var res = int(a)
@@ -56,7 +58,7 @@ iterator countup*[T](a, b: T, step: Positive = 1): T {.inline.} =
     let x = collect(newSeq):
       for i in countup(3, 7):
         i
-    
+
     assert x == @[3, 4, 5, 6, 7]
 
     let y = collect(newseq):
@@ -144,8 +146,9 @@ dotdotLessImpl(int32)
 dotdotLessImpl(uint64)
 dotdotLessImpl(uint32)
 
-iterator `||`*[S, T](a: S, b: T, annotation: static string = "parallel for"): T {.
-  inline, magic: "OmpParFor", sideEffect.} =
+iterator `||`*[S, T](
+    a: S, b: T, annotation: static string = "parallel for"
+): T {.inline, magic: "OmpParFor", sideEffect.} =
   ## OpenMP parallel loop iterator. Same as `..` but the loop may run in parallel.
   ##
   ## `annotation` is an additional annotation for the code generator to use.
@@ -161,8 +164,9 @@ iterator `||`*[S, T](a: S, b: T, annotation: static string = "parallel for"): T 
   ## and GC.
   discard
 
-iterator `||`*[S, T](a: S, b: T, step: Positive, annotation: static string = "parallel for"): T {.
-  inline, magic: "OmpParFor", sideEffect.} =
+iterator `||`*[S, T](
+    a: S, b: T, step: Positive, annotation: static string = "parallel for"
+): T {.inline, magic: "OmpParFor", sideEffect.} =
   ## OpenMP parallel loop iterator with stepping.
   ## Same as `countup` but the loop may run in parallel.
   ##

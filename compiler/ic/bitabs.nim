@@ -12,15 +12,19 @@ type
 
   BiTable*[T] = object
     vals: seq[T] # indexed by LitId
-    keys: seq[LitId]  # indexed by hash(val)
+    keys: seq[LitId] # indexed by hash(val)
 
-proc initBiTable*[T](): BiTable[T] = BiTable[T](vals: @[], keys: @[])
+proc initBiTable*[T](): BiTable[T] =
+  BiTable[T](vals: @[], keys: @[])
 
 proc nextTry(h, maxHash: Hash): Hash {.inline.} =
   result = (h + 1) and maxHash
 
-template maxHash(t): untyped = high(t.keys)
-template isFilled(x: LitId): bool = x.uint32 > 0'u32
+template maxHash(t): untyped =
+  high(t.keys)
+
+template isFilled(x: LitId): bool =
+  x.uint32 > 0'u32
 
 proc `$`*(x: LitId): string {.borrow.}
 proc `<`*(x, y: LitId): bool {.borrow.}
@@ -28,19 +32,19 @@ proc `<=`*(x, y: LitId): bool {.borrow.}
 proc `==`*(x, y: LitId): bool {.borrow.}
 proc hash*(x: LitId): Hash {.borrow.}
 
-
-proc len*[T](t: BiTable[T]): int = t.vals.len
+proc len*[T](t: BiTable[T]): int =
+  t.vals.len
 
 proc mustRehash(length, counter: int): bool {.inline.} =
   assert(length > counter)
   result = (length * 2 < counter * 3) or (length - counter < 4)
 
-const
-  idStart = 1
+const idStart = 1
 
-template idToIdx(x: LitId): int = x.int - idStart
+template idToIdx(x: LitId): int =
+  x.int - idStart
 
-proc hasLitId*[T](t: BiTable[T]; x: LitId): bool =
+proc hasLitId*[T](t: BiTable[T], x: LitId): bool =
   let idx = idToIdx(x)
   result = idx >= 0 and idx < t.vals.len
 
@@ -48,7 +52,7 @@ proc enlarge[T](t: var BiTable[T]) =
   var n: seq[LitId]
   newSeq(n, len(t.keys) * 2)
   swap(t.keys, n)
-  for i in 0..high(n):
+  for i in 0 .. high(n):
     let eh = n[i]
     if isFilled(eh):
       var j = hash(t.vals[idToIdx eh]) and maxHash(t)
@@ -56,25 +60,29 @@ proc enlarge[T](t: var BiTable[T]) =
         j = nextTry(j, maxHash(t))
       t.keys[j] = move n[i]
 
-proc getKeyId*[T](t: BiTable[T]; v: T): LitId =
+proc getKeyId*[T](t: BiTable[T], v: T): LitId =
   let origH = hash(v)
   var h = origH and maxHash(t)
   if t.keys.len != 0:
     while true:
       let litId = t.keys[h]
-      if not isFilled(litId): break
-      if t.vals[idToIdx t.keys[h]] == v: return litId
+      if not isFilled(litId):
+        break
+      if t.vals[idToIdx t.keys[h]] == v:
+        return litId
       h = nextTry(h, maxHash(t))
   return LitId(0)
 
-proc getOrIncl*[T](t: var BiTable[T]; v: T): LitId =
+proc getOrIncl*[T](t: var BiTable[T], v: T): LitId =
   let origH = hash(v)
   var h = origH and maxHash(t)
   if t.keys.len != 0:
     while true:
       let litId = t.keys[h]
-      if not isFilled(litId): break
-      if t.vals[idToIdx t.keys[h]] == v: return litId
+      if not isFilled(litId):
+        break
+      if t.vals[idToIdx t.keys[h]] == v:
+        return litId
       h = nextTry(h, maxHash(t))
     # not found, we need to insert it:
     if mustRehash(t.keys.len, t.vals.len):
@@ -83,7 +91,8 @@ proc getOrIncl*[T](t: var BiTable[T]; v: T): LitId =
       h = origH and maxHash(t)
       while true:
         let litId = t.keys[h]
-        if not isFilled(litId): break
+        if not isFilled(litId):
+          break
         h = nextTry(h, maxHash(t))
   else:
     setLen(t.keys, 16)
@@ -93,13 +102,12 @@ proc getOrIncl*[T](t: var BiTable[T]; v: T): LitId =
   t.keys[h] = result
   t.vals.add v
 
-
-proc `[]`*[T](t: var BiTable[T]; litId: LitId): var T {.inline.} =
+proc `[]`*[T](t: var BiTable[T], litId: LitId): var T {.inline.} =
   let idx = idToIdx litId
   assert idx < t.vals.len
   result = t.vals[idx]
 
-proc `[]`*[T](t: BiTable[T]; litId: LitId): lent T {.inline.} =
+proc `[]`*[T](t: BiTable[T], litId: LitId): lent T {.inline.} =
   let idx = idToIdx litId
   assert idx < t.vals.len
   result = t.vals[idx]
@@ -111,11 +119,11 @@ proc hash*[T](t: BiTable[T]): Hash =
     h = h !& hash((i, n))
   result = !$h
 
-proc store*[T](f: var RodFile; t: BiTable[T]) =
+proc store*[T](f: var RodFile, t: BiTable[T]) =
   storeSeq(f, t.vals)
   storeSeq(f, t.keys)
 
-proc load*[T](f: var RodFile; t: var BiTable[T]) =
+proc load*[T](f: var RodFile, t: var BiTable[T]) =
   loadSeq(f, t.vals)
   loadSeq(f, t.keys)
 
@@ -126,7 +134,6 @@ proc sizeOnDisc*(t: BiTable[string]): int =
   result += t.keys.len * sizeof(LitId)
 
 when isMainModule:
-
   var t: BiTable[string]
 
   echo getOrIncl(t, "hello")
@@ -173,6 +180,5 @@ when isMainModule:
   echo getKeyId(t2, 32.4)
 
   echo "end"
-
 
   f1.close

@@ -16,61 +16,57 @@ when defined(posix) and not defined(genode) and not defined(macosx):
   {.passl: "-lm".}
 
 var
-  FE_DIVBYZERO* {.importc, header: "<fenv.h>".}: cint
-    ## division by zero
-  FE_INEXACT* {.importc, header: "<fenv.h>".}: cint
-    ## inexact result
-  FE_INVALID* {.importc, header: "<fenv.h>".}: cint
-    ## invalid operation
+  FE_DIVBYZERO* {.importc, header: "<fenv.h>".}: cint ## division by zero
+  FE_INEXACT* {.importc, header: "<fenv.h>".}: cint ## inexact result
+  FE_INVALID* {.importc, header: "<fenv.h>".}: cint ## invalid operation
   FE_OVERFLOW* {.importc, header: "<fenv.h>".}: cint
     ## result not representable due to overflow
   FE_UNDERFLOW* {.importc, header: "<fenv.h>".}: cint
     ## result not representable due to underflow
   FE_ALL_EXCEPT* {.importc, header: "<fenv.h>".}: cint
     ## bitwise OR of all supported exceptions
-  FE_DOWNWARD* {.importc, header: "<fenv.h>".}: cint
-    ## round toward -Inf
-  FE_TONEAREST* {.importc, header: "<fenv.h>".}: cint
-    ## round to nearest
-  FE_TOWARDZERO* {.importc, header: "<fenv.h>".}: cint
-    ## round toward 0
-  FE_UPWARD* {.importc, header: "<fenv.h>".}: cint
-    ## round toward +Inf
+  FE_DOWNWARD* {.importc, header: "<fenv.h>".}: cint ## round toward -Inf
+  FE_TONEAREST* {.importc, header: "<fenv.h>".}: cint ## round to nearest
+  FE_TOWARDZERO* {.importc, header: "<fenv.h>".}: cint ## round toward 0
+  FE_UPWARD* {.importc, header: "<fenv.h>".}: cint ## round toward +Inf
   FE_DFL_ENV* {.importc, header: "<fenv.h>".}: cint
     ## macro of type pointer to `fenv_t` to be used as the argument
     ## to functions taking an argument of type `fenv_t`; in this
     ## case the default environment will be used
 
 type
-  Tfenv* {.importc: "fenv_t", header: "<fenv.h>", final, pure.} =
-    object ## Represents the entire floating-point environment. The
-           ## floating-point environment refers collectively to any
-           ## floating-point status flags and control modes supported
-           ## by the implementation.
-  Tfexcept* {.importc: "fexcept_t", header: "<fenv.h>", final, pure.} =
-    object ## Represents the floating-point status flags collectively,
-           ## including any status the implementation associates with the
-           ## flags. A floating-point status flag is a system variable
-           ## whose value is set (but never cleared) when a floating-point
-           ## exception is raised, which occurs as a side effect of
-           ## exceptional floating-point arithmetic to provide auxiliary
-           ## information. A floating-point control mode is a system variable
-           ## whose value may be set by the user to affect the subsequent
-           ## behavior of floating-point arithmetic.
+  Tfenv* {.importc: "fenv_t", header: "<fenv.h>", final, pure.} = object
+    ## Represents the entire floating-point environment. The
+    ## floating-point environment refers collectively to any
+    ## floating-point status flags and control modes supported
+    ## by the implementation.
+
+  Tfexcept* {.importc: "fexcept_t", header: "<fenv.h>", final, pure.} = object
+    ## Represents the floating-point status flags collectively,
+    ## including any status the implementation associates with the
+    ## flags. A floating-point status flag is a system variable
+    ## whose value is set (but never cleared) when a floating-point
+    ## exception is raised, which occurs as a side effect of
+    ## exceptional floating-point arithmetic to provide auxiliary
+    ## information. A floating-point control mode is a system variable
+    ## whose value may be set by the user to affect the subsequent
+    ## behavior of floating-point arithmetic.
 
 proc feclearexcept*(excepts: cint): cint {.importc, header: "<fenv.h>".}
   ## Clear the supported exceptions represented by `excepts`.
 
-proc fegetexceptflag*(flagp: ptr Tfexcept, excepts: cint): cint {.
-  importc, header: "<fenv.h>".}
+proc fegetexceptflag*(
+  flagp: ptr Tfexcept, excepts: cint
+): cint {.importc, header: "<fenv.h>".}
   ## Store implementation-defined representation of the exception flags
   ## indicated by `excepts` in the object pointed to by `flagp`.
 
 proc feraiseexcept*(excepts: cint): cint {.importc, header: "<fenv.h>".}
   ## Raise the supported exceptions represented by `excepts`.
 
-proc fesetexceptflag*(flagp: ptr Tfexcept, excepts: cint): cint {.
-  importc, header: "<fenv.h>".}
+proc fesetexceptflag*(
+  flagp: ptr Tfexcept, excepts: cint
+): cint {.importc, header: "<fenv.h>".}
   ## Set complete status for exceptions indicated by `excepts` according to
   ## the representation in the object pointed to by `flagp`.
 
@@ -103,80 +99,123 @@ proc feupdateenv*(envp: ptr Tfenv): cint {.importc, header: "<fenv.h>".}
   ## according to saved exceptions.
 
 const
-  FLT_RADIX = 2                     ## the radix of the exponent representation
+  FLT_RADIX = 2 ## the radix of the exponent representation
 
-  FLT_MANT_DIG = 24                ## the number of base FLT_RADIX digits in the mantissa part of a float
-  FLT_DIG = 6                      ## the number of digits of precision of a float
-  FLT_MIN_EXP = -125               ## the minimum value of base FLT_RADIX in the exponent part of a float
-  FLT_MAX_EXP = 128                ## the maximum value of base FLT_RADIX in the exponent part of a float
-  FLT_MIN_10_EXP = -37             ## the minimum value in base 10 of the exponent part of a float
-  FLT_MAX_10_EXP = 38              ## the maximum value in base 10 of the exponent part of a float
-  FLT_MIN = 1.17549435e-38'f32     ## the minimum value of a float
-  FLT_MAX = 3.40282347e+38'f32     ## the maximum value of a float
-  FLT_EPSILON = 1.19209290e-07'f32 ## the difference between 1 and the least value greater than 1 of a float
+  FLT_MANT_DIG = 24
+    ## the number of base FLT_RADIX digits in the mantissa part of a float
+  FLT_DIG = 6 ## the number of digits of precision of a float
+  FLT_MIN_EXP = -125
+    ## the minimum value of base FLT_RADIX in the exponent part of a float
+  FLT_MAX_EXP = 128
+    ## the maximum value of base FLT_RADIX in the exponent part of a float
+  FLT_MIN_10_EXP = -37 ## the minimum value in base 10 of the exponent part of a float
+  FLT_MAX_10_EXP = 38 ## the maximum value in base 10 of the exponent part of a float
+  FLT_MIN = 1.17549435e-38'f32 ## the minimum value of a float
+  FLT_MAX = 3.40282347e+38'f32 ## the maximum value of a float
+  FLT_EPSILON = 1.19209290e-07'f32
+    ## the difference between 1 and the least value greater than 1 of a float
 
-  DBL_MANT_DIG = 53                    ## the number of base FLT_RADIX digits in the mantissa part of a double
-  DBL_DIG = 15                         ## the number of digits of precision of a double
-  DBL_MIN_EXP = -1021                  ## the minimum value of base FLT_RADIX in the exponent part of a double
-  DBL_MAX_EXP = 1024                   ## the maximum value of base FLT_RADIX in the exponent part of a double
-  DBL_MIN_10_EXP = -307                ## the minimum value in base 10 of the exponent part of a double
-  DBL_MAX_10_EXP = 308                 ## the maximum value in base 10 of the exponent part of a double
-  DBL_MIN = 2.2250738585072014E-308    ## the minimal value of a double
-  DBL_MAX = 1.7976931348623157E+308    ## the minimal value of a double
-  DBL_EPSILON = 2.2204460492503131E-16 ## the difference between 1 and the least value greater than 1 of a double
+  DBL_MANT_DIG = 53
+    ## the number of base FLT_RADIX digits in the mantissa part of a double
+  DBL_DIG = 15 ## the number of digits of precision of a double
+  DBL_MIN_EXP = -1021
+    ## the minimum value of base FLT_RADIX in the exponent part of a double
+  DBL_MAX_EXP = 1024
+    ## the maximum value of base FLT_RADIX in the exponent part of a double
+  DBL_MIN_10_EXP = -307 ## the minimum value in base 10 of the exponent part of a double
+  DBL_MAX_10_EXP = 308 ## the maximum value in base 10 of the exponent part of a double
+  DBL_MIN = 2.2250738585072014E-308 ## the minimal value of a double
+  DBL_MAX = 1.7976931348623157E+308 ## the minimal value of a double
+  DBL_EPSILON = 2.2204460492503131E-16
+    ## the difference between 1 and the least value greater than 1 of a double
 
-template fpRadix*: int = FLT_RADIX
+template fpRadix*(): int =
   ## The (integer) value of the radix used to represent any floating
   ## point type on the architecture used to build the program.
+  FLT_RADIX
 
-template mantissaDigits*(T: typedesc[float32]): int = FLT_MANT_DIG
+template mantissaDigits*(T: typedesc[float32]): int =
   ## Number of digits (in base `floatingPointRadix`) in the mantissa
   ## of 32-bit floating-point numbers.
-template digits*(T: typedesc[float32]): int = FLT_DIG
+  FLT_MANT_DIG
+
+template digits*(T: typedesc[float32]): int =
   ## Number of decimal digits that can be represented in a
   ## 32-bit floating-point type without losing precision.
-template minExponent*(T: typedesc[float32]): int = FLT_MIN_EXP
+  FLT_DIG
+
+template minExponent*(T: typedesc[float32]): int =
   ## Minimum (negative) exponent for 32-bit floating-point numbers.
-template maxExponent*(T: typedesc[float32]): int = FLT_MAX_EXP
+  FLT_MIN_EXP
+
+template maxExponent*(T: typedesc[float32]): int =
   ## Maximum (positive) exponent for 32-bit floating-point numbers.
-template min10Exponent*(T: typedesc[float32]): int = FLT_MIN_10_EXP
+  FLT_MAX_EXP
+
+template min10Exponent*(T: typedesc[float32]): int =
   ## Minimum (negative) exponent in base 10 for 32-bit floating-point
   ## numbers.
-template max10Exponent*(T: typedesc[float32]): int = FLT_MAX_10_EXP
+  FLT_MIN_10_EXP
+
+template max10Exponent*(T: typedesc[float32]): int =
   ## Maximum (positive) exponent in base 10 for 32-bit floating-point
   ## numbers.
-template minimumPositiveValue*(T: typedesc[float32]): float32 = FLT_MIN
+  FLT_MAX_10_EXP
+
+template minimumPositiveValue*(T: typedesc[float32]): float32 =
   ## The smallest positive (nonzero) number that can be represented in a
   ## 32-bit floating-point type.
-template maximumPositiveValue*(T: typedesc[float32]): float32 = FLT_MAX
+  FLT_MIN
+
+template maximumPositiveValue*(T: typedesc[float32]): float32 =
   ## The largest positive number that can be represented in a 32-bit
   ## floating-point type.
-template epsilon*(T: typedesc[float32]): float32 = FLT_EPSILON
+  FLT_MAX
+
+template epsilon*(T: typedesc[float32]): float32 =
   ## The difference between 1.0 and the smallest number greater than
   ## 1.0 that can be represented in a 32-bit floating-point type.
+  FLT_EPSILON
 
-template mantissaDigits*(T: typedesc[float64]): int = DBL_MANT_DIG
+template mantissaDigits*(T: typedesc[float64]): int =
   ## Number of digits (in base `floatingPointRadix`) in the mantissa
   ## of 64-bit floating-point numbers.
-template digits*(T: typedesc[float64]): int = DBL_DIG
+  DBL_MANT_DIG
+
+template digits*(T: typedesc[float64]): int =
   ## Number of decimal digits that can be represented in a
   ## 64-bit floating-point type without losing precision.
-template minExponent*(T: typedesc[float64]): int = DBL_MIN_EXP
+  DBL_DIG
+
+template minExponent*(T: typedesc[float64]): int =
   ## Minimum (negative) exponent for 64-bit floating-point numbers.
-template maxExponent*(T: typedesc[float64]): int = DBL_MAX_EXP
+  DBL_MIN_EXP
+
+template maxExponent*(T: typedesc[float64]): int =
   ## Maximum (positive) exponent for 64-bit floating-point numbers.
-template min10Exponent*(T: typedesc[float64]): int = DBL_MIN_10_EXP
+  DBL_MAX_EXP
+
+template min10Exponent*(T: typedesc[float64]): int =
   ## Minimum (negative) exponent in base 10 for 64-bit floating-point
   ## numbers.
-template max10Exponent*(T: typedesc[float64]): int = DBL_MAX_10_EXP
+  DBL_MIN_10_EXP
+
+template max10Exponent*(T: typedesc[float64]): int =
   ## Maximum (positive) exponent in base 10 for 64-bit floating-point
   ## numbers.
-template minimumPositiveValue*(T: typedesc[float64]): float64 = DBL_MIN
+  DBL_MAX_10_EXP
+
+template minimumPositiveValue*(T: typedesc[float64]): float64 =
   ## The smallest positive (nonzero) number that can be represented in a
   ## 64-bit floating-point type.
-template maximumPositiveValue*(T: typedesc[float64]): float64 = DBL_MAX
+  DBL_MIN
+
+template maximumPositiveValue*(T: typedesc[float64]): float64 =
   ## The largest positive number that can be represented in a 64-bit
   ## floating-point type.
-template epsilon*(T: typedesc[float64]): float64 = DBL_EPSILON
+  DBL_MAX
+
+template epsilon*(T: typedesc[float64]): float64 =
   ## The difference between 1.0 and the smallest number greater than
   ## 1.0 that can be represented in a 64-bit floating-point type.
+  DBL_EPSILON

@@ -20,9 +20,10 @@ type
   AbsoluteDir* = distinct string
   RelativeFile* = distinct string
   RelativeDir* = distinct string
-  AnyPath* = AbsoluteFile|AbsoluteDir|RelativeFile|RelativeDir
+  AnyPath* = AbsoluteFile | AbsoluteDir | RelativeFile | RelativeDir
 
-proc isEmpty*(x: AnyPath): bool {.inline.} = x.string.len == 0
+proc isEmpty*(x: AnyPath): bool {.inline.} =
+  x.string.len == 0
 
 proc copyFile*(source, dest: AbsoluteFile) =
   os.copyFile(source.string, dest.string)
@@ -46,16 +47,21 @@ proc cmpPaths*(x, y: AbsoluteDir): int {.borrow.}
 proc createDir*(x: AbsoluteDir) {.borrow.}
 
 proc toAbsoluteDir*(path: string): AbsoluteDir =
-  result = if path.isAbsolute: AbsoluteDir(path)
-           else: AbsoluteDir(getCurrentDir() / path)
+  result =
+    if path.isAbsolute:
+      AbsoluteDir(path)
+    else:
+      AbsoluteDir(getCurrentDir() / path)
 
-proc `$`*(x: AnyPath): string = x.string
+proc `$`*(x: AnyPath): string =
+  x.string
 
 when true:
   proc eqImpl(x, y: string): bool {.inline.} =
     result = cmpPaths(x, y) == 0
 
-  proc `==`*[T: AnyPath](x, y: T): bool = eqImpl(x.string, y.string)
+  proc `==`*[T: AnyPath](x, y: T): bool =
+    eqImpl(x.string, y.string)
 
   template postProcessBase(base: AbsoluteDir): untyped =
     # xxx: as argued here https://github.com/nim-lang/Nim/pull/10018#issuecomment-448192956
@@ -66,9 +72,12 @@ when true:
       doAssert isAbsolute(base.string), base.string
       base
     else:
-      if base.isEmpty: getCurrentDir().AbsoluteDir else: base
+      if base.isEmpty:
+        getCurrentDir().AbsoluteDir
+      else:
+        base
 
-  proc `/`*(base: AbsoluteDir; f: RelativeFile): AbsoluteFile =
+  proc `/`*(base: AbsoluteDir, f: RelativeFile): AbsoluteFile =
     let base = postProcessBase(base)
     assert(not isAbsolute(f.string), f.string)
     result = AbsoluteFile newStringOfCap(base.string.len + f.string.len)
@@ -76,7 +85,7 @@ when true:
     addNormalizePath(base.string, result.string, state)
     addNormalizePath(f.string, result.string, state)
 
-  proc `/`*(base: AbsoluteDir; f: RelativeDir): AbsoluteDir =
+  proc `/`*(base: AbsoluteDir, f: RelativeDir): AbsoluteDir =
     let base = postProcessBase(base)
     assert(not isAbsolute(f.string))
     result = AbsoluteDir newStringOfCap(base.string.len + f.string.len)
@@ -84,24 +93,27 @@ when true:
     addNormalizePath(base.string, result.string, state)
     addNormalizePath(f.string, result.string, state)
 
-  proc relativeTo*(fullPath: AbsoluteFile, baseFilename: AbsoluteDir;
-                   sep = DirSep): RelativeFile =
+  proc relativeTo*(
+      fullPath: AbsoluteFile, baseFilename: AbsoluteDir, sep = DirSep
+  ): RelativeFile =
     # this currently fails for `tests/compilerapi/tcompilerapi.nim`
     # it's needed otherwise would returns an absolute path
     # assert not baseFilename.isEmpty, $fullPath
     result = RelativeFile(relativePath(fullPath.string, baseFilename.string, sep))
 
-  proc toAbsolute*(file: string; base: AbsoluteDir): AbsoluteFile =
-    if isAbsolute(file): result = AbsoluteFile(file)
-    else: result = base / RelativeFile file
+  proc toAbsolute*(file: string, base: AbsoluteDir): AbsoluteFile =
+    if isAbsolute(file):
+      result = AbsoluteFile(file)
+    else:
+      result = base / RelativeFile file
 
-  proc changeFileExt*(x: AbsoluteFile; ext: string): AbsoluteFile {.borrow.}
-  proc changeFileExt*(x: RelativeFile; ext: string): RelativeFile {.borrow.}
+  proc changeFileExt*(x: AbsoluteFile, ext: string): AbsoluteFile {.borrow.}
+  proc changeFileExt*(x: RelativeFile, ext: string): RelativeFile {.borrow.}
 
-  proc addFileExt*(x: AbsoluteFile; ext: string): AbsoluteFile {.borrow.}
-  proc addFileExt*(x: RelativeFile; ext: string): RelativeFile {.borrow.}
+  proc addFileExt*(x: AbsoluteFile, ext: string): AbsoluteFile {.borrow.}
+  proc addFileExt*(x: RelativeFile, ext: string): RelativeFile {.borrow.}
 
-  proc writeFile*(x: AbsoluteFile; content: string) {.borrow.}
+  proc writeFile*(x: AbsoluteFile, content: string) {.borrow.}
 
 proc skipHomeDir(x: string): int =
   when defined(windows):
@@ -117,10 +129,10 @@ proc skipHomeDir(x: string): int =
     else:
       result = 0
 
-proc relevantPart(s: string; afterSlashX: int): string =
+proc relevantPart(s: string, afterSlashX: int): string =
   result = newStringOfCap(s.len - 8)
   var slashes = afterSlashX
-  for i in 0..<s.len:
+  for i in 0 ..< s.len:
     if slashes == 0:
       result.add s[i]
     elif s[i] == '/':

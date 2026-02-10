@@ -269,11 +269,11 @@
 
 import std/private/since
 
-import std/[
-  net, strutils, uri, parseutils, base64, os, mimetypes,
-  math, random, httpcore, times, tables, streams, monotimes,
-  asyncnet, asyncdispatch, asyncfile, nativesockets,
-]
+import
+  std/[
+    net, strutils, uri, parseutils, base64, os, mimetypes, math, random, httpcore,
+    times, tables, streams, monotimes, asyncnet, asyncdispatch, asyncfile, nativesockets,
+  ]
 
 when defined(nimPreviewSlimSystem):
   import std/[assertions, syncio]
@@ -295,8 +295,9 @@ type
     body: string
     bodyStream*: FutureStream[string]
 
-proc code*(response: Response | AsyncResponse): HttpCode
-           {.raises: [ValueError, OverflowDefect].} =
+proc code*(
+    response: Response | AsyncResponse
+): HttpCode {.raises: [ValueError, OverflowDefect].} =
   ## Retrieves the specified response's `HttpCode`.
   ##
   ## Raises a `ValueError` if the response's `status` does not have a
@@ -316,7 +317,8 @@ proc contentLength*(response: Response | AsyncResponse): int =
   ##
   ## A `ValueError` exception will be raised if the value is not an integer.
   ## If the Content-Length header is not set in the response, ContentLength is set to the value -1.
-  var contentLengthHeader = response.headers.getOrDefault("Content-Length", HttpHeaderValues(@["-1"]))
+  var contentLengthHeader =
+    response.headers.getOrDefault("Content-Length", HttpHeaderValues(@["-1"]))
   result = contentLengthHeader.parseInt()
 
 proc lastModified*(response: Response | AsyncResponse): DateTime =
@@ -355,19 +357,22 @@ type
       filename, contentType: string
       fileSize: int64
       isStream: bool
-    else: discard
+    else:
+      discard
 
   MultipartEntries* = openArray[tuple[name, content: string]]
   MultipartData* = ref object
     content: seq[MultipartEntry]
 
-  ProtocolError* = object of IOError ## exception that is raised when server
-                                     ## does not conform to the implemented
-                                     ## protocol
+  ProtocolError* = object of IOError
+    ## exception that is raised when server
+    ## does not conform to the implemented
+    ## protocol
 
-  HttpRequestError* = object of IOError ## Thrown in the `getContent` proc
-                                        ## and `postContent` proc,
-                                        ## when the server returns an error
+  HttpRequestError* = object of IOError
+    ## Thrown in the `getContent` proc
+    ## and `postContent` proc,
+    ## when the server returns an error
 
 const defUserAgent* = "Nim-httpclient/" & NimVersion
 
@@ -403,7 +408,9 @@ proc newProxy*(url: string): Proxy =
   ## Constructs a new `TProxy` object.
   result = Proxy(url: parseUri(url))
 
-proc newProxy*(url: Uri; auth: string): Proxy {.deprecated: "Provide auth in url instead".} =
+proc newProxy*(
+    url: Uri, auth: string
+): Proxy {.deprecated: "Provide auth in url instead".} =
   result = Proxy(url: url)
   if auth != "":
     let parts = auth.split(':')
@@ -412,15 +419,19 @@ proc newProxy*(url: Uri; auth: string): Proxy {.deprecated: "Provide auth in url
     result.url.username = parts[0]
     result.url.password = parts[1]
 
-proc newProxy*(url: string; auth: string): Proxy {.deprecated: "Provide auth in url instead".} =
+proc newProxy*(
+    url: string, auth: string
+): Proxy {.deprecated: "Provide auth in url instead".} =
   result = newProxy(parseUri(url), auth)
 
-proc auth*(p: Proxy): string {.deprecated: "Get auth from p.url.username and p.url.password".} =
+proc auth*(
+    p: Proxy
+): string {.deprecated: "Get auth from p.url.username and p.url.password".} =
   result = ""
   if p.url.username != "" or p.url.password != "":
     result = p.url.username & ":" & p.url.password
 
-proc newMultipartData*: MultipartData {.inline.} =
+proc newMultipartData*(): MultipartData {.inline.} =
   ## Constructs a new `MultipartData` object.
   MultipartData()
 
@@ -437,8 +448,13 @@ proc `$`*(data: MultipartData): string {.since: (1, 1).} =
       result.add("Content-Type: " & entry.contentType)
     result.add("\n\n" & entry.content & "\n")
 
-proc add*(p: MultipartData, name, content: string, filename: string = "",
-          contentType: string = "", useStream = true) =
+proc add*(
+    p: MultipartData,
+    name, content: string,
+    filename: string = "",
+    contentType: string = "",
+    useStream = true,
+) =
   ## Add a value to the multipart data.
   ##
   ## When `useStream` is `false`, the file will be read into memory.
@@ -452,11 +468,7 @@ proc add*(p: MultipartData, name, content: string, filename: string = "",
   if {'\c', '\L'} in contentType:
     raise newException(ValueError, "contentType contains a newline character")
 
-  var entry = MultipartEntry(
-    name: name,
-    content: content,
-    isFile: filename.len > 0
-  )
+  var entry = MultipartEntry(name: name, content: content, isFile: filename.len > 0)
 
   if entry.isFile:
     entry.isStream = useStream
@@ -465,8 +477,7 @@ proc add*(p: MultipartData, name, content: string, filename: string = "",
 
   p.content.add(entry)
 
-proc add*(p: MultipartData, xs: MultipartEntries): MultipartData
-         {.discardable.} =
+proc add*(p: MultipartData, xs: MultipartEntries): MultipartData {.discardable.} =
   ## Add a list of multipart entries to the multipart data `p`. All values are
   ## added without a filename and without a content type.
   ##
@@ -488,9 +499,12 @@ proc newMultipartData*(xs: MultipartEntries): MultipartData =
   for entry in xs:
     result.add(entry.name, entry.content)
 
-proc addFiles*(p: MultipartData, xs: openArray[tuple[name, file: string]],
-               mimeDb = newMimetypes(), useStream = true):
-               MultipartData {.discardable.} =
+proc addFiles*(
+    p: MultipartData,
+    xs: openArray[tuple[name, file: string]],
+    mimeDb = newMimetypes(),
+    useStream = true,
+): MultipartData {.discardable.} =
   ## Add files to a multipart data object. The files will be streamed from disk
   ## when the request is being made. When `stream` is `false`, the files are
   ## instead read into memory, but beware this is very memory ineffecient even
@@ -505,8 +519,12 @@ proc addFiles*(p: MultipartData, xs: openArray[tuple[name, file: string]],
     var contentType: string = ""
     let (_, fName, ext) = splitFile(file)
     if ext.len > 0:
-      contentType = mimeDb.getMimetype(ext[1..ext.high], "")
-    let content = if useStream: file else: readFile(file)
+      contentType = mimeDb.getMimetype(ext[1 .. ext.high], "")
+    let content =
+      if useStream:
+        file
+      else:
+        readFile(file)
     p.add(name, content, fName & ext, contentType, useStream = useStream)
   result = p
 
@@ -519,8 +537,9 @@ proc `[]=`*(p: MultipartData, name, content: string) {.inline.} =
   ##   ```
   p.add(name, content)
 
-proc `[]=`*(p: MultipartData, name: string,
-            file: tuple[name, contentType, content: string]) {.inline.} =
+proc `[]=`*(
+    p: MultipartData, name: string, file: tuple[name, contentType, content: string]
+) {.inline.} =
   ## Add a file to the multipart data `p`, specifying filename, contentType
   ## and content manually.
   ##
@@ -531,32 +550,40 @@ proc `[]=`*(p: MultipartData, name: string,
   p.add(name, file.content, file.name, file.contentType, useStream = false)
 
 proc getBoundary(p: MultipartData): string =
-  if p == nil or p.content.len == 0: return
+  if p == nil or p.content.len == 0:
+    return
   while true:
     result = $rand(int.high)
     for i, entry in p.content:
-      if result in entry.content: break
-      elif i == p.content.high: return
+      if result in entry.content:
+        break
+      elif i == p.content.high:
+        return
 
-proc sendFile(socket: Socket | AsyncSocket,
-              entry: MultipartEntry) {.multisync.} =
-  const chunkSize = 2^18
+proc sendFile(socket: Socket | AsyncSocket, entry: MultipartEntry) {.multisync.} =
+  const chunkSize = 2 ^ 18
   let file =
-    when socket is AsyncSocket: openAsync(entry.content)
-    else: newFileStream(entry.content, fmRead)
+    when socket is AsyncSocket:
+      openAsync(entry.content)
+    else:
+      newFileStream(entry.content, fmRead)
 
   var buffer: string
   while true:
     buffer =
-      when socket is AsyncSocket: (await read(file, chunkSize))
-      else: readStr(file, chunkSize)
-    if buffer.len == 0: break
+      when socket is AsyncSocket:
+        (await read(file, chunkSize))
+      else:
+        readStr(file, chunkSize)
+    if buffer.len == 0:
+      break
     await socket.send(buffer)
   file.close()
 
 proc getNewLocation(lastURL: Uri, headers: HttpHeaders): Uri =
   let newLocation = headers.getOrDefault"Location"
-  if newLocation == "": httpError("location header expected")
+  if newLocation == "":
+    httpError("location header expected")
   # Relative URLs. (Not part of the spec, but soon will be.)
   let parsedLocation = parseUri(newLocation)
   if parsedLocation.hostname == "" and parsedLocation.path != "":
@@ -567,22 +594,25 @@ proc getNewLocation(lastURL: Uri, headers: HttpHeaders): Uri =
   else:
     result = parsedLocation
 
-proc generateHeaders(requestUrl: Uri, httpMethod: HttpMethod, headers: HttpHeaders,
-                     proxy: Proxy): string =
+proc generateHeaders(
+    requestUrl: Uri, httpMethod: HttpMethod, headers: HttpHeaders, proxy: Proxy
+): string =
   # GET
   result = $httpMethod
   result.add ' '
 
   if proxy.isNil or (requestUrl.scheme == "https" and proxy.url.scheme == "socks5h"):
     # /path?query
-    if not requestUrl.path.startsWith("/"): result.add '/'
+    if not requestUrl.path.startsWith("/"):
+      result.add '/'
     result.add(requestUrl.path)
     if requestUrl.query.len > 0:
       result.add("?" & requestUrl.query)
   else:
     # Remove the 'http://' from the URL for CONNECT requests for TLS connections.
     var modifiedUrl = requestUrl
-    if requestUrl.scheme == "https": modifiedUrl.scheme = ""
+    if requestUrl.scheme == "https":
+      modifiedUrl.scheme = ""
     result.add($modifiedUrl)
 
   # HTTP/1.1\c\l
@@ -611,17 +641,16 @@ proc generateHeaders(requestUrl: Uri, httpMethod: HttpMethod, headers: HttpHeade
 
 type
   ProgressChangedProc*[ReturnType] =
-    proc (total, progress, speed: BiggestInt):
-      ReturnType {.closure, gcsafe.}
+    proc(total, progress, speed: BiggestInt): ReturnType {.closure, gcsafe.}
 
   HttpClientBase*[SocketType] = ref object
     socket: SocketType
     connected: bool
-    currentURL: Uri       ## Where we are currently connected.
+    currentURL: Uri ## Where we are currently connected.
     headers*: HttpHeaders ## Headers to send in requests.
     maxRedirects: Natural ## Maximum redirects, set to `0` to disable.
     userAgent: string
-    timeout*: int         ## Only used for blocking HttpClient for now.
+    timeout*: int ## Only used for blocking HttpClient for now.
     proxy: Proxy
     ## `nil` or the callback to call when request progress changes.
     when SocketType is Socket:
@@ -639,14 +668,18 @@ type
       parseBodyFut: Future[void]
     else:
       bodyStream: Stream
-    getBody: bool         ## When `false`, the body is never read in requestAux.
+    getBody: bool ## When `false`, the body is never read in requestAux.
 
-type
-  HttpClient* = HttpClientBase[Socket]
+type HttpClient* = HttpClientBase[Socket]
 
-proc newHttpClient*(userAgent = defUserAgent, maxRedirects = 5,
-                    sslContext = getDefaultSSL(), proxy: Proxy = nil,
-                    timeout = -1, headers = newHttpHeaders()): HttpClient =
+proc newHttpClient*(
+    userAgent = defUserAgent,
+    maxRedirects = 5,
+    sslContext = getDefaultSSL(),
+    proxy: Proxy = nil,
+    timeout = -1,
+    headers = newHttpHeaders(),
+): HttpClient =
   ## Creates a new HttpClient instance.
   ##
   ## `userAgent` specifies the user agent that will be used when making
@@ -684,12 +717,15 @@ proc newHttpClient*(userAgent = defUserAgent, maxRedirects = 5,
   when defined(ssl):
     result.sslContext = sslContext
 
-type
-  AsyncHttpClient* = HttpClientBase[AsyncSocket]
+type AsyncHttpClient* = HttpClientBase[AsyncSocket]
 
-proc newAsyncHttpClient*(userAgent = defUserAgent, maxRedirects = 5,
-                         sslContext = getDefaultSSL(), proxy: Proxy = nil,
-                         headers = newHttpHeaders()): AsyncHttpClient =
+proc newAsyncHttpClient*(
+    userAgent = defUserAgent,
+    maxRedirects = 5,
+    sslContext = getDefaultSSL(),
+    proxy: Proxy = nil,
+    headers = newHttpHeaders(),
+): AsyncHttpClient =
   ## Creates a new AsyncHttpClient instance.
   ##
   ## `userAgent` specifies the user agent that will be used when making
@@ -748,24 +784,27 @@ proc getSocket*(client: HttpClient): Socket {.inline.} =
 proc getSocket*(client: AsyncHttpClient): AsyncSocket {.inline.} =
   return client.socket
 
-proc reportProgress(client: HttpClient | AsyncHttpClient,
-                    progress: BiggestInt) {.multisync.} =
+proc reportProgress(
+    client: HttpClient | AsyncHttpClient, progress: BiggestInt
+) {.multisync.} =
   client.contentProgress += progress
   client.oneSecondProgress += progress
   if (getMonoTime() - client.lastProgressReport).inSeconds >= 1:
     if not client.onProgressChanged.isNil:
-      await client.onProgressChanged(client.contentTotal,
-                                     client.contentProgress,
-                                     client.oneSecondProgress)
+      await client.onProgressChanged(
+        client.contentTotal, client.contentProgress, client.oneSecondProgress
+      )
       client.oneSecondProgress = 0
       client.lastProgressReport = getMonoTime()
 
-proc recvFull(client: HttpClient | AsyncHttpClient, size: int, timeout: int,
-              keep: bool): Future[int] {.multisync.} =
+proc recvFull(
+    client: HttpClient | AsyncHttpClient, size: int, timeout: int, keep: bool
+): Future[int] {.multisync.} =
   ## Ensures that all the data requested is read and returned.
   var readLen = 0
   while true:
-    if size == readLen: break
+    if size == readLen:
+      break
 
     let remainingSize = size - readLen
     let sizeToRecv = min(remainingSize, net.BufferSize)
@@ -786,8 +825,7 @@ proc recvFull(client: HttpClient | AsyncHttpClient, size: int, timeout: int,
 
   return readLen
 
-proc parseChunks(client: HttpClient | AsyncHttpClient): Future[void]
-                 {.multisync.} =
+proc parseChunks(client: HttpClient | AsyncHttpClient): Future[void] {.multisync.} =
   while true:
     var chunkSize = 0
     var chunkSizeStr = await client.socket.recvLine()
@@ -796,11 +834,11 @@ proc parseChunks(client: HttpClient | AsyncHttpClient): Future[void]
       httpError("Server terminated connection prematurely")
     while i < chunkSizeStr.len:
       case chunkSizeStr[i]
-      of '0'..'9':
+      of '0' .. '9':
         chunkSize = chunkSize shl 4 or (ord(chunkSizeStr[i]) - ord('0'))
-      of 'a'..'f':
+      of 'a' .. 'f':
         chunkSize = chunkSize shl 4 or (ord(chunkSizeStr[i]) - ord('a') + 10)
-      of 'A'..'F':
+      of 'A' .. 'F':
         chunkSize = chunkSize shl 4 or (ord(chunkSizeStr[i]) - ord('A') + 10)
       of ';':
         # http://tools.ietf.org/html/rfc2616#section-3.6.1
@@ -823,8 +861,9 @@ proc parseChunks(client: HttpClient | AsyncHttpClient): Future[void]
     # Trailer headers will only be sent if the request specifies that we want
     # them: http://tools.ietf.org/html/rfc2616#section-3.6.1
 
-proc parseBody(client: HttpClient | AsyncHttpClient, headers: HttpHeaders,
-               httpVersion: string): Future[void] {.multisync.} =
+proc parseBody(
+    client: HttpClient | AsyncHttpClient, headers: HttpHeaders, httpVersion: string
+): Future[void] {.multisync.} =
   # Reset progress from previous requests.
   client.contentTotal = 0
   client.contentProgress = 0
@@ -849,8 +888,10 @@ proc parseBody(client: HttpClient | AsyncHttpClient, headers: HttpHeaders,
           client.close()
           httpError("Got disconnected while trying to read body.")
         if recvLen != length:
-          httpError("Received length doesn't match expected length. Wanted " &
-                    $length & " got: " & $recvLen)
+          httpError(
+            "Received length doesn't match expected length. Wanted " & $length & " got: " &
+              $recvLen
+          )
     else:
       # (http://tools.ietf.org/html/rfc2616#section-4.4) NR.4 TODO
 
@@ -877,9 +918,9 @@ proc parseBody(client: HttpClient | AsyncHttpClient, headers: HttpHeaders,
   if headers.getOrDefault"Connection" == "close":
     client.close()
 
-proc parseResponse(client: HttpClient | AsyncHttpClient,
-                   getBody: bool): Future[Response | AsyncResponse]
-                   {.multisync.} =
+proc parseResponse(
+    client: HttpClient | AsyncHttpClient, getBody: bool
+): Future[Response | AsyncResponse] {.multisync.} =
   new result
   var parsedStatus = false
   var linei = 0
@@ -907,10 +948,12 @@ proc parseResponse(client: HttpClient | AsyncHttpClient,
         httpError("invalid http version, `" & line & "`")
       inc(linei, le)
       le = skipIgnoreCase(line, "1.1", linei)
-      if le > 0: result.version = "1.1"
+      if le > 0:
+        result.version = "1.1"
       else:
         le = skipIgnoreCase(line, "1.0", linei)
-        if le <= 0: httpError("unsupported http version")
+        if le <= 0:
+          httpError("unsupported http version")
         result.version = "1.0"
       inc(linei, le)
       # Status code
@@ -929,16 +972,20 @@ proc parseResponse(client: HttpClient | AsyncHttpClient,
           # Some extra unparsable lines in the HTTP output - we ignore them
           discard
         else:
-          result.headers.table[result.headers.toCaseInsensitive(lastHeaderName)][^1].add "\n" & line
+          result.headers.table[result.headers.toCaseInsensitive(lastHeaderName)][^1].add "\n" &
+            line
       else:
         var name = ""
         var le = parseUntil(line, name, ':', linei)
-        if le <= 0: httpError("Invalid headers - received empty header name")
-        if line.len == le: httpError("Invalid headers - no colon after header name")
+        if le <= 0:
+          httpError("Invalid headers - received empty header name")
+        if line.len == le:
+          httpError("Invalid headers - no colon after header name")
         inc(linei, le) # Skip the parsed header name
         inc(linei) # Skip :
         # If we want to be HTTP spec compliant later, error on linei == line.len (for empty header value)
-        lastHeaderName = name # Remember the header name for the possible multi-line header
+        lastHeaderName = name
+          # Remember the header name for the possible multi-line header
         result.headers.add(name, line[linei .. ^1].strip())
         if result.headers.len > headerLimit:
           httpError("too many headers")
@@ -969,14 +1016,12 @@ proc parseResponse(client: HttpClient | AsyncHttpClient,
 proc startSsl(client: HttpClient | AsyncHttpClient, hostname: string) =
   when defined(ssl):
     try:
-      client.sslContext.wrapConnectedSocket(
-        client.socket, handshakeAsClient, hostname)
+      client.sslContext.wrapConnectedSocket(client.socket, handshakeAsClient, hostname)
     except:
       client.socket.close()
       raise getCurrentException()
 
-proc socks5hHandshake(client: HttpClient | AsyncHttpClient,
-                      url: Uri) {.multisync.} =
+proc socks5hHandshake(client: HttpClient | AsyncHttpClient, url: Uri) {.multisync.} =
   var hasAuth = client.proxy.url.username != ""
   if hasAuth:
     await client.socket.send("\x05\x02\x00\x02") # Propose auth
@@ -990,8 +1035,8 @@ proc socks5hHandshake(client: HttpClient | AsyncHttpClient,
 
   if resp == "\x05\x02" and hasAuth:
     # Perform auth
-    let authStr = "\x01" &
-      char(client.proxy.url.username.len) & client.proxy.url.username &
+    let authStr =
+      "\x01" & char(client.proxy.url.username.len) & client.proxy.url.username &
       char(client.proxy.url.password.len) & client.proxy.url.password
     await client.socket.send(authStr)
     when client.socket is Socket:
@@ -1003,13 +1048,19 @@ proc socks5hHandshake(client: HttpClient | AsyncHttpClient,
   elif resp != "\x05\x00":
     httpError("Unexpected proxy response: " & resp.toHex())
 
-  let port = if url.port != "": parseInt(url.port)
-              elif url.scheme == "http": 80
-              else: 443
+  let port =
+    if url.port != "":
+      parseInt(url.port)
+    elif url.scheme == "http":
+      80
+    else:
+      443
   var p = "  "
   p[0] = cast[char](port.uint16 shr 8)
   p[1] = cast[char](port)
-  await client.socket.send("\x05\x01\x00\x03" & url.hostname.len.char & url.hostname & p)
+  await client.socket.send(
+    "\x05\x01\x00\x03" & url.hostname.len.char & url.hostname & p
+  )
   when client.socket is Socket:
     resp = client.socket.recv(10, client.timeout)
   else:
@@ -1017,13 +1068,9 @@ proc socks5hHandshake(client: HttpClient | AsyncHttpClient,
   if resp.len != 10 or resp[0] != '\x05' or resp[1] != '\x00':
     httpError("Unexpected proxy response: " & resp.toHex())
 
-proc newConnection(client: HttpClient | AsyncHttpClient,
-                   url: Uri) {.multisync.} =
-  if client.currentURL.hostname != url.hostname or
-      client.currentURL.scheme != url.scheme or
-      client.currentURL.port != url.port or
-      (not client.connected):
-
+proc newConnection(client: HttpClient | AsyncHttpClient, url: Uri) {.multisync.} =
+  if client.currentURL.hostname != url.hostname or client.currentURL.scheme != url.scheme or
+      client.currentURL.port != url.port or (not client.connected):
     var isSsl = false
     var connectionUrl = url
     if client.proxy.isNil:
@@ -1037,8 +1084,10 @@ proc newConnection(client: HttpClient | AsyncHttpClient,
         isSsl = url.scheme.toLowerAscii() == "https"
 
     if isSsl and not defined(ssl):
-      raise newException(HttpRequestError,
-        "SSL support is not available. Cannot connect over SSL. Compile with -d:ssl to enable.")
+      raise newException(
+        HttpRequestError,
+        "SSL support is not available. Cannot connect over SSL. Compile with -d:ssl to enable.",
+      )
 
     if client.connected:
       client.close()
@@ -1051,19 +1100,23 @@ proc newConnection(client: HttpClient | AsyncHttpClient,
           nativesockets.Port(443)
         else:
           nativesockets.Port(80)
-      else: nativesockets.Port(connectionUrl.port.parseInt)
+      else:
+        nativesockets.Port(connectionUrl.port.parseInt)
 
     when client is HttpClient:
       client.socket = net.dial(connectionUrl.hostname, port)
     elif client is AsyncHttpClient:
       client.socket = await asyncnet.dial(connectionUrl.hostname, port)
-    else: {.fatal: "Unsupported client type".}
+    else:
+      {.fatal: "Unsupported client type".}
 
     if not client.proxy.isNil and client.proxy.url.scheme.toLowerAscii() == "socks5h":
       await socks5hHandshake(client, url)
-      if isSsl: startSsl(client, url.hostname)
+      if isSsl:
+        startSsl(client, url.hostname)
     else:
-      if isSsl: startSsl(client, connectionUrl.hostname)
+      if isSsl:
+        startSsl(client, connectionUrl.hostname)
       # If need to CONNECT through http(s) proxy
       if url.scheme == "https" and not client.proxy.isNil:
         when defined(ssl):
@@ -1072,29 +1125,36 @@ proc newConnection(client: HttpClient | AsyncHttpClient,
           connectUrl.hostname = url.hostname
           connectUrl.port = if url.port != "": url.port else: "443"
 
-          let proxyHeaderString = generateHeaders(connectUrl, HttpConnect,
-              newHttpHeaders(), client.proxy)
+          let proxyHeaderString =
+            generateHeaders(connectUrl, HttpConnect, newHttpHeaders(), client.proxy)
           await client.socket.send(proxyHeaderString)
           let proxyResp = await parseResponse(client, false)
 
           if not proxyResp.status.startsWith("200"):
-            raise newException(HttpRequestError,
-                              "The proxy server rejected a CONNECT request, " &
-                              "so a secure connection could not be established.")
+            raise newException(
+              HttpRequestError,
+              "The proxy server rejected a CONNECT request, " &
+                "so a secure connection could not be established.",
+            )
           client.sslContext.wrapConnectedSocket(
-            client.socket, handshakeAsClient, url.hostname)
+            client.socket, handshakeAsClient, url.hostname
+          )
         else:
-          raise newException(HttpRequestError,
-          "SSL support is not available. Cannot connect over SSL. Compile with -d:ssl to enable.")
+          raise newException(
+            HttpRequestError,
+            "SSL support is not available. Cannot connect over SSL. Compile with -d:ssl to enable.",
+          )
 
     # May be connected through proxy but remember actual URL being accessed
     client.currentURL = url
     client.connected = true
 
-proc readFileSizes(client: HttpClient | AsyncHttpClient,
-                   multipart: MultipartData) {.multisync.} =
+proc readFileSizes(
+    client: HttpClient | AsyncHttpClient, multipart: MultipartData
+) {.multisync.} =
   for entry in multipart.content.mitems():
-    if not entry.isFile: continue
+    if not entry.isFile:
+      continue
     if not entry.isStream:
       entry.fileSize = entry.content.len
       continue
@@ -1112,8 +1172,9 @@ proc format(entry: MultipartEntry, boundary: string): string =
   else:
     result.add(httpNewLine & httpNewLine & entry.content)
 
-proc format(client: HttpClient | AsyncHttpClient,
-            multipart: MultipartData): Future[seq[string]] {.multisync.} =
+proc format(
+    client: HttpClient | AsyncHttpClient, multipart: MultipartData
+): Future[seq[string]] {.multisync.} =
   result = @[]
   let bound = getBoundary(multipart)
   client.headers["Content-Type"] = "multipart/form-data; boundary=" & bound
@@ -1128,7 +1189,8 @@ proc format(client: HttpClient | AsyncHttpClient,
 
   result.add "--" & bound & "--" & httpNewLine
 
-  for s in result: length += s.len
+  for s in result:
+    length += s.len
   client.headers["Content-Length"] = $length
 
 proc override(fallback, override: HttpHeaders): HttpHeaders =
@@ -1145,10 +1207,14 @@ proc override(fallback, override: HttpHeaders): HttpHeaders =
   for k, vs in override.table:
     result[k] = vs
 
-proc requestAux(client: HttpClient | AsyncHttpClient, url: Uri,
-                httpMethod: HttpMethod, body = "", headers: HttpHeaders = nil,
-                multipart: MultipartData = nil): Future[Response | AsyncResponse]
-                {.multisync.} =
+proc requestAux(
+    client: HttpClient | AsyncHttpClient,
+    url: Uri,
+    httpMethod: HttpMethod,
+    body = "",
+    headers: HttpHeaders = nil,
+    multipart: MultipartData = nil,
+): Future[Response | AsyncResponse] {.multisync.} =
   # Helper that actually makes the request. Does not handle redirects.
   if url.scheme == "":
     raise newException(ValueError, "No uri scheme supplied.")
@@ -1181,15 +1247,15 @@ proc requestAux(client: HttpClient | AsyncHttpClient, url: Uri,
   if not newHeaders.hasKey("user-agent") and client.userAgent.len > 0:
     newHeaders["User-Agent"] = client.userAgent
 
-  let headerString = generateHeaders(url, httpMethod, newHeaders,
-                                     client.proxy)
+  let headerString = generateHeaders(url, httpMethod, newHeaders, client.proxy)
   await client.socket.send(headerString)
 
   if data.len > 0:
     var buffer: string = ""
     for i, entry in multipart.content:
       buffer.add data[i]
-      if not entry.isFile: continue
+      if not entry.isFile:
+        continue
       if buffer.len > 0:
         await client.socket.send(buffer)
         buffer.setLen(0)
@@ -1203,15 +1269,17 @@ proc requestAux(client: HttpClient | AsyncHttpClient, url: Uri,
   elif body.len > 0:
     await client.socket.send(body)
 
-  let getBody = httpMethod notin {HttpHead, HttpConnect} and
-                client.getBody
+  let getBody = httpMethod notin {HttpHead, HttpConnect} and client.getBody
   result = await parseResponse(client, getBody)
 
-proc request*(client: HttpClient | AsyncHttpClient, url: Uri | string,
-              httpMethod: HttpMethod | string = HttpGet, body = "",
-              headers: HttpHeaders = nil,
-              multipart: MultipartData = nil): Future[Response | AsyncResponse]
-              {.multisync.} =
+proc request*(
+    client: HttpClient | AsyncHttpClient,
+    url: Uri | string,
+    httpMethod: HttpMethod | string = HttpGet,
+    body = "",
+    headers: HttpHeaders = nil,
+    multipart: MultipartData = nil,
+): Future[Response | AsyncResponse] {.multisync.} =
   ## Connects to the hostname specified by the URL and performs a request
   ## using the custom method string specified by `httpMethod`.
   ##
@@ -1230,13 +1298,18 @@ proc request*(client: HttpClient | AsyncHttpClient, url: Uri | string,
   ##
   ## **Deprecated since v1.5**: use HttpMethod enum instead; string parameter httpMethod is deprecated
   when url is string:
-    doAssert(not url.contains({'\c', '\L'}), "url shouldn't contain any newline characters")
+    doAssert(
+      not url.contains({'\c', '\L'}), "url shouldn't contain any newline characters"
+    )
     let url = parseUri(url)
 
   when httpMethod is string:
-    {.warning:
-       "Deprecated since v1.5; use HttpMethod enum instead; string parameter httpMethod is deprecated".}
-    let httpMethod = case httpMethod
+    {.
+      warning:
+        "Deprecated since v1.5; use HttpMethod enum instead; string parameter httpMethod is deprecated"
+    .}
+    let httpMethod =
+      case httpMethod
       of "HEAD":
         HttpHead
       of "GET":
@@ -1261,7 +1334,7 @@ proc request*(client: HttpClient | AsyncHttpClient, url: Uri | string,
   result = await client.requestAux(url, httpMethod, body, headers, multipart)
 
   var lastURL = url
-  for i in 1..client.maxRedirects:
+  for i in 1 .. client.maxRedirects:
     let statusCode = result.code
 
     if statusCode notin {Http301, Http302, Http303, Http307, Http308}:
@@ -1297,7 +1370,7 @@ proc request*(client: HttpClient | AsyncHttpClient, url: Uri | string,
     # Check if the redirection is to the same domain or a sub-domain (foo.com
     # -> sub.foo.com)
     if redirectTo.hostname != lastURL.hostname and
-      not redirectTo.hostname.endsWith("." & lastURL.hostname):
+        not redirectTo.hostname.endsWith("." & lastURL.hostname):
       # Perform some cleanup of the header values
       if headers != nil:
         # Delete the Host header
@@ -1305,8 +1378,9 @@ proc request*(client: HttpClient | AsyncHttpClient, url: Uri | string,
         # Do not send any sensitive info to a unknown host
         headers.del("Authorization")
 
-    result = await client.requestAux(redirectTo, redirectMethod, redirectBody,
-                                     headers, multipart)
+    result = await client.requestAux(
+      redirectTo, redirectMethod, redirectBody, headers, multipart
+    )
     lastURL = redirectTo
 
 proc responseContent(resp: Response | AsyncResponse): Future[string] {.multisync.} =
@@ -1319,75 +1393,99 @@ proc responseContent(resp: Response | AsyncResponse): Future[string] {.multisync
   else:
     return await resp.bodyStream.readAll()
 
-proc head*(client: HttpClient | AsyncHttpClient,
-          url: Uri | string): Future[Response | AsyncResponse] {.multisync.} =
+proc head*(
+    client: HttpClient | AsyncHttpClient, url: Uri | string
+): Future[Response | AsyncResponse] {.multisync.} =
   ## Connects to the hostname specified by the URL and performs a HEAD request.
   ##
   ## This procedure uses httpClient values such as `client.maxRedirects`.
   result = await client.request(url, HttpHead)
 
-proc get*(client: HttpClient | AsyncHttpClient,
-          url: Uri | string): Future[Response | AsyncResponse] {.multisync.} =
+proc get*(
+    client: HttpClient | AsyncHttpClient, url: Uri | string
+): Future[Response | AsyncResponse] {.multisync.} =
   ## Connects to the hostname specified by the URL and performs a GET request.
   ##
   ## This procedure uses httpClient values such as `client.maxRedirects`.
   result = await client.request(url, HttpGet)
 
-proc getContent*(client: HttpClient | AsyncHttpClient,
-                 url: Uri | string): Future[string] {.multisync.} =
+proc getContent*(
+    client: HttpClient | AsyncHttpClient, url: Uri | string
+): Future[string] {.multisync.} =
   ## Connects to the hostname specified by the URL and returns the content of a GET request.
   let resp = await get(client, url)
   return await responseContent(resp)
 
-proc delete*(client: HttpClient | AsyncHttpClient,
-             url: Uri | string): Future[Response | AsyncResponse] {.multisync.} =
+proc delete*(
+    client: HttpClient | AsyncHttpClient, url: Uri | string
+): Future[Response | AsyncResponse] {.multisync.} =
   ## Connects to the hostname specified by the URL and performs a DELETE request.
   ## This procedure uses httpClient values such as `client.maxRedirects`.
   result = await client.request(url, HttpDelete)
 
-proc deleteContent*(client: HttpClient | AsyncHttpClient,
-                    url: Uri | string): Future[string] {.multisync.} =
+proc deleteContent*(
+    client: HttpClient | AsyncHttpClient, url: Uri | string
+): Future[string] {.multisync.} =
   ## Connects to the hostname specified by the URL and returns the content of a DELETE request.
   let resp = await delete(client, url)
   return await responseContent(resp)
 
-proc post*(client: HttpClient | AsyncHttpClient, url: Uri | string, body = "",
-           multipart: MultipartData = nil): Future[Response | AsyncResponse]
-           {.multisync.} =
+proc post*(
+    client: HttpClient | AsyncHttpClient,
+    url: Uri | string,
+    body = "",
+    multipart: MultipartData = nil,
+): Future[Response | AsyncResponse] {.multisync.} =
   ## Connects to the hostname specified by the URL and performs a POST request.
   ## This procedure uses httpClient values such as `client.maxRedirects`.
-  result = await client.request(url, HttpPost, body, multipart=multipart)
+  result = await client.request(url, HttpPost, body, multipart = multipart)
 
-proc postContent*(client: HttpClient | AsyncHttpClient, url: Uri | string, body = "",
-                  multipart: MultipartData = nil): Future[string]
-                  {.multisync.} =
+proc postContent*(
+    client: HttpClient | AsyncHttpClient,
+    url: Uri | string,
+    body = "",
+    multipart: MultipartData = nil,
+): Future[string] {.multisync.} =
   ## Connects to the hostname specified by the URL and returns the content of a POST request.
   let resp = await post(client, url, body, multipart)
   return await responseContent(resp)
 
-proc put*(client: HttpClient | AsyncHttpClient, url: Uri | string, body = "",
-          multipart: MultipartData = nil): Future[Response | AsyncResponse]
-          {.multisync.} =
+proc put*(
+    client: HttpClient | AsyncHttpClient,
+    url: Uri | string,
+    body = "",
+    multipart: MultipartData = nil,
+): Future[Response | AsyncResponse] {.multisync.} =
   ## Connects to the hostname specified by the URL and performs a PUT request.
   ## This procedure uses httpClient values such as `client.maxRedirects`.
-  result = await client.request(url, HttpPut, body, multipart=multipart)
+  result = await client.request(url, HttpPut, body, multipart = multipart)
 
-proc putContent*(client: HttpClient | AsyncHttpClient, url: Uri | string, body = "",
-                 multipart: MultipartData = nil): Future[string] {.multisync.} =
+proc putContent*(
+    client: HttpClient | AsyncHttpClient,
+    url: Uri | string,
+    body = "",
+    multipart: MultipartData = nil,
+): Future[string] {.multisync.} =
   ## Connects to the hostname specified by the URL andreturns the content of a PUT request.
   let resp = await put(client, url, body, multipart)
   return await responseContent(resp)
 
-proc patch*(client: HttpClient | AsyncHttpClient, url: Uri | string, body = "",
-            multipart: MultipartData = nil): Future[Response | AsyncResponse]
-            {.multisync.} =
+proc patch*(
+    client: HttpClient | AsyncHttpClient,
+    url: Uri | string,
+    body = "",
+    multipart: MultipartData = nil,
+): Future[Response | AsyncResponse] {.multisync.} =
   ## Connects to the hostname specified by the URL and performs a PATCH request.
   ## This procedure uses httpClient values such as `client.maxRedirects`.
-  result = await client.request(url, HttpPatch, body, multipart=multipart)
+  result = await client.request(url, HttpPatch, body, multipart = multipart)
 
-proc patchContent*(client: HttpClient | AsyncHttpClient, url: Uri | string, body = "",
-                   multipart: MultipartData = nil): Future[string]
-                  {.multisync.} =
+proc patchContent*(
+    client: HttpClient | AsyncHttpClient,
+    url: Uri | string,
+    body = "",
+    multipart: MultipartData = nil,
+): Future[string] {.multisync.} =
   ## Connects to the hostname specified by the URL and returns the content of a PATCH request.
   let resp = await patch(client, url, body, multipart)
   return await responseContent(resp)
@@ -1408,8 +1506,9 @@ proc downloadFile*(client: HttpClient, url: Uri | string, filename: string) =
   parseBody(client, resp.headers, resp.version)
   client.bodyStream.close()
 
-proc downloadFileEx(client: AsyncHttpClient,
-                    url: Uri | string, filename: string): Future[void] {.async.} =
+proc downloadFileEx(
+    client: AsyncHttpClient, url: Uri | string, filename: string
+): Future[void] {.async.} =
   ## Downloads `url` and saves it to `filename`.
   client.getBody = false
   let resp = await client.get(url)
@@ -1419,7 +1518,8 @@ proc downloadFileEx(client: AsyncHttpClient,
 
   client.bodyStream = newFutureStream[string]("downloadFile")
   var file = openAsync(filename, fmWrite)
-  defer: file.close()
+  defer:
+    file.close()
   # Let `parseBody` write response data into client.bodyStream in the
   # background.
   let parseBodyFut = parseBody(client, resp.headers, resp.version)
@@ -1430,8 +1530,9 @@ proc downloadFileEx(client: AsyncHttpClient,
   # `bodyStream` has been written to the file.
   await file.writeFromStream(client.bodyStream)
 
-proc downloadFile*(client: AsyncHttpClient, url: Uri | string,
-                   filename: string): Future[void] =
+proc downloadFile*(
+    client: AsyncHttpClient, url: Uri | string, filename: string
+): Future[void] =
   result = newFuture[void]("downloadFile")
   try:
     result = downloadFileEx(client, url, filename)
@@ -1439,5 +1540,6 @@ proc downloadFile*(client: AsyncHttpClient, url: Uri | string,
     result.fail(exc)
   finally:
     result.addCallback(
-      proc () = client.getBody = true
+      proc() =
+        client.getBody = true
     )

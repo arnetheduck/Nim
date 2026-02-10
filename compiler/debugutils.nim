@@ -17,13 +17,13 @@ useful debugging flags:
 
 import options
 import std/wrapnils
-export wrapnils
-  # allows using things like: `?.n.sym.typ.len`
+export wrapnils # allows using things like: `?.n.sym.typ.len`
 
 import std/stackframes
-export stackframes
-  # allows using things like: `setFrameMsg c.config$n.info & " " & $n.kind`
-  # which doesn't log, but augments stacktrace with side channel information
+export
+  stackframes
+    # allows using things like: `setFrameMsg c.config$n.info & " " & $n.kind`
+    # which doesn't log, but augments stacktrace with side channel information
 
 var conf0: ConfigRef
 
@@ -47,12 +47,13 @@ proc isCompilerDebug*(): bool =
   ```
   ]##
   runnableExamples:
-    proc main =
+    proc main() =
       echo 2
       {.define(nimCompilerDebug).}
       echo 3.5 # code section in which `isCompilerDebug` will be true
       {.undef(nimCompilerDebug).}
       echo 'x'
+
   conf0.isDefined("nimCompilerDebug")
 
 proc enteringDebugSection*() {.exportc, dynlib.} =

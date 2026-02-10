@@ -26,15 +26,18 @@ template tupleObjectDollar*[T: tuple | object](result: var string, x: T) =
   const isNamed = T is object or isNamedTuple(typeof(T))
   var count {.used.} = 0
   for name, value in fieldPairs(x):
-    if count > 0: result.add(", ")
+    if count > 0:
+      result.add(", ")
     when isNamed:
       result.add(name)
       result.add(": ")
     count.inc
     when compiles($value):
       when value isnot string and value isnot seq and compiles(value.isNil):
-        if value.isNil: result.add "nil"
-        else: result.addQuoted(value)
+        if value.isNil:
+          result.add "nil"
+        else:
+          result.addQuoted(value)
       else:
         result.addQuoted(value)
     else:

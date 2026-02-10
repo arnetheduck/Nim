@@ -9,9 +9,11 @@
 
 # An `include` file for the different hash set implementations.
 
+template maxHash(t): untyped =
+  high(t.data)
 
-template maxHash(t): untyped = high(t.data)
-template dataLen(t): untyped = len(t.data)
+template dataLen(t): untyped =
+  len(t.data)
 
 include hashcommon
 
@@ -29,8 +31,9 @@ template rawInsertImpl() {.dirty.} =
   data[h].key = key
   data[h].hcode = hc
 
-proc rawInsert[A](s: var HashSet[A], data: var KeyValuePairSeq[A], key: A,
-                  hc: Hash, h: Hash) =
+proc rawInsert[A](
+    s: var HashSet[A], data: var KeyValuePairSeq[A], key: A, hc: Hash, h: Hash
+) =
   rawInsertImpl()
 
 proc enlarge[A](s: var HashSet[A]) =
@@ -72,7 +75,8 @@ template containsOrInclImpl() {.dirty.} =
 template doWhile(a, b) =
   while true:
     b
-    if not a: break
+    if not a:
+      break
 
 proc exclImpl[A](s: var HashSet[A], key: A): bool {.inline.} =
   var hc: Hash
@@ -87,7 +91,7 @@ proc exclImpl[A](s: var HashSet[A], key: A): bool {.inline.} =
       var j = i # The correctness of this depends on (h+1) in nextTry,
       var r = j # though may be adaptable to other simple sequences.
       s.data[i].hcode = 0 # mark current EMPTY
-      {.push warning[UnsafeDefault]:off.}
+      {.push warning[UnsafeDefault]: off.}
       reset(s.data[i].key)
       {.pop.}
       doWhile((i >= r and r > j) or (r > j and j > i) or (j > i and i >= r)):
@@ -100,23 +104,25 @@ proc exclImpl[A](s: var HashSet[A], key: A): bool {.inline.} =
 template dollarImpl() {.dirty.} =
   result = "{"
   for key in items(s):
-    if result.len > 1: result.add(", ")
+    if result.len > 1:
+      result.add(", ")
     result.addQuoted(key)
   result.add("}")
-
-
 
 # --------------------------- OrderedSet ------------------------------
 
 proc rawGet[A](t: OrderedSet[A], key: A, hc: var Hash): int {.inline.} =
   rawGetImpl()
 
-proc rawInsert[A](s: var OrderedSet[A], data: var OrderedKeyValuePairSeq[A],
-                  key: A, hc: Hash, h: Hash) =
+proc rawInsert[A](
+    s: var OrderedSet[A], data: var OrderedKeyValuePairSeq[A], key: A, hc: Hash, h: Hash
+) =
   rawInsertImpl()
   data[h].next = -1
-  if s.first < 0: s.first = h
-  if s.last >= 0: data[s.last].next = h
+  if s.first < 0:
+    s.first = h
+  if s.last >= 0:
+    data[s.last].next = h
   s.last = h
 
 proc enlarge[A](s: var OrderedSet[A]) =

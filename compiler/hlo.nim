@@ -31,15 +31,19 @@ proc evalPattern(c: PContext, n, orig: PNode): PNode =
   else:
     result = semDirectOp(c, n, {})
   if c.config.hasHint(hintPattern):
-    message(c.config, orig.info, hintPattern, rule & " --> '" &
-      renderTree(result, {renderNoComments}) & "'")
+    message(
+      c.config,
+      orig.info,
+      hintPattern,
+      rule & " --> '" & renderTree(result, {renderNoComments}) & "'",
+    )
 
 proc applyPatterns(c: PContext, n: PNode): PNode =
   result = n
   # we apply the last pattern first, so that pattern overriding is possible;
   # however the resulting AST would better not trigger the old rule then
   # anymore ;-)
-  for i in countdown(c.patterns.len-1, 0):
+  for i in countdown(c.patterns.len - 1, 0):
     let pattern = c.patterns[i]
     if not isNil(pattern):
       let x = applyRule(c, pattern, result)
@@ -72,17 +76,17 @@ proc hlo(c: PContext, n: PNode, loopDetector: int): PNode =
     result = n
   else:
     if n.kind in {nkFastAsgn, nkAsgn, nkSinkAsgn, nkIdentDefs, nkVarTuple} and
-        n[0].kind == nkSym and
-        {sfGlobal, sfPure} <= n[0].sym.flags:
+        n[0].kind == nkSym and {sfGlobal, sfPure} <= n[0].sym.flags:
       # do not optimize 'var g {.global} = re(...)' again!
       return n
     result = applyPatterns(c, n)
     if result == n:
       # no optimization applied, try subtrees:
-      for i in 0..<result.safeLen:
+      for i in 0 ..< result.safeLen:
         let a = result[i]
         let h = hlo(c, a, loopDetector)
-        if h != a: result[i] = h
+        if h != a:
+          result[i] = h
     else:
       # perform type checking, so that the replacement still fits:
       if isEmptyType(n.typ) and isEmptyType(result.typ):
@@ -96,10 +100,12 @@ proc hlo(c: PContext, n: PNode, loopDetector: int): PNode =
 
 proc hloBody(c: PContext, n: PNode): PNode =
   # fast exit:
-  if c.patterns.len == 0 or optTrMacros notin c.config.options: return n
+  if c.patterns.len == 0 or optTrMacros notin c.config.options:
+    return n
   result = hlo(c, n, 0)
 
 proc hloStmt(c: PContext, n: PNode): PNode =
   # fast exit:
-  if c.patterns.len == 0 or optTrMacros notin c.config.options: return n
+  if c.patterns.len == 0 or optTrMacros notin c.config.options:
+    return n
   result = hlo(c, n, 0)

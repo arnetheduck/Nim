@@ -30,10 +30,15 @@ const
   CLONE_NEWNET* = 0x40000000'i32
   CLONE_IO* = 0x80000000'i32
 
-
 # fn should be of type proc (a2: pointer) {.cdecl.}
-proc clone*(fn: pointer; child_stack: pointer; flags: cint;
-            arg: pointer; ptid: ptr Pid; tls: pointer;
-            ctid: ptr Pid): cint {.importc, header: "<sched.h>".}
+proc clone*(
+  fn: pointer,
+  child_stack: pointer,
+  flags: cint,
+  arg: pointer,
+  ptid: ptr Pid,
+  tls: pointer,
+  ctid: ptr Pid,
+): cint {.importc, header: "<sched.h>".}
 
-proc pipe2*(a: array[0..1, cint], flags: cint): cint {.importc, header: "<unistd.h>".}
+proc pipe2*(a: array[0 .. 1, cint], flags: cint): cint {.importc, header: "<unistd.h>".}

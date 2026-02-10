@@ -15,26 +15,31 @@ import stacktraces
 
 const noStacktraceAvailable = "No stack traceback available\n"
 
-var
-  errorMessageWriter*: (proc(msg: string) {.tags: [WriteIOEffect], benign,
-                                            nimcall, raises: [].})
-    ## Function that will be called
-    ## instead of `stdmsg.write` when printing stacktrace.
-    ## Unstable API.
+var errorMessageWriter*:
+  (proc(msg: string) {.tags: [WriteIOEffect], benign, nimcall, raises: [].})
+  ## Function that will be called
+  ## instead of `stdmsg.write` when printing stacktrace.
+  ## Unstable API.
 
 when defined(windows):
   proc GetLastError(): int32 {.header: "<windows.h>", nodecl.}
   const ERROR_BAD_EXE_FORMAT = 193
 
 when not defined(windows) or not defined(guiapp):
-  proc writeToStdErr(msg: cstring) = rawWrite(cstderr, msg)
+  proc writeToStdErr(msg: cstring) =
+    rawWrite(cstderr, msg)
+
   proc writeToStdErr(msg: cstring, length: int) =
     rawWriteString(cstderr, msg, length)
+
 else:
-  proc MessageBoxA(hWnd: pointer, lpText, lpCaption: cstring, uType: int): int32 {.
-    header: "<windows.h>", nodecl.}
+  proc MessageBoxA(
+    hWnd: pointer, lpText, lpCaption: cstring, uType: int
+  ): int32 {.header: "<windows.h>", nodecl.}
+
   proc writeToStdErr(msg: cstring) =
     discard MessageBoxA(nil, msg, nil, 0)
+
   proc writeToStdErr(msg: cstring, length: int) =
     discard MessageBoxA(nil, msg, nil, 0)
 
@@ -44,7 +49,8 @@ proc writeToStdErr(msg: string) {.inline.} =
 
 proc cstrToStrBuiltin(x: cstring): string {.magic: "CStrToStr", noSideEffect.}
 when defined(genode):
-  template `$`(s: string): string = s
+  template `$`(s: string): string =
+    s
 
 proc showErrorMessage(data: cstring, length: int) {.gcsafe, raises: [].} =
   var toWrite = true
@@ -80,11 +86,9 @@ when NimStackTraceMsgs:
   var frameMsgBuf* {.threadvar.}: string
 
 when not defined(nimV2):
-  var
-    framePtr {.threadvar.}: PFrame
+  var framePtr {.threadvar.}: PFrame
 
-var
-  currException {.threadvar.}: ref Exception
+var currException {.threadvar.}: ref Exception
 
 when not gotoBasedExceptions:
   var
@@ -94,13 +98,15 @@ when not gotoBasedExceptions:
     gcFramePtr {.threadvar.}: GcFrame
 
 when gotoBasedExceptions:
-  type
-    FrameState = tuple[framePtr: PFrame,
-                      currException: ref Exception]
+  type FrameState = tuple[framePtr: PFrame, currException: ref Exception]
 else:
-  type
-    FrameState = tuple[gcFramePtr: GcFrame, framePtr: PFrame,
-                      excHandler: PSafePoint, currException: ref Exception]
+  type FrameState =
+    tuple[
+      gcFramePtr: GcFrame,
+      framePtr: PFrame,
+      excHandler: PSafePoint,
+      currException: ref Exception,
+    ]
 
 proc getFrameState*(): FrameState {.compilerRtl, inl.} =
   when gotoBasedExceptions:
@@ -118,9 +124,10 @@ proc setFrameState*(state: FrameState) {.compilerRtl, inl.} =
     excHandler = state.excHandler
     currException = state.currException
 
-proc getFrame*(): PFrame {.compilerRtl, inl.} = framePtr
+proc getFrame*(): PFrame {.compilerRtl, inl.} =
+  framePtr
 
-proc popFrame {.compilerRtl, inl.} =
+proc popFrame() {.compilerRtl, inl.} =
   framePtr = framePtr.prev
 
 when false:
@@ -139,19 +146,27 @@ proc setFrame*(s: PFrame) {.compilerRtl, inl.} =
   framePtr = s
 
 when not gotoBasedExceptions:
-  proc getGcFrame*(): GcFrame {.compilerRtl, inl.} = gcFramePtr
-  proc popGcFrame*() {.compilerRtl, inl.} = gcFramePtr = gcFramePtr.prev
-  proc setGcFrame*(s: GcFrame) {.compilerRtl, inl.} = gcFramePtr = s
+  proc getGcFrame*(): GcFrame {.compilerRtl, inl.} =
+    gcFramePtr
+
+  proc popGcFrame*() {.compilerRtl, inl.} =
+    gcFramePtr = gcFramePtr.prev
+
+  proc setGcFrame*(s: GcFrame) {.compilerRtl, inl.} =
+    gcFramePtr = s
+
   proc pushGcFrame*(s: GcFrame) {.compilerRtl, inl.} =
     s.prev = gcFramePtr
-    zeroMem(cast[pointer](cast[int](s)+%sizeof(GcFrameHeader)), s.len*sizeof(pointer))
+    zeroMem(
+      cast[pointer](cast[int](s) +% sizeof(GcFrameHeader)), s.len * sizeof(pointer)
+    )
     gcFramePtr = s
 
   proc pushSafePoint(s: PSafePoint) {.compilerRtl, inl.} =
     s.prev = excHandler
     excHandler = s
 
-  proc popSafePoint {.compilerRtl, inl.} =
+  proc popSafePoint() {.compilerRtl, inl.} =
     excHandler = excHandler.prev
 
 proc pushCurrentException(e: sink(ref Exception)) {.compilerRtl, inl.} =
@@ -159,7 +174,7 @@ proc pushCurrentException(e: sink(ref Exception)) {.compilerRtl, inl.} =
   currException = e
   #showErrorMessage2 "A"
 
-proc popCurrentException {.compilerRtl, inl.} =
+proc popCurrentException() {.compilerRtl, inl.} =
   currException = currException.up
   #showErrorMessage2 "B"
 
@@ -171,25 +186,25 @@ proc popCurrentExceptionEx(id: uint) {.compilerRtl.} =
 
 # some platforms have native support for stack traces:
 const
-  nativeStackTraceSupported = (defined(macosx) or defined(linux)) and
-                              not NimStackTrace
-  hasSomeStackTrace = NimStackTrace or defined(nimStackTraceOverride) or
+  nativeStackTraceSupported = (defined(macosx) or defined(linux)) and not NimStackTrace
+  hasSomeStackTrace =
+    NimStackTrace or defined(nimStackTraceOverride) or
     (defined(nativeStackTrace) and nativeStackTraceSupported)
 
-
 when defined(nativeStacktrace) and nativeStackTraceSupported:
-  type
-    TDl_info {.importc: "Dl_info", header: "<dlfcn.h>",
-               final, pure.} = object
-      dli_fname: cstring
-      dli_fbase: pointer
-      dli_sname: cstring
-      dli_saddr: pointer
+  type TDl_info {.importc: "Dl_info", header: "<dlfcn.h>", final, pure.} = object
+    dli_fname: cstring
+    dli_fbase: pointer
+    dli_sname: cstring
+    dli_saddr: pointer
 
-  proc backtrace(symbols: ptr pointer, size: int): int {.
-    importc: "backtrace", header: "<execinfo.h>".}
-  proc dladdr(addr1: pointer, info: ptr TDl_info): int {.
-    importc: "dladdr", header: "<dlfcn.h>".}
+  proc backtrace(
+    symbols: ptr pointer, size: int
+  ): int {.importc: "backtrace", header: "<execinfo.h>".}
+
+  proc dladdr(
+    addr1: pointer, info: ptr TDl_info
+  ): int {.importc: "dladdr", header: "<dlfcn.h>".}
 
   when not hasThreadSupport:
     var
@@ -203,17 +218,17 @@ when defined(nativeStacktrace) and nativeStackTraceSupported:
         tempDlInfo: TDl_info
     # This is allowed to be expensive since it only happens during crashes
     # (but this way you don't need manual stack tracing)
-    var size = backtrace(cast[ptr pointer](addr(tempAddresses)),
-                         len(tempAddresses))
+    var size = backtrace(cast[ptr pointer](addr(tempAddresses)), len(tempAddresses))
     var enabled = false
-    for i in 0..size-1:
+    for i in 0 .. size - 1:
       var dlresult = dladdr(tempAddresses[i], addr(tempDlInfo))
       if enabled:
         if dlresult != 0:
           var oldLen = s.len
           add(s, tempDlInfo.dli_fname)
           if tempDlInfo.dli_sname != nil:
-            for k in 1..max(1, 25-(s.len-oldLen)): add(s, ' ')
+            for k in 1 .. max(1, 25 - (s.len - oldLen)):
+              add(s, ' ')
             add(s, tempDlInfo.dli_sname)
         else:
           add(s, '?')
@@ -226,45 +241,44 @@ when defined(nativeStacktrace) and nativeStackTraceSupported:
           enabled = true
 
 when hasSomeStackTrace and not hasThreadSupport:
-  var
-    tempFrames: array[maxStackTraceLines, PFrame] # should not be alloc'd on stack
+  var tempFrames: array[maxStackTraceLines, PFrame] # should not be alloc'd on stack
 
 template reraisedFrom(z): untyped =
   StackTraceEntry(procname: nil, line: z, filename: nil)
 
-proc auxWriteStackTrace(f: PFrame; s: var seq[StackTraceEntry]) =
+proc auxWriteStackTrace(f: PFrame, s: var seq[StackTraceEntry]) =
   var
     it = f
     i = 0
   while it != nil:
     inc(i)
     it = it.prev
-  var last = i-1
+  var last = i - 1
   when true: # not defined(gcDestructors):
     if s.len == 0:
       s = newSeq[StackTraceEntry](i)
     else:
       last = s.len + i - 1
-      s.setLen(last+1)
+      s.setLen(last + 1)
   it = f
   while it != nil:
-    s[last] = StackTraceEntry(procname: it.procname,
-                              line: it.line,
-                              filename: it.filename)
+    s[last] =
+      StackTraceEntry(procname: it.procname, line: it.line, filename: it.filename)
     when NimStackTraceMsgs:
       let first = if it.prev == nil: 0 else: it.prev.frameMsgLen
       if it.frameMsgLen > first:
         s[last].frameMsg.setLen(it.frameMsgLen - first)
         # somehow string slicing not available here
-        for i in first .. it.frameMsgLen-1:
-          s[last].frameMsg[i-first] = frameMsgBuf[i]
+        for i in first .. it.frameMsgLen - 1:
+          s[last].frameMsg[i - first] = frameMsgBuf[i]
     it = it.prev
     dec last
 
-template addFrameEntry(s: var string, f: StackTraceEntry|PFrame) =
+template addFrameEntry(s: var string, f: StackTraceEntry | PFrame) =
   var oldLen = s.len
   s.toLocation(f.filename, f.line, 0)
-  for k in 1..max(1, 25-(s.len-oldLen)): add(s, ' ')
+  for k in 1 .. max(1, 25 - (s.len - oldLen)):
+    add(s, ' ')
   var i = 0
   while f.procname[i] != '\0':
     add(s, f.procname[i])
@@ -274,7 +288,8 @@ template addFrameEntry(s: var string, f: StackTraceEntry|PFrame) =
       add(s, f.frameMsg)
     else:
       var first = if f.prev == nil: 0 else: f.prev.frameMsgLen
-      for i in first..<f.frameMsgLen: add(s, frameMsgBuf[i])
+      for i in first ..< f.frameMsgLen:
+        add(s, frameMsgBuf[i])
   add(s, "\n")
 
 proc `$`(stackTraceEntries: seq[StackTraceEntry]): string =
@@ -284,13 +299,15 @@ proc `$`(stackTraceEntries: seq[StackTraceEntry]): string =
     let s = stackTraceEntries
 
   result = newStringOfCap(2000)
-  for i in 0 .. s.len-1:
-    if s[i].line == reraisedFromBegin: result.add "[[reraised from:\n"
-    elif s[i].line == reraisedFromEnd: result.add "]]\n"
-    else: addFrameEntry(result, s[i])
+  for i in 0 .. s.len - 1:
+    if s[i].line == reraisedFromBegin:
+      result.add "[[reraised from:\n"
+    elif s[i].line == reraisedFromEnd:
+      result.add "]]\n"
+    else:
+      addFrameEntry(result, s[i])
 
-const
-  Ten = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]
+const Ten = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]
 
 proc i2s(x: int64): string =
   # quick reimplementation; optimized for code size, no dependencies
@@ -298,7 +315,7 @@ proc i2s(x: int64): string =
     if x == -9223372036854775808:
       result = "-9223372036854775808"
     else:
-      result = "-" & i2s(0-x)
+      result = "-" & i2s(0 - x)
   elif x < 10:
     result = Ten[int x] # saves allocations
   else:
@@ -306,29 +323,28 @@ proc i2s(x: int64): string =
     while true:
       result.add char((y mod 10) + int('0'))
       y = y div 10
-      if y == 0: break
-    let last = result.len-1
+      if y == 0:
+        break
+    let last = result.len - 1
     var i = 0
     let b = result.len div 2
     while i < b:
       let ch = result[i]
-      result[i] = result[last-i]
-      result[last-i] = ch
+      result[i] = result[last - i]
+      result[last - i] = ch
       inc i
 
 when hasSomeStackTrace:
   proc auxWriteStackTrace(f: PFrame, s: var string) {.raises: [].} =
     when hasThreadSupport:
-      var
-        tempFrames: array[maxStackTraceLines, PFrame] # but better than a threadvar
-    const
-      firstCalls = 32
+      var tempFrames: array[maxStackTraceLines, PFrame] # but better than a threadvar
+    const firstCalls = 32
     var
       it = f
       i = 0
       total = 0
     # setup long head:
-    while it != nil and i <= high(tempFrames)-firstCalls:
+    while it != nil and i <= high(tempFrames) - firstCalls:
       tempFrames[i] = it
       inc(i)
       inc(total)
@@ -341,9 +357,10 @@ when hasSomeStackTrace:
     var skipped = 0
     if total > len(tempFrames):
       # skip N
-      skipped = total-i-firstCalls+1
-      for j in 1..skipped:
-        if b != nil: b = b.prev
+      skipped = total - i - firstCalls + 1
+      for j in 1 .. skipped:
+        if b != nil:
+          b = b.prev
       # create '...' entry:
       tempFrames[i] = nil
       inc(i)
@@ -352,7 +369,7 @@ when hasSomeStackTrace:
       tempFrames[i] = b
       inc(i)
       b = b.prev
-    for j in countdown(i-1, 0):
+    for j in countdown(i - 1, 0):
       if tempFrames[j] == nil:
         add(s, "(")
         s.add(i2s(skipped))
@@ -398,11 +415,13 @@ when hasSomeStackTrace:
       result = true
     else:
       result = false
-else:
-  proc stackTraceAvailable*(): bool = result = false
 
-var onUnhandledException*: (proc (errorMsg: string) {.
-  nimcall, gcsafe.}) ## Set this error \
+else:
+  proc stackTraceAvailable*(): bool =
+    result = false
+
+var onUnhandledException*: (proc(errorMsg: string) {.nimcall, gcsafe.})
+  ## Set this error \
   ## handler to override the existing behaviour on an unhandled exception.
   ##
   ## The default is to write a stacktrace to `stderr` and then call `quit(1)`.
@@ -436,9 +455,11 @@ proc reportUnhandledErrorAux(e: ref Exception) {.nodestroy, gcsafe.} =
       if L + slen < high(buf):
         copyMem(addr(buf[L]), (when s is cstring: s else: cstring(s)), slen)
         inc L, slen
+
     template add(buf, s) =
       xadd(buf, s, s.len)
-    var buf: array[0..2000, char]
+
+    var buf: array[0 .. 2000, char]
     var L = 0
     if e.trace.len != 0:
       var trace = $e.trace
@@ -494,9 +515,11 @@ proc raiseExceptionAux(e: sink(ref Exception)) {.nodestroy.} =
       rawQuit(1)
 
   if localRaiseHook != nil:
-    if not localRaiseHook(e): return
+    if not localRaiseHook(e):
+      return
   if globalRaiseHook != nil:
-    if not globalRaiseHook(e): return
+    if not globalRaiseHook(e):
+      return
   when defined(cpp) and not defined(noCppExceptions) and not gotoBasedExceptions:
     if e != currException:
       pushCurrentException(e)
@@ -513,9 +536,11 @@ proc raiseExceptionAux(e: sink(ref Exception)) {.nodestroy.} =
       reportUnhandledError(e)
       rawQuit(1)
 
-proc raiseExceptionEx(e: sink(ref Exception), ename, procname, filename: cstring,
-                      line: int) {.compilerRtl, nodestroy.} =
-  if e.name.isNil: e.name = ename
+proc raiseExceptionEx(
+    e: sink(ref Exception), ename, procname, filename: cstring, line: int
+) {.compilerRtl, nodestroy.} =
+  if e.name.isNil:
+    e.name = ename
   when hasSomeStackTrace:
     when defined(nimStackTraceOverride):
       if e.trace.len == 0:
@@ -550,7 +575,8 @@ proc reraiseException() {.compilerRtl.} =
 
 proc threadTrouble() {.raises: [], gcsafe.} =
   try:
-    if currException != nil: reportUnhandledError(currException)
+    if currException != nil:
+      reportUnhandledError(currException)
   except:
     discard
   rawQuit 1
@@ -561,7 +587,9 @@ proc writeStackTrace() =
     rawWriteStackTrace(s)
   else:
     let s = noStacktraceAvailable
-  cast[proc (s: string) {.noSideEffect, tags: [], nimcall, raises: [].}](showErrorMessage2)(s)
+  cast[proc(s: string) {.noSideEffect, tags: [], nimcall, raises: [].}](showErrorMessage2)(
+    s
+  )
 
 proc getStackTrace(): string =
   when hasSomeStackTrace:
@@ -593,9 +621,11 @@ proc callDepthLimitReached() {.noinline.} =
   writeStackTrace()
   var msg = "Error: call depth limit reached in a debug build ("
   msg.add(i2s(nimCallDepthLimit))
-  msg.add(" function calls). You can change it with " &
-    "-d:nimCallDepthLimit=<int> but really try to avoid deep " &
-    "recursions instead.\n")
+  msg.add(
+    " function calls). You can change it with " &
+      "-d:nimCallDepthLimit=<int> but really try to avoid deep " &
+      "recursions instead.\n"
+  )
   showErrorMessage2(msg)
   rawQuit(1)
 
@@ -604,28 +634,29 @@ proc callDepthLimitReached() {.noinline.} =
 proc nimFrame(s: PFrame) {.compilerRtl, inl, raises: [].} =
   if framePtr == nil:
     s.calldepth = 0
-    when NimStackTraceMsgs: s.frameMsgLen = 0
+    when NimStackTraceMsgs:
+      s.frameMsgLen = 0
   else:
-    s.calldepth = framePtr.calldepth+1
-    when NimStackTraceMsgs: s.frameMsgLen = framePtr.frameMsgLen
+    s.calldepth = framePtr.calldepth + 1
+    when NimStackTraceMsgs:
+      s.frameMsgLen = framePtr.frameMsgLen
   s.prev = framePtr
   framePtr = s
-  if s.calldepth == nimCallDepthLimit: callDepthLimitReached()
+  if s.calldepth == nimCallDepthLimit:
+    callDepthLimitReached()
 
 {.pop.}
 
-when defined(cpp) and appType != "lib" and not gotoBasedExceptions and
-    not defined(js) and not defined(nimscript) and
-    hostOS != "standalone" and hostOS != "any" and not defined(noCppExceptions) and
-    not quirkyExceptions:
-
-  type
-    StdException {.importcpp: "std::exception", header: "<exception>".} = object
+when defined(cpp) and appType != "lib" and not gotoBasedExceptions and not defined(js) and
+    not defined(nimscript) and hostOS != "standalone" and hostOS != "any" and
+    not defined(noCppExceptions) and not quirkyExceptions:
+  type StdException {.importcpp: "std::exception", header: "<exception>".} = object
 
   proc what(ex: StdException): cstring {.importcpp: "((char *)#.what())", nodecl.}
 
-  proc setTerminate(handler: proc() {.noconv.})
-    {.importc: "std::set_terminate", header: "<exception>".}
+  proc setTerminate(
+    handler: proc() {.noconv.}
+  ) {.importc: "std::set_terminate", header: "<exception>".}
 
   setTerminate proc() {.noconv.} =
     # Remove ourself as a handler, reinstalling the default handler.
@@ -637,7 +668,8 @@ when defined(cpp) and appType != "lib" and not gotoBasedExceptions and
       raise
       {.emit: "#endif".}
     except Exception:
-      msg = currException.getStackTrace() & "Error: unhandled exception: " &
+      msg =
+        currException.getStackTrace() & "Error: unhandled exception: " &
         currException.msg & " [" & cstrToStrBuiltin(currException.name) & "]"
     except StdException as e:
       msg = "Error: unhandled cpp exception: " & cstrToStrBuiltin(e.what())
@@ -657,18 +689,21 @@ when defined(cpp) and appType != "lib" and not gotoBasedExceptions and
     rawQuit 1
 
 when not defined(noSignalHandler) and not defined(useNimRtl):
-  type Sighandler = proc (a: cint) {.noconv, benign.}
+  type Sighandler = proc(a: cint) {.noconv, benign.}
     # xxx factor with ansi_c.CSighandlerT, posix.Sighandler
 
   proc signalHandler(sign: cint) {.exportc: "signalHandler", noconv, raises: [].} =
     template processSignal(s, action: untyped) {.dirty.} =
-      if s == SIGINT: action("SIGINT: Interrupted by Ctrl-C.\n")
+      if s == SIGINT:
+        action("SIGINT: Interrupted by Ctrl-C.\n")
       elif s == SIGSEGV:
         action("SIGSEGV: Illegal storage access. (Attempt to read from nil?)\n")
       elif s == SIGABRT:
         action("SIGABRT: Abnormal termination.\n")
-      elif s == SIGFPE: action("SIGFPE: Arithmetic error.\n")
-      elif s == SIGILL: action("SIGILL: Illegal operation.\n")
+      elif s == SIGFPE:
+        action("SIGFPE: Arithmetic error.\n")
+      elif s == SIGILL:
+        action("SIGILL: Illegal operation.\n")
       elif (when declared(SIGBUS): s == SIGBUS else: false):
         action("SIGBUS: Illegal storage access. (Attempt to read from nil?)\n")
       else:
@@ -699,16 +734,19 @@ when not defined(noSignalHandler) and not defined(useNimRtl):
     # However, since we're about to go down anyway, YOLO.
 
     when hasSomeStackTrace:
-      when not usesDestructors: GC_disable()
+      when not usesDestructors:
+        GC_disable()
       var buf = newStringOfCap(2000)
       rawWriteStackTrace(buf)
       processSignal(sign, buf.add) # nice hu? currying a la Nim :-)
       showErrorMessage2(buf)
-      when not usesDestructors: GC_enable()
+      when not usesDestructors:
+        GC_enable()
     else:
       var msg: cstring
       template asgn(y) =
         msg = y
+
       processSignal(sign, asgn)
       # showErrorMessage may allocate, which may cause a crash, and calls C
       # library functions which is undefined behavior, ie it may also crash.
@@ -749,7 +787,7 @@ when not defined(noSignalHandler) and not defined(useNimRtl):
 
   registerSignalHandler() # call it in initialization section
 
-proc setControlCHook(hook: proc () {.noconv.}) =
+proc setControlCHook(hook: proc() {.noconv.}) =
   # ugly cast, but should work on all architectures:
   when declared(Sighandler):
     c_signal(SIGINT, cast[Sighandler](hook))

@@ -23,30 +23,30 @@ when defined(nimPreviewSlimSystem):
 # ------------------- scanner -------------------------------------------------
 
 type
-  TokKind = enum            ## enumeration of all SQL tokens
-    tkInvalid,              ## invalid token
-    tkEof,                  ## end of file reached
-    tkIdentifier,           ## abc
-    tkQuotedIdentifier,     ## "abc"
-    tkStringConstant,       ## 'abc'
-    tkEscapeConstant,       ## e'abc'
-    tkDollarQuotedConstant, ## $tag$abc$tag$
-    tkBitStringConstant,    ## B'00011'
-    tkHexStringConstant,    ## x'00011'
-    tkInteger,
-    tkNumeric,
-    tkOperator,             ## + - * / < > = ~ ! @ # % ^ & | ` ?
-    tkSemicolon,            ## ';'
-    tkColon,                ## ':'
-    tkComma,                ## ','
-    tkParLe,                ## '('
-    tkParRi,                ## ')'
-    tkBracketLe,            ## '['
-    tkBracketRi,            ## ']'
-    tkDot                   ## '.'
+  TokKind = enum ## enumeration of all SQL tokens
+    tkInvalid ## invalid token
+    tkEof ## end of file reached
+    tkIdentifier ## abc
+    tkQuotedIdentifier ## "abc"
+    tkStringConstant ## 'abc'
+    tkEscapeConstant ## e'abc'
+    tkDollarQuotedConstant ## $tag$abc$tag$
+    tkBitStringConstant ## B'00011'
+    tkHexStringConstant ## x'00011'
+    tkInteger
+    tkNumeric
+    tkOperator ## + - * / < > = ~ ! @ # % ^ & | ` ?
+    tkSemicolon ## ';'
+    tkColon ## ':'
+    tkComma ## ','
+    tkParLe ## '('
+    tkParRi ## ')'
+    tkBracketLe ## '['
+    tkBracketRi ## ']'
+    tkDot ## '.'
 
-  Token = object    # a token
-    kind: TokKind   # the type of the token
+  Token = object # a token
+    kind: TokKind # the type of the token
     literal: string # the parsed (string) literal
 
   SqlLexer* = object of BaseLexer ## the parser object.
@@ -56,13 +56,19 @@ const
   tokKindToStr: array[TokKind, string] = [
     "invalid", "[EOF]", "identifier", "quoted identifier", "string constant",
     "escape string constant", "dollar quoted constant", "bit string constant",
-    "hex string constant", "integer constant", "numeric constant", "operator",
-    ";", ":", ",", "(", ")", "[", "]", "."
+    "hex string constant", "integer constant", "numeric constant", "operator", ";", ":",
+    ",", "(", ")", "[", "]", ".",
   ]
 
   reservedKeywords = @[
     # statements
-    "select", "from", "where", "group", "limit", "offset", "having",
+    "select",
+    "from",
+    "where",
+    "group",
+    "limit",
+    "offset",
+    "having",
     # functions
     "count",
   ]
@@ -78,7 +84,7 @@ proc getLine(L: SqlLexer): int =
   result = L.lineNumber
 
 proc handleOctChar(c: var SqlLexer, xi: var int) =
-  if c.buf[c.bufpos] in {'0'..'7'}:
+  if c.buf[c.bufpos] in {'0' .. '7'}:
     xi = (xi shl 3) or (ord(c.buf[c.bufpos]) - ord('0'))
     inc(c.bufpos)
 
@@ -126,20 +132,26 @@ proc getEscapedChar(c: var SqlLexer, tok: var Token) =
       if handleHexChar(c.buf[c.bufpos], xi):
         inc(c.bufpos)
     add(tok.literal, chr(xi))
-  of '0'..'7':
+  of '0' .. '7':
     var xi = 0
     handleOctChar(c, xi)
     handleOctChar(c, xi)
     handleOctChar(c, xi)
-    if (xi <= 255): add(tok.literal, chr(xi))
-    else: tok.kind = tkInvalid
-  else: tok.kind = tkInvalid
+    if (xi <= 255):
+      add(tok.literal, chr(xi))
+    else:
+      tok.kind = tkInvalid
+  else:
+    tok.kind = tkInvalid
 
 proc handleCRLF(c: var SqlLexer, pos: int): int =
   case c.buf[pos]
-  of '\c': result = lexbase.handleCR(c, pos)
-  of '\L': result = lexbase.handleLF(c, pos)
-  else: result = pos
+  of '\c':
+    result = lexbase.handleCR(c, pos)
+  of '\L':
+    result = lexbase.handleLF(c, pos)
+  else:
+    result = pos
 
 proc skip(c: var SqlLexer) =
   var pos = c.bufpos
@@ -149,33 +161,38 @@ proc skip(c: var SqlLexer) =
     of ' ', '\t':
       inc(pos)
     of '-':
-      if c.buf[pos+1] == '-':
-        while not (c.buf[pos] in {'\c', '\L', lexbase.EndOfFile}): inc(pos)
+      if c.buf[pos + 1] == '-':
+        while not (c.buf[pos] in {'\c', '\L', lexbase.EndOfFile}):
+          inc(pos)
       else:
         break
     of '/':
-      if c.buf[pos+1] == '*':
+      if c.buf[pos + 1] == '*':
         inc(pos, 2)
         while true:
           case c.buf[pos]
-          of '\0': break
+          of '\0':
+            break
           of '\c', '\L':
             pos = handleCRLF(c, pos)
           of '*':
-            if c.buf[pos+1] == '/':
+            if c.buf[pos + 1] == '/':
               inc(pos, 2)
-              if nested <= 0: break
+              if nested <= 0:
+                break
               dec(nested)
             else:
               inc(pos)
           of '/':
-            if c.buf[pos+1] == '*':
+            if c.buf[pos + 1] == '*':
               inc(pos, 2)
               inc(nested)
             else:
               inc(pos)
-          else: inc(pos)
-      else: break
+          else:
+            inc(pos)
+      else:
+        break
     of '\c', '\L':
       pos = handleCRLF(c, pos)
     else:
@@ -190,7 +207,7 @@ proc getString(c: var SqlLexer, tok: var Token, kind: TokKind) =
       while true:
         var ch = c.buf[pos]
         if ch == '\'':
-          if c.buf[pos+1] == '\'':
+          if c.buf[pos + 1] == '\'':
             inc(pos, 2)
             add(tok.literal, '\'')
           else:
@@ -213,9 +230,12 @@ proc getString(c: var SqlLexer, tok: var Token, kind: TokKind) =
         # a new line whitespace has been parsed, so we check if the string
         # continues after the whitespace:
         pos = c.bufpos
-        if c.buf[pos] == '\'': inc(pos)
-        else: break parseLoop
-      else: break parseLoop
+        if c.buf[pos] == '\'':
+          inc(pos)
+        else:
+          break parseLoop
+      else:
+        break parseLoop
   c.bufpos = pos
 
 proc getDollarString(c: var SqlLexer, tok: var Token) =
@@ -225,7 +245,8 @@ proc getDollarString(c: var SqlLexer, tok: var Token) =
   while c.buf[pos] in IdentChars:
     add(tag, c.buf[pos])
     inc(pos)
-  if c.buf[pos] == '$': inc(pos)
+  if c.buf[pos] == '$':
+    inc(pos)
   else:
     tok.kind = tkInvalid
     return
@@ -243,8 +264,10 @@ proc getDollarString(c: var SqlLexer, tok: var Token) =
       while c.buf[pos] in IdentChars:
         add(tag2, c.buf[pos])
         inc(pos)
-      if c.buf[pos] == '$': inc(pos)
-      if tag2 == tag: break
+      if c.buf[pos] == '$':
+        inc(pos)
+      if tag2 == tag:
+        break
       add(tok.literal, tag2)
       add(tok.literal, '$')
     else:
@@ -257,8 +280,7 @@ proc getSymbol(c: var SqlLexer, tok: var Token) =
   while true:
     add(tok.literal, c.buf[pos])
     inc(pos)
-    if c.buf[pos] notin {'a'..'z', 'A'..'Z', '0'..'9', '_', '$',
-        '\128'..'\255'}:
+    if c.buf[pos] notin {'a' .. 'z', 'A' .. 'Z', '0' .. '9', '_', '$', '\128' .. '\255'}:
       break
   c.bufpos = pos
   tok.kind = tkIdentifier
@@ -269,7 +291,7 @@ proc getQuotedIdentifier(c: var SqlLexer, tok: var Token, quote = '\"') =
   while true:
     var ch = c.buf[pos]
     if ch == quote:
-      if c.buf[pos+1] == quote:
+      if c.buf[pos + 1] == quote:
         inc(pos, 2)
         add(tok.literal, quote)
       else:
@@ -305,9 +327,12 @@ proc getBitHexString(c: var SqlLexer, tok: var Token, validChars: set[char]) =
         # a new line whitespace has been parsed, so we check if the string
         # continues after the whitespace:
         pos = c.bufpos
-        if c.buf[pos] == '\'': inc(pos)
-        else: break parseLoop
-      else: break parseLoop
+        if c.buf[pos] == '\'':
+          inc(pos)
+        else:
+          break parseLoop
+      else:
+        break parseLoop
   c.bufpos = pos
 
 proc getNumeric(c: var SqlLexer, tok: var Token) =
@@ -341,26 +366,31 @@ proc getNumeric(c: var SqlLexer, tok: var Token) =
   c.bufpos = pos
 
 proc getOperator(c: var SqlLexer, tok: var Token) =
-  const operators = {'+', '-', '*', '/', '<', '>', '=', '~', '!', '@', '#', '%',
-                     '^', '&', '|', '`', '?'}
+  const operators = {
+    '+', '-', '*', '/', '<', '>', '=', '~', '!', '@', '#', '%', '^', '&', '|', '`', '?'
+  }
   tok.kind = tkOperator
   var pos = c.bufpos
   var trailingPlusMinus = false
   while true:
     case c.buf[pos]
     of '-':
-      if c.buf[pos] == '-': break
-      if not trailingPlusMinus and c.buf[pos+1] notin operators and
-           tok.literal.len > 0: break
+      if c.buf[pos] == '-':
+        break
+      if not trailingPlusMinus and c.buf[pos + 1] notin operators and tok.literal.len > 0:
+        break
     of '/':
-      if c.buf[pos] == '*': break
+      if c.buf[pos] == '*':
+        break
     of '~', '!', '@', '#', '%', '^', '&', '|', '`', '?':
       trailingPlusMinus = true
     of '+':
-      if not trailingPlusMinus and c.buf[pos+1] notin operators and
-           tok.literal.len > 0: break
-    of '*', '<', '>', '=': discard
-    else: break
+      if not trailingPlusMinus and c.buf[pos + 1] notin operators and tok.literal.len > 0:
+        break
+    of '*', '<', '>', '=':
+      discard
+    else:
+      break
     add(tok.literal, c.buf[pos])
     inc(pos)
   c.bufpos = pos
@@ -391,16 +421,17 @@ proc getTok(c: var SqlLexer, tok: var Token) =
   of 'b', 'B':
     if c.buf[c.bufpos + 1] == '\'':
       tok.kind = tkBitStringConstant
-      getBitHexString(c, tok, {'0'..'1'})
+      getBitHexString(c, tok, {'0' .. '1'})
     else:
       getSymbol(c, tok)
   of 'x', 'X':
     if c.buf[c.bufpos + 1] == '\'':
       tok.kind = tkHexStringConstant
-      getBitHexString(c, tok, {'a'..'f', 'A'..'F', '0'..'9'})
+      getBitHexString(c, tok, {'a' .. 'f', 'A' .. 'F', '0' .. '9'})
     else:
       getSymbol(c, tok)
-  of '$': getDollarString(c, tok)
+  of '$':
+    getDollarString(c, tok)
   of '[':
     tok.kind = tkBracketLe
     inc(c.bufpos)
@@ -424,18 +455,33 @@ proc getTok(c: var SqlLexer, tok: var Token) =
       tok.kind = tkDot
       inc(c.bufpos)
     add(tok.literal, '.')
-  of '0'..'9': getNumeric(c, tok)
-  of '\'': getString(c, tok, tkStringConstant)
-  of '"': getQuotedIdentifier(c, tok, '"')
-  of '`': getQuotedIdentifier(c, tok, '`')
+  of '0' .. '9':
+    getNumeric(c, tok)
+  of '\'':
+    getString(c, tok, tkStringConstant)
+  of '"':
+    getQuotedIdentifier(c, tok, '"')
+  of '`':
+    getQuotedIdentifier(c, tok, '`')
   of lexbase.EndOfFile:
     tok.kind = tkEof
     tok.literal = "[EOF]"
-  of 'a', 'c', 'd', 'f'..'w', 'y', 'z', 'A', 'C', 'D', 'F'..'W', 'Y', 'Z', '_',
-     '\128'..'\255':
+  of 'a',
+      'c',
+      'd',
+      'f' .. 'w',
+      'y',
+      'z',
+      'A',
+      'C',
+      'D',
+      'F' .. 'W',
+      'Y',
+      'Z',
+      '_',
+      '\128' .. '\255':
     getSymbol(c, tok)
-  of '+', '-', '*', '/', '<', '>', '=', '~', '!', '@', '#', '%',
-     '^', '&', '|', '?':
+  of '+', '-', '*', '/', '<', '>', '=', '~', '!', '@', '#', '%', '^', '&', '|', '?':
     getOperator(c, tok)
   else:
     add(tok.literal, c.buf[c.bufpos])
@@ -443,7 +489,6 @@ proc getTok(c: var SqlLexer, tok: var Token) =
 
 proc errorStr(L: SqlLexer, msg: string): string =
   result = "$1($2, $3) Error: $4" % [L.filename, $getLine(L), $getColumn(L), msg]
-
 
 # ----------------------------- parser ----------------------------------------
 
@@ -469,89 +514,88 @@ proc errorStr(L: SqlLexer, msg: string): string =
 # AND                left           logical conjunction
 # OR                 left           logical disjunction
 
-type
-  SqlNodeKind* = enum ## kind of SQL abstract syntax tree
-    nkNone,
-    nkIdent,
-    nkQuotedIdent,
-    nkStringLit,
-    nkBitStringLit,
-    nkHexStringLit,
-    nkIntegerLit,
-    nkNumericLit,
-    nkPrimaryKey,
-    nkForeignKey,
-    nkNotNull,
-    nkNull,
+type SqlNodeKind* = enum ## kind of SQL abstract syntax tree
+  nkNone
+  nkIdent
+  nkQuotedIdent
+  nkStringLit
+  nkBitStringLit
+  nkHexStringLit
+  nkIntegerLit
+  nkNumericLit
+  nkPrimaryKey
+  nkForeignKey
+  nkNotNull
+  nkNull
+  nkStmtList
+  nkDot
+  nkDotDot
+  nkPrefix
+  nkInfix
+  nkCall
+  nkPrGroup
+  nkColumnReference
+  nkReferences
+  nkDefault
+  nkCheck
+  nkConstraint
+  nkUnique
+  nkIdentity
+  nkColumnDef ## name, datatype, constraints
+  nkInsert
+  nkUpdate
+  nkDelete
+  nkSelect
+  nkSelectDistinct
+  nkSelectColumns
+  nkSelectPair
+  nkAsgn
+  nkFrom
+  nkFromItemPair
+  nkJoin
+  nkNaturalJoin
+  nkUsing
+  nkGroup
+  nkLimit
+  nkOffset
+  nkHaving
+  nkOrder
+  nkDesc
+  nkUnion
+  nkIntersect
+  nkExcept
+  nkColumnList
+  nkValueList
+  nkWhere
+  nkCreateTable
+  nkCreateTableIfNotExists
+  nkCreateType
+  nkCreateTypeIfNotExists
+  nkCreateIndex
+  nkCreateIndexIfNotExists
+  nkEnumDef
 
-    nkStmtList,
-    nkDot,
-    nkDotDot,
-    nkPrefix,
-    nkInfix,
-    nkCall,
-    nkPrGroup,
-    nkColumnReference,
-    nkReferences,
-    nkDefault,
-    nkCheck,
-    nkConstraint,
-    nkUnique,
-    nkIdentity,
-    nkColumnDef,      ## name, datatype, constraints
-    nkInsert,
-    nkUpdate,
-    nkDelete,
-    nkSelect,
-    nkSelectDistinct,
-    nkSelectColumns,
-    nkSelectPair,
-    nkAsgn,
-    nkFrom,
-    nkFromItemPair,
-    nkJoin,
-    nkNaturalJoin,
-    nkUsing,
-    nkGroup,
-    nkLimit,
-    nkOffset,
-    nkHaving,
-    nkOrder,
-    nkDesc,
-    nkUnion,
-    nkIntersect,
-    nkExcept,
-    nkColumnList,
-    nkValueList,
-    nkWhere,
-    nkCreateTable,
-    nkCreateTableIfNotExists,
-    nkCreateType,
-    nkCreateTypeIfNotExists,
-    nkCreateIndex,
-    nkCreateIndexIfNotExists,
-    nkEnumDef
-
-const
-  LiteralNodes = {
-    nkIdent, nkQuotedIdent, nkStringLit, nkBitStringLit, nkHexStringLit,
-    nkIntegerLit, nkNumericLit
-  }
+const LiteralNodes = {
+  nkIdent, nkQuotedIdent, nkStringLit, nkBitStringLit, nkHexStringLit, nkIntegerLit,
+  nkNumericLit,
+}
 
 type
   SqlParseError* = object of ValueError ## Invalid SQL encountered
   SqlNode* = ref SqlNodeObj ## an SQL abstract syntax tree node
-  SqlNodeObj* = object      ## an SQL abstract syntax tree node
+  SqlNodeObj* = object ## an SQL abstract syntax tree node
     case kind*: SqlNodeKind ## kind of syntax tree
     of LiteralNodes:
-      strVal*: string       ## AST leaf: the identifier, numeric literal
-                            ## string literal, etc.
+      strVal*: string
+        ## AST leaf: the identifier, numeric literal
+        ## string literal, etc.
     else:
-      sons*: seq[SqlNode]   ## the node's children
+      sons*: seq[SqlNode] ## the node's children
 
   SqlParser* = object of SqlLexer ## SQL parser object
     tok: Token
-    considerTypeParams: bool ## Determines whether type parameters (e.g., sizes in types like VARCHAR(255)) are included in the SQL AST.
+    considerTypeParams: bool
+      ## Determines whether type parameters (e.g., sizes in types like VARCHAR(255)) are included in the SQL AST.
 
 proc newNode*(k: SqlNodeKind): SqlNode =
   when defined(js): # bug #14117
@@ -577,8 +621,11 @@ proc len*(n: SqlNode): int =
   else:
     result = n.sons.len
 
-proc `[]`*(n: SqlNode; i: int): SqlNode = n.sons[i]
-proc `[]`*(n: SqlNode; i: BackwardsIndex): SqlNode = n.sons[n.len - int(i)]
+proc `[]`*(n: SqlNode, i: int): SqlNode =
+  n.sons[i]
+
+proc `[]`*(n: SqlNode, i: BackwardsIndex): SqlNode =
+  n.sons[n.len - int(i)]
 
 proc add*(father, n: SqlNode) =
   add(father.sons, n)
@@ -593,12 +640,10 @@ proc sqlError(p: SqlParser, msg: string) {.noreturn.} =
   raise e
 
 proc isKeyw(p: SqlParser, keyw: string): bool =
-  result = p.tok.kind == tkIdentifier and
-           cmpIgnoreCase(p.tok.literal, keyw) == 0
+  result = p.tok.kind == tkIdentifier and cmpIgnoreCase(p.tok.literal, keyw) == 0
 
 proc isOpr(p: SqlParser, opr: string): bool =
-  result = p.tok.kind == tkOperator and
-           cmpIgnoreCase(p.tok.literal, opr) == 0
+  result = p.tok.kind == tkOperator and cmpIgnoreCase(p.tok.literal, opr) == 0
 
 proc optKeyw(p: var SqlParser, keyw: string) =
   if p.tok.kind == tkIdentifier and cmpIgnoreCase(p.tok.literal, keyw) == 0:
@@ -625,7 +670,8 @@ proc eat(p: var SqlParser, keyw: string) =
     sqlError(p, keyw.toUpperAscii() & " expected")
 
 proc opt(p: var SqlParser, kind: TokKind) =
-  if p.tok.kind == kind: getTok(p)
+  if p.tok.kind == kind:
+    getTok(p)
 
 proc parseDataType(p: var SqlParser): SqlNode =
   if isKeyw(p, "enum"):
@@ -657,7 +703,7 @@ proc parseDataType(p: var SqlParser): SqlNode =
         expect(p, tkInteger)
         getTok(p)
       eat(p, tkParRi)
-      if p.considerTypeParams: 
+      if p.considerTypeParams:
         result = complexType
 
 proc getPrecedence(p: SqlParser): int =
@@ -666,8 +712,8 @@ proc getPrecedence(p: SqlParser): int =
   elif isOpr(p, "+") or isOpr(p, "-"):
     result = 5
   elif isOpr(p, "=") or isOpr(p, "<") or isOpr(p, ">") or isOpr(p, ">=") or
-       isOpr(p, "<=") or isOpr(p, "<>") or isOpr(p, "!=") or isKeyw(p, "is") or
-       isKeyw(p, "like") or isKeyw(p, "in"):
+      isOpr(p, "<=") or isOpr(p, "<>") or isOpr(p, "!=") or isKeyw(p, "is") or
+      isKeyw(p, "like") or isKeyw(p, "in"):
     result = 4
   elif isKeyw(p, "and"):
     result = 3
@@ -679,7 +725,7 @@ proc getPrecedence(p: SqlParser): int =
     # user-defined operator:
     result = 0
   else:
-    result = - 1
+    result = -1
 
 proc parseExpr(p: var SqlParser): SqlNode {.gcsafe.}
 proc parseSelect(p: var SqlParser): SqlNode {.gcsafe.}
@@ -713,7 +759,8 @@ proc identOrLiteral(p: var SqlParser): SqlNode =
     result = newNode(nkPrGroup)
     while true:
       result.add(parseExpr(p))
-      if p.tok.kind != tkComma: break
+      if p.tok.kind != tkComma:
+        break
       getTok(p)
     eat(p, tkParRi)
   else:
@@ -725,8 +772,8 @@ proc identOrLiteral(p: var SqlParser): SqlNode =
       # getTok(p) # we must consume a token here to prevent endless loops!
 
 proc primary(p: var SqlParser): SqlNode =
-  if (p.tok.kind == tkOperator and (p.tok.literal == "+" or p.tok.literal ==
-      "-")) or isKeyw(p, "not"):
+  if (p.tok.kind == tkOperator and (p.tok.literal == "+" or p.tok.literal == "-")) or
+      isKeyw(p, "not"):
     result = newNode(nkPrefix)
     result.add(newNode(nkIdent, p.tok.literal))
     getTok(p)
@@ -742,8 +789,10 @@ proc primary(p: var SqlParser): SqlNode =
       getTok(p)
       while p.tok.kind != tkParRi:
         result.add(parseExpr(p))
-        if p.tok.kind == tkComma: getTok(p)
-        else: break
+        if p.tok.kind == tkComma:
+          getTok(p)
+        else:
+          break
       eat(p, tkParRi)
     of tkDot:
       getTok(p)
@@ -761,11 +810,11 @@ proc primary(p: var SqlParser): SqlNode =
       else:
         sqlError(p, "identifier expected")
       getTok(p)
-    else: break
+    else:
+      break
 
 proc lowestExprAux(p: var SqlParser, v: out SqlNode, limit: int): int =
-  var
-    v2, node, opNode: SqlNode
+  var v2, node, opNode: SqlNode
   v = primary(p) # expand while operators have priorities higher than 'limit'
   var opPred = getPrecedence(p)
   result = opPred
@@ -781,7 +830,7 @@ proc lowestExprAux(p: var SqlParser, v: out SqlNode, limit: int): int =
     opPred = getPrecedence(p)
 
 proc parseExpr(p: var SqlParser): SqlNode =
-  discard lowestExprAux(p, result, - 1)
+  discard lowestExprAux(p, result, -1)
 
 proc parseTableName(p: var SqlParser): SqlNode =
   expectIdent(p)
@@ -820,7 +869,8 @@ proc parseParIdentList(p: var SqlParser, father: SqlNode) =
     expectIdent(p)
     father.add(newNode(nkIdent, p.tok.literal))
     getTok(p)
-    if p.tok.kind != tkComma: break
+    if p.tok.kind != tkComma:
+      break
     getTok(p)
   eat(p, tkParRi)
 
@@ -907,7 +957,8 @@ proc parseTableConstraint(p: var SqlParser): SqlNode =
 
 proc parseUnique(p: var SqlParser): SqlNode =
   result = parseExpr(p)
-  if result.kind == nkCall: result.kind = nkUnique
+  if result.kind == nkCall:
+    result.kind = nkUnique
 
 proc parseTableDef(p: var SqlParser): SqlNode =
   result = parseIfNotExists(p, nkCreateTable)
@@ -927,7 +978,8 @@ proc parseTableDef(p: var SqlParser): SqlNode =
         result.add(parseColumnDef(p))
       else:
         result.add(parseTableConstraint(p))
-      if p.tok.kind != tkComma: break
+      if p.tok.kind != tkComma:
+        break
       getTok(p)
     eat(p, tkParRi)
     # skip additional crap after 'create table (...) crap;'
@@ -1065,7 +1117,8 @@ proc parseInsert(p: var SqlParser): SqlNode =
     var n = newNode(nkValueList)
     while true:
       n.add(parseExpr(p))
-      if p.tok.kind != tkComma: break
+      if p.tok.kind != tkComma:
+        break
       getTok(p)
     result.add(n)
     eat(p, tkParRi)
@@ -1080,11 +1133,14 @@ proc parseUpdate(p: var SqlParser): SqlNode =
     expectIdent(p)
     a.add(newNode(nkIdent, p.tok.literal))
     getTok(p)
-    if isOpr(p, "="): getTok(p)
-    else: sqlError(p, "= expected")
+    if isOpr(p, "="):
+      getTok(p)
+    else:
+      sqlError(p, "= expected")
     a.add(parseExpr(p))
     result.add(a)
-    if p.tok.kind != tkComma: break
+    if p.tok.kind != tkComma:
+      break
     getTok(p)
   if isKeyw(p, "where"):
     result.add(parseWhere(p))
@@ -1123,7 +1179,8 @@ proc parseSelect(p: var SqlParser): SqlNode =
       if isKeyw(p, "as"):
         getTok(p)
         pair.add(parseExpr(p))
-    if p.tok.kind != tkComma: break
+    if p.tok.kind != tkComma:
+      break
     getTok(p)
   result.add(a)
   if isKeyw(p, "from"):
@@ -1131,7 +1188,8 @@ proc parseSelect(p: var SqlParser): SqlNode =
     while true:
       getTok(p)
       f.add(parseFromItem(p))
-      if p.tok.kind != tkComma: break
+      if p.tok.kind != tkComma:
+        break
     result.add(f)
   if isKeyw(p, "where"):
     result.add(parseWhere(p))
@@ -1141,7 +1199,8 @@ proc parseSelect(p: var SqlParser): SqlNode =
     var g = newNode(nkGroup)
     while true:
       g.add(parseExpr(p))
-      if p.tok.kind != tkComma: break
+      if p.tok.kind != tkComma:
+        break
       getTok(p)
     result.add(g)
   if isKeyw(p, "order"):
@@ -1158,7 +1217,8 @@ proc parseSelect(p: var SqlParser): SqlNode =
         x.add(e)
         e = x
       n.add(e)
-      if p.tok.kind != tkComma: break
+      if p.tok.kind != tkComma:
+        break
       getTok(p)
     result.add(n)
   if isKeyw(p, "having"):
@@ -1166,7 +1226,8 @@ proc parseSelect(p: var SqlParser): SqlNode =
     while true:
       getTok(p)
       h.add(parseExpr(p))
-      if p.tok.kind != tkComma: break
+      if p.tok.kind != tkComma:
+        break
     result.add(h)
   if isKeyw(p, "union"):
     result.add(newNode(nkUnion))
@@ -1188,7 +1249,7 @@ proc parseSelect(p: var SqlParser): SqlNode =
     o.add(parseExpr(p))
     result.add(o)
 
-proc parseStmt(p: var SqlParser; parent: SqlNode) =
+proc parseStmt(p: var SqlParser, parent: SqlNode) =
   if isKeyw(p, "create"):
     getTok(p)
     optKeyw(p, "cached")
@@ -1234,11 +1295,10 @@ proc close(p: var SqlParser) =
   ## closes the parser `p`. The associated input stream is closed too.
   close(SqlLexer(p))
 
-type
-  SqlWriter = object
-    indent: int
-    upperCase: bool
-    buffer: string
+type SqlWriter = object
+  indent: int
+  upperCase: bool
+  buffer: string
 
 proc add(s: var SqlWriter, thing: char) =
   s.buffer.add(thing)
@@ -1268,45 +1328,52 @@ proc ra(n: SqlNode, s: var SqlWriter) {.gcsafe.}
 proc rs(n: SqlNode, s: var SqlWriter, prefix = "(", suffix = ")", sep = ", ") =
   if n.len > 0:
     s.add(prefix)
-    for i in 0 .. n.len-1:
-      if i > 0: s.add(sep)
+    for i in 0 .. n.len - 1:
+      if i > 0:
+        s.add(sep)
       ra(n.sons[i], s)
     s.add(suffix)
 
 proc addMulti(s: var SqlWriter, n: SqlNode, sep = ',') =
   if n.len > 0:
-    for i in 0 .. n.len-1:
-      if i > 0: s.add(sep)
+    for i in 0 .. n.len - 1:
+      if i > 0:
+        s.add(sep)
       ra(n.sons[i], s)
 
 proc addMulti(s: var SqlWriter, n: SqlNode, sep = ',', prefix, suffix: char) =
   if n.len > 0:
     s.add(prefix)
-    for i in 0 .. n.len-1:
-      if i > 0: s.add(sep)
+    for i in 0 .. n.len - 1:
+      if i > 0:
+        s.add(sep)
       ra(n.sons[i], s)
     s.add(suffix)
 
 proc quoted(s: string): string =
   "\"" & replace(s, "\"", "\"\"") & "\""
 
-func escape(result: var string; s: string) =
+func escape(result: var string, s: string) =
   result.add('\'')
   for c in items(s):
     case c
-    of '\0'..'\31':
+    of '\0' .. '\31':
       result.add("\\x")
       result.add(toHex(ord(c), 2))
-    of '\'': result.add("''")
-    else: result.add(c)
+    of '\'':
+      result.add("''")
+    else:
+      result.add(c)
   result.add('\'')
 
 proc ra(n: SqlNode, s: var SqlWriter) =
-  if n == nil: return
+  if n == nil:
+    return
   case n.kind
-  of nkNone: discard
+  of nkNone:
+    discard
   of nkIdent:
-    if allCharsInSet(n.strVal, {'\33'..'\127'}):
+    if allCharsInSet(n.strVal, {'\33' .. '\127'}):
       s.add(n.strVal)
     else:
       s.add(quoted(n.strVal))
@@ -1352,8 +1419,9 @@ proc ra(n: SqlNode, s: var SqlWriter) =
   of nkCall, nkColumnReference:
     ra(n.sons[0], s)
     s.add('(')
-    for i in 1..n.len-1:
-      if i > 1: s.add(',')
+    for i in 1 .. n.len - 1:
+      if i > 1:
+        s.add(',')
       ra(n.sons[i], s)
     s.add(')')
   of nkPrGroup:
@@ -1382,7 +1450,7 @@ proc ra(n: SqlNode, s: var SqlWriter) =
   of nkColumnDef:
     rs(n, s, "", "", " ")
   of nkStmtList:
-    for i in 0..n.len-1:
+    for i in 0 .. n.len - 1:
       ra(n.sons[i], s)
       s.add(';')
   of nkInsert:
@@ -1400,12 +1468,13 @@ proc ra(n: SqlNode, s: var SqlWriter) =
     ra(n.sons[0], s)
     s.addKeyw("set")
     var L = n.len
-    for i in 1 .. L-2:
-      if i > 1: s.add(", ")
+    for i in 1 .. L - 2:
+      if i > 1:
+        s.add(", ")
       var it = n.sons[i]
       assert it.kind == nkAsgn
       ra(it, s)
-    ra(n.sons[L-1], s)
+    ra(n.sons[L - 1], s)
   of nkDelete:
     s.addKeyw("delete from")
     ra(n.sons[0], s)
@@ -1418,7 +1487,8 @@ proc ra(n: SqlNode, s: var SqlWriter) =
       ra(n.sons[i], s)
   of nkSelectColumns:
     for i, column in n.sons:
-      if i > 0: s.add(',')
+      if i > 0:
+        s.add(',')
       ra(column, s)
   of nkSelectPair:
     ra(n.sons[0], s)
@@ -1505,8 +1575,9 @@ proc ra(n: SqlNode, s: var SqlWriter) =
       s.addKeyw("if not exists")
     ra(n.sons[0], s)
     s.add('(')
-    for i in 1..n.len-1:
-      if i > 1: s.add(',')
+    for i in 1 .. n.len - 1:
+      if i > 1:
+        s.add(',')
       ra(n.sons[i], s)
     s.add(");")
   of nkCreateType, nkCreateTypeIfNotExists:
@@ -1524,8 +1595,9 @@ proc ra(n: SqlNode, s: var SqlWriter) =
     s.addKeyw("on")
     ra(n.sons[1], s)
     s.add('(')
-    for i in 2..n.len-1:
-      if i > 2: s.add(", ")
+    for i in 2 .. n.len - 1:
+      if i > 2:
+        s.add(", ")
       ra(n.sons[i], s)
     s.add(");")
   of nkEnumDef:
@@ -1544,7 +1616,8 @@ proc `$`*(n: SqlNode): string =
 
 proc treeReprAux(s: SqlNode, level: int, result: var string) =
   result.add('\n')
-  for i in 0 ..< level: result.add("  ")
+  for i in 0 ..< level:
+    result.add("  ")
 
   result.add($s.kind)
   if s.kind in LiteralNodes:

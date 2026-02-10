@@ -1,16 +1,13 @@
 import std/[tables]
 import ast, astalgo
 
-type
-  LayeredIdTableObj* {.acyclic.} = object
-    ## stack of type binding contexts implemented as a linked list
-    topLayer*: TypeMapping
-      ## the mappings on the current layer
-    nextLayer*: ref LayeredIdTableObj
-      ## the parent type binding context, possibly `nil`
-    previousLen*: int
-      ## total length of the bindings up to the parent layer,
-      ## used to track if new bindings were added
+type LayeredIdTableObj* {.acyclic.} = object
+  ## stack of type binding contexts implemented as a linked list
+  topLayer*: TypeMapping ## the mappings on the current layer
+  nextLayer*: ref LayeredIdTableObj ## the parent type binding context, possibly `nil`
+  previousLen*: int
+    ## total length of the bindings up to the parent layer,
+    ## used to track if new bindings were added
 
 const useRef = not defined(gcDestructors)
   # implementation detail, only arc/orc doesn't cause issues when
@@ -27,7 +24,9 @@ proc initLayeredTypeMap*(pt: sink TypeMapping = initTypeMapping()): LayeredIdTab
 proc shallowCopy*(pt: LayeredIdTable): LayeredIdTable {.inline.} =
   ## copies only the type bindings of the current layer, but not any parent layers,
   ## useful for write-only bindings
-  result = LayeredIdTable(topLayer: pt.topLayer, nextLayer: pt.nextLayer, previousLen: pt.previousLen)
+  result = LayeredIdTable(
+    topLayer: pt.topLayer, nextLayer: pt.nextLayer, previousLen: pt.previousLen
+  )
   #copyIdTable(result.topLayer, pt.topLayer)
 
 proc currentLen*(pt: LayeredIdTable): int =
@@ -68,7 +67,8 @@ proc lookup(typeMap: ref LayeredIdTableObj, key: ItemId): PType =
   var tm = typeMap
   while tm != nil:
     result = getOrDefault(tm.topLayer, key)
-    if result != nil: return
+    if result != nil:
+      return
     tm = tm.nextLayer
 
 template lookup*(typeMap: ref LayeredIdTableObj, key: PType): PType =

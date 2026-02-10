@@ -12,12 +12,10 @@
 #when not declared(ThisIsSystem):
 #  {.error: "You must not import this module explicitly".}
 
-type
-  Utf16Char* = distinct int16
+type Utf16Char* = distinct int16
 
 when not (defined(cpu16) or defined(cpu8)):
   when defined(nimv2):
-
     type
       WideCString* = ptr UncheckedArray[Utf16Char]
 
@@ -33,6 +31,7 @@ when not (defined(cpu16) or defined(cpu8)):
             deallocShared(a.data)
           else:
             dealloc(a.data)
+
     else:
       proc `=destroy`(a: var WideCStringObj) =
         if a.data != nil:
@@ -41,29 +40,34 @@ when not (defined(cpu16) or defined(cpu8)):
           else:
             dealloc(a.data)
 
-    proc `=copy`(a: var WideCStringObj; b: WideCStringObj) {.error.}
+    proc `=copy`(a: var WideCStringObj, b: WideCStringObj) {.error.}
 
-    proc `=sink`(a: var WideCStringObj; b: WideCStringObj) =
+    proc `=sink`(a: var WideCStringObj, b: WideCStringObj) =
       a.bytes = b.bytes
       a.data = b.data
 
-    proc createWide(a: var WideCStringObj; bytes: int) =
+    proc createWide(a: var WideCStringObj, bytes: int) =
       a.bytes = bytes
       when compileOption("threads"):
         a.data = cast[typeof(a.data)](allocShared0(bytes))
       else:
         a.data = cast[typeof(a.data)](alloc0(bytes))
 
-    template `[]`*(a: WideCStringObj; idx: int): Utf16Char = a.data[idx]
-    template `[]=`*(a: WideCStringObj; idx: int; val: Utf16Char) = a.data[idx] = val
+    template `[]`*(a: WideCStringObj, idx: int): Utf16Char =
+      a.data[idx]
 
-    template nullWide(): untyped = WideCStringObj(bytes: 0, data: nil)
+    template `[]=`*(a: WideCStringObj, idx: int, val: Utf16Char) =
+      a.data[idx] = val
+
+    template nullWide(): untyped =
+      WideCStringObj(bytes: 0, data: nil)
 
     converter toWideCString*(x: WideCStringObj): WideCString {.inline.} =
       result = x.data
 
   else:
-    template nullWide(): untyped = nil
+    template nullWide(): untyped =
+      nil
 
     type
       WideCString* = ref UncheckedArray[Utf16Char]
@@ -72,13 +76,15 @@ when not (defined(cpu16) or defined(cpu8)):
     template createWide(a; L) =
       unsafeNew(a, L)
 
-  proc ord(arg: Utf16Char): int = int(cast[uint16](arg))
+  proc ord(arg: Utf16Char): int =
+    int(cast[uint16](arg))
 
   proc len*(w: WideCString): int =
     ## returns the length of a widestring. This traverses the whole string to
     ## find the binary zero end marker!
     result = 0
-    while int16(w[result]) != 0'i16: inc result
+    while int16(w[result]) != 0'i16:
+      inc result
 
   const
     UNI_REPLACEMENT_CHAR = Utf16Char(0xFFFD'i16)
@@ -86,7 +92,6 @@ when not (defined(cpu16) or defined(cpu8)):
     UNI_MAX_UTF16 = 0x0010FFFF
     # UNI_MAX_UTF32 = 0x7FFFFFFF
     # UNI_MAX_LEGAL_UTF32 = 0x0010FFFF
-
     halfShift = 10
     halfBase = 0x0010000
     halfMask = 0x3FF
@@ -97,7 +102,8 @@ when not (defined(cpu16) or defined(cpu8)):
     UNI_SUR_LOW_END = 0xDFFF
     UNI_REPL = 0xFFFD
 
-  template ones(n: untyped): untyped = ((1 shl n)-1)
+  template ones(n: untyped): untyped =
+    ((1 shl n) - 1)
 
   template fastRuneAt(s: cstring, i, L: int, result: untyped, doInc = true) =
     ## Returns the unicode character `s[i]` in `result`. If `doInc == true`
@@ -106,42 +112,49 @@ when not (defined(cpu16) or defined(cpu8)):
 
     if ord(s[i]) <= 127:
       result = ord(s[i])
-      when doInc: inc(i)
+      when doInc:
+        inc(i)
     elif ord(s[i]) shr 5 == 0b110:
       #assert(ord(s[i+1]) shr 6 == 0b10)
       if i <= L - 2:
-        result = (ord(s[i]) and (ones(5))) shl 6 or (ord(s[i+1]) and ones(6))
-        when doInc: inc(i, 2)
+        result = (ord(s[i]) and (ones(5))) shl 6 or (ord(s[i + 1]) and ones(6))
+        when doInc:
+          inc(i, 2)
       else:
         result = UNI_REPL
-        when doInc: inc(i)
+        when doInc:
+          inc(i)
     elif ord(s[i]) shr 4 == 0b1110:
       if i <= L - 3:
         #assert(ord(s[i+1]) shr 6 == 0b10)
         #assert(ord(s[i+2]) shr 6 == 0b10)
-        result = (ord(s[i]) and ones(4)) shl 12 or
-                (ord(s[i+1]) and ones(6)) shl 6 or
-                (ord(s[i+2]) and ones(6))
-        when doInc: inc(i, 3)
+        result =
+          (ord(s[i]) and ones(4)) shl 12 or (ord(s[i + 1]) and ones(6)) shl 6 or
+          (ord(s[i + 2]) and ones(6))
+        when doInc:
+          inc(i, 3)
       else:
         result = UNI_REPL
-        when doInc: inc(i)
+        when doInc:
+          inc(i)
     elif ord(s[i]) shr 3 == 0b11110:
       if i <= L - 4:
         #assert(ord(s[i+1]) shr 6 == 0b10)
         #assert(ord(s[i+2]) shr 6 == 0b10)
         #assert(ord(s[i+3]) shr 6 == 0b10)
-        result = (ord(s[i]) and ones(3)) shl 18 or
-                (ord(s[i+1]) and ones(6)) shl 12 or
-                (ord(s[i+2]) and ones(6)) shl 6 or
-                (ord(s[i+3]) and ones(6))
-        when doInc: inc(i, 4)
+        result =
+          (ord(s[i]) and ones(3)) shl 18 or (ord(s[i + 1]) and ones(6)) shl 12 or
+          (ord(s[i + 2]) and ones(6)) shl 6 or (ord(s[i + 3]) and ones(6))
+        when doInc:
+          inc(i, 4)
       else:
         result = UNI_REPL
-        when doInc: inc(i)
+        when doInc:
+          inc(i)
     else:
       result = 0xFFFD
-      when doInc: inc(i)
+      when doInc:
+        inc(i)
 
   iterator runes(s: cstring, L: int): int =
     var
@@ -161,7 +174,6 @@ when not (defined(cpu16) or defined(cpu8)):
     createWide(result, L * 2 + 2)
     var d = 0
     for ch in runes(source, L):
-
       if ch <= UNI_MAX_BMP:
         if ch >= UNI_SUR_HIGH_START and ch <= UNI_SUR_LOW_END:
           result[d] = UNI_REPLACEMENT_CHAR
@@ -178,7 +190,8 @@ when not (defined(cpu16) or defined(cpu8)):
     result[d] = Utf16Char(0)
 
   proc newWideCString*(s: cstring): WideCStringObj =
-    if s.isNil: return nullWide
+    if s.isNil:
+      return nullWide
 
     result = newWideCString(s, s.len)
 

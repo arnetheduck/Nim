@@ -72,6 +72,7 @@ type
     data: Socket
     pos: int
     buf: seq[byte]
+
   WriteSocketStream* = ref WriteSocketStreamObj
   WriteSocketStreamObj* = object of ReadSocketStreamObj
     lastFlush: int
@@ -118,7 +119,8 @@ proc rsReadDataStr(s: Stream, buffer: var string, slice: Slice[int]): int =
 proc wsWriteData(s: Stream, buffer: pointer, bufLen: int) =
   var s = WriteSocketStream(s)
   if s.pos < s.lastFlush:
-    raise newException(IOError, "Unable to write into buffer that has already been sent")
+    raise
+      newException(IOError, "Unable to write into buffer that has already been sent")
   if s.buf.len < s.pos + bufLen:
     s.buf.setLen(s.pos + bufLen)
   copyMem(s.buf[s.pos].addr, buffer, bufLen)
@@ -153,21 +155,26 @@ proc rsClose(s: Stream) =
     s.data.close()
 
 proc newReadSocketStream*(s: Socket): owned ReadSocketStream =
-  result = ReadSocketStream(data: s, pos: 0,
+  result = ReadSocketStream(
+    data: s,
+    pos: 0,
     closeImpl: rsClose,
     atEndImpl: rsAtEnd,
     setPositionImpl: rsSetPosition,
     getPositionImpl: rsGetPosition,
     readDataImpl: rsReadData,
     peekDataImpl: rsPeekData,
-    readDataStrImpl: rsReadDataStr)
+    readDataStrImpl: rsReadDataStr,
+  )
 
 proc resetStream*(s: ReadSocketStream) =
   s.buf = @[]
   s.pos = 0
 
 proc newWriteSocketStream*(s: Socket): owned WriteSocketStream =
-  result = WriteSocketStream(data: s, pos: 0,
+  result = WriteSocketStream(
+    data: s,
+    pos: 0,
     closeImpl: rsClose,
     atEndImpl: wsAtEnd,
     setPositionImpl: rsSetPosition,
@@ -175,7 +182,8 @@ proc newWriteSocketStream*(s: Socket): owned WriteSocketStream =
     writeDataImpl: wsWriteData,
     readDataImpl: wsReadData,
     peekDataImpl: wsPeekData,
-    flushImpl: wsFlush)
+    flushImpl: wsFlush,
+  )
 
 proc resetStream*(s: WriteSocketStream) =
   s.buf = @[]

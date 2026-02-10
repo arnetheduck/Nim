@@ -20,18 +20,18 @@ import std/private/globs
 when defined(nimPreviewSlimSystem):
   import std/assertions
 
-
 type
   TGen = object of PPassContext
     module: PSym
     config: ConfigRef
     graph: ModuleGraph
+
   PGen = ref TGen
 
   Backend = ref object of RootRef
     dotGraph: Rope
 
-proc addDependencyAux(b: Backend; importing, imported: string) =
+proc addDependencyAux(b: Backend, importing, imported: string) =
   b.dotGraph.addf("\"$1\" -> \"$2\";$n", [rope(importing), rope(imported)])
   # s1 -> s2_4[label="[0-9]"];
 
@@ -45,7 +45,7 @@ proc toNimblePath(s: string, isStdlib: bool): string =
       raiseAssert "unreachable"
     else:
       start += sub.len
-      let base = s[start..^1]
+      let base = s[start ..^ 1]
 
       if base.startsWith("system") or base.startsWith("std"):
         result = base
@@ -72,15 +72,18 @@ proc toNimblePath(s: string, isStdlib: bool): string =
     start += sub.len
     start += skipUntil(s, '/', start)
     start += 1
-    result = pkgPrefix & s[start..^1]
+    result = pkgPrefix & s[start ..^ 1]
 
 proc addDependency(c: PPassContext, g: PGen, b: Backend, n: PNode) =
   doAssert n.kind == nkSym, $n.kind
 
   let path = splitFile(toProjPath(g.config, n.sym.position.FileIndex))
   let modulePath = splitFile(toProjPath(g.config, g.module.position.FileIndex))
-  let parent = nativeToUnixPath(modulePath.dir / modulePath.name).toNimblePath(belongsToStdlib(g.graph, g.module))
-  let child = nativeToUnixPath(path.dir / path.name).toNimblePath(belongsToStdlib(g.graph, n.sym))
+  let parent = nativeToUnixPath(modulePath.dir / modulePath.name).toNimblePath(
+      belongsToStdlib(g.graph, g.module)
+    )
+  let child =
+    nativeToUnixPath(path.dir / path.name).toNimblePath(belongsToStdlib(g.graph, n.sym))
   addDependencyAux(b, parent, child)
 
 proc addDotDependency*(c: PPassContext, n: PNode): PNode =
@@ -89,22 +92,26 @@ proc addDotDependency*(c: PPassContext, n: PNode): PNode =
   let b = Backend(g.graph.backend)
   case n.kind
   of nkImportStmt:
-    for i in 0..<n.len:
+    for i in 0 ..< n.len:
       addDependency(c, g, b, n[i])
   of nkFromStmt, nkImportExceptStmt:
     addDependency(c, g, b, n[0])
   of nkStmtList, nkBlockStmt, nkStmtListExpr, nkBlockExpr:
-    for i in 0..<n.len: discard addDotDependency(c, n[i])
+    for i in 0 ..< n.len:
+      discard addDotDependency(c, n[i])
   else:
     discard
 
-proc generateDot*(graph: ModuleGraph; project: AbsoluteFile) =
+proc generateDot*(graph: ModuleGraph, project: AbsoluteFile) =
   let b = Backend(graph.backend)
-  discard writeRope("digraph $1 {$n$2}$n" % [
-      rope(project.splitFile.name), b.dotGraph],
-            changeFileExt(project, "dot"))
+  discard writeRope(
+    "digraph $1 {$n$2}$n" % [rope(project.splitFile.name), b.dotGraph],
+    changeFileExt(project, "dot"),
+  )
 
-proc setupDependPass*(graph: ModuleGraph; module: PSym; idgen: IdGenerator): PPassContext =
+proc setupDependPass*(
+    graph: ModuleGraph, module: PSym, idgen: IdGenerator
+): PPassContext =
   result = PGen(module: module, config: graph.config, graph: graph)
   if graph.backend == nil:
     graph.backend = Backend(dotGraph: "")

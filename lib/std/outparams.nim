@@ -11,7 +11,7 @@
 
 import std/macros
 
-macro outParamsAt*(positions: static openArray[int]; n: untyped): untyped =
+macro outParamsAt*(positions: static openArray[int], n: untyped): untyped =
   ## Use this macro to annotate `out` parameters in a portable way.
   runnableExamples:
     proc p(x: var int) {.outParamsAt: [1].} =
@@ -30,7 +30,7 @@ when isMainModule:
   proc main(x: var int) {.outParamsAt: [1].} =
     x = 3
 
-  proc us =
+  proc us() =
     var x: int
     main x
     echo x

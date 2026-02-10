@@ -36,22 +36,23 @@ import std/[macros, strtabs, strutils, sequtils]
 when defined(nimPreviewSlimSystem):
   import std/assertions
 
-
 type
-  XmlNode* = ref XmlNodeObj ## An XML tree consisting of XML nodes.
+  XmlNode* = ref XmlNodeObj
+    ## An XML tree consisting of XML nodes.
     ##
     ## Use `newXmlTree proc <#newXmlTree,string,openArray[XmlNode],XmlAttributes>`_
     ## for creating a new tree.
 
   XmlNodeKind* = enum ## Different kinds of XML nodes.
-    xnText,           ## a text element
-    xnVerbatimText,   ##
-    xnElement,        ## an element with 0 or more children
-    xnCData,          ## a CDATA node
-    xnEntity,         ## an entity (like ``&thing;``)
-    xnComment         ## an XML comment
+    xnText ## a text element
+    xnVerbatimText ##
+    xnElement ## an element with 0 or more children
+    xnCData ## a CDATA node
+    xnEntity ## an entity (like ``&thing;``)
+    xnComment ## an XML comment
 
-  XmlAttributes* = StringTableRef ## An alias for a string to string mapping.
+  XmlAttributes* = StringTableRef
+    ## An alias for a string to string mapping.
     ##
     ## Use `toXmlAttributes proc <#toXmlAttributes,varargs[tuple[string,string]]>`_
     ## to create `XmlAttributes`.
@@ -64,11 +65,10 @@ type
       fTag: string
       s: seq[XmlNode]
       fAttr: XmlAttributes
-    fClientData: int    ## for other clients
+    fClientData: int ## for other clients
 
-const
-  xmlHeader* = "<?xml version=\"1.0\" encoding=\"UTF-8\" ?>\n"
-    ## Header to use for complete XML output.
+const xmlHeader* = "<?xml version=\"1.0\" encoding=\"UTF-8\" ?>\n"
+  ## Header to use for complete XML output.
 
 template expect(node: XmlNode, kind: set[XmlNodeKind]) =
   ## Check the node's kind is within a set of values
@@ -98,8 +98,7 @@ proc newElement*(tag: sink string): XmlNode =
 
   result = newXmlNode(xnElement)
   result.fTag = tag
-  result.s = @[]
-  # init attributes lazily to save memory
+  result.s = @[] # init attributes lazily to save memory
 
 proc newText*(text: sink string): XmlNode =
   ## Creates a new ``XmlNode`` of kind ``xnText`` with the text `text`.
@@ -147,8 +146,9 @@ proc newEntity*(entity: string): XmlNode =
   result = newXmlNode(xnEntity)
   result.fText = entity
 
-proc newXmlTree*(tag: sink string, children: openArray[XmlNode],
-                 attributes: XmlAttributes = nil): XmlNode =
+proc newXmlTree*(
+    tag: sink string, children: openArray[XmlNode], attributes: XmlAttributes = nil
+): XmlNode =
   ## Creates a new XML tree with `tag`, `children` and `attributes`.
   ##
   ## See also:
@@ -172,7 +172,8 @@ proc newXmlTree*(tag: sink string, children: openArray[XmlNode],
   result = newXmlNode(xnElement)
   result.fTag = tag
   newSeq(result.s, children.len)
-  for i in 0..children.len-1: result.s[i] = children[i]
+  for i in 0 .. children.len - 1:
+    result.s[i] = children[i]
   result.fAttr = attributes
 
 proc text*(n: XmlNode): lent string {.inline.} =
@@ -346,7 +347,6 @@ proc add*(father: XmlNode, sons: openArray[XmlNode]) {.inline.} =
   father.expect xnElement
   add(father.s, sons)
 
-
 proc insert*(father, son: XmlNode, index: int) {.inline.} =
   ## Inserts the child `son` to a given position in `father`.
   ##
@@ -442,7 +442,7 @@ proc delete*(n: XmlNode, slice: Slice[int]) =
     var f = newElement("myTag")
     f.add newElement("first")
     f.insert([newElement("second"), newElement("third")], 0)
-    f.delete(0..1)
+    f.delete(0 .. 1)
     assert $f == """<myTag>
   <first />
 </myTag>"""
@@ -495,7 +495,7 @@ proc replace*(n: XmlNode, slice: Slice[int], replacement: openArray[XmlNode]) =
     var f = newElement("myTag")
     f.add newElement("first")
     f.insert([newElement("second"), newElement("fifth")], 0)
-    f.replace(0..1, @[newElement("third"), newElement("fourth")])
+    f.replace(0 .. 1, @[newElement("third"), newElement("fourth")])
     assert $f == """<myTag>
   <third />
   <fourth />
@@ -513,8 +513,10 @@ proc len*(n: XmlNode): int {.inline.} =
     f.add newElement("first")
     f.insert(newElement("second"), 0)
     assert len(f) == 2
-  if n.k == xnElement: result = len(n.s)
-  else: result = 0
+  if n.k == xnElement:
+    result = len(n.s)
+  else:
+    result = 0
 
 proc kind*(n: XmlNode): XmlNodeKind {.inline.} =
   ## Returns `n`'s kind.
@@ -569,7 +571,6 @@ proc clear*(n: var XmlNode) =
   if n.k == xnElement:
     n.s.setLen(0)
 
-
 iterator items*(n: XmlNode): XmlNode {.inline.} =
   ## Iterates over all direct children of `n`.
 
@@ -582,7 +583,8 @@ iterator items*(n: XmlNode): XmlNode {.inline.} =
     h.add newEntity("some entity")
     g.add h
 
-    assert $g == "<myTag>some text<!-- this is comment --><secondTag>&some entity;</secondTag></myTag>"
+    assert $g ==
+      "<myTag>some text<!-- this is comment --><secondTag>&some entity;</secondTag></myTag>"
 
     # for x in g: # the same as `for x in items(g):`
     #   echo x
@@ -592,15 +594,16 @@ iterator items*(n: XmlNode): XmlNode {.inline.} =
     # <secondTag>&some entity;<![CDATA[some cdata]]></secondTag>
 
   n.expect xnElement
-  for i in 0 .. n.len-1: yield n[i]
+  for i in 0 .. n.len - 1:
+    yield n[i]
 
 iterator mitems*(n: var XmlNode): var XmlNode {.inline.} =
   ## Iterates over all direct children of `n` so that they can be modified.
   n.expect xnElement
-  for i in 0 .. n.len-1: yield n[i]
+  for i in 0 .. n.len - 1:
+    yield n[i]
 
-proc toXmlAttributes*(keyValuePairs: varargs[tuple[key,
-    val: string]]): XmlAttributes =
+proc toXmlAttributes*(keyValuePairs: varargs[tuple[key, val: string]]): XmlAttributes =
   ## Converts `{key: value}` pairs into `XmlAttributes`.
   ##
   runnableExamples:
@@ -663,8 +666,10 @@ proc attrsLen*(n: XmlNode): int {.inline.} =
     assert j.attrsLen == 2
 
   n.expect xnElement
-  if not isNil(n.fAttr): result = len(n.fAttr)
-  else: result = 0
+  if not isNil(n.fAttr):
+    result = len(n.fAttr)
+  else:
+    result = 0
 
 proc attr*(n: XmlNode, name: string): string =
   ## Finds the first attribute of `n` with a name of `name`.
@@ -682,7 +687,8 @@ proc attr*(n: XmlNode, name: string): string =
     assert j.attr("key2") == "second value"
 
   n.expect xnElement
-  if n.attrs == nil: return ""
+  if n.attrs == nil:
+    return ""
   return n.attrs.getOrDefault(name)
 
 proc clientData*(n: XmlNode): int {.inline.} =
@@ -701,12 +707,18 @@ proc addEscaped*(result: var string, s: string) =
   ## The same as `result.add(escape(s)) <#escape,string>`_, but more efficient.
   for c in items(s):
     case c
-    of '<': result.add("&lt;")
-    of '>': result.add("&gt;")
-    of '&': result.add("&amp;")
-    of '"': result.add("&quot;")
-    of '\'': result.add("&apos;")
-    else: result.add(c)
+    of '<':
+      result.add("&lt;")
+    of '>':
+      result.add("&gt;")
+    of '&':
+      result.add("&amp;")
+    of '"':
+      result.add("&quot;")
+    of '\'':
+      result.add("&apos;")
+    else:
+      result.add(c)
 
 proc escape*(s: string): string =
   ## Escapes `s` for inclusion into an XML document.
@@ -733,36 +745,45 @@ proc addIndent(result: var string, indent: int, addNewLines: bool) =
   for i in 1 .. indent:
     result.add(' ')
 
-proc addImpl(result: var string, n: XmlNode, indent = 0, indWidth = 2,
-          addNewLines = true, lastNodeIsText = false) =
+proc addImpl(
+    result: var string,
+    n: XmlNode,
+    indent = 0,
+    indWidth = 2,
+    addNewLines = true,
+    lastNodeIsText = false,
+) =
   proc noWhitespace(n: XmlNode): bool =
     result = false
     for i in 0 ..< n.len:
-      if n[i].kind in {xnText, xnVerbatimText, xnEntity}: return true
+      if n[i].kind in {xnText, xnVerbatimText, xnEntity}:
+        return true
 
   proc addEscapedAttr(result: var string, s: string) =
     # `addEscaped` alternative with less escaped characters.
     # Only to be used for escaping attribute values enclosed in double quotes!
     for c in items(s):
       case c
-      of '<': result.add("&lt;")
-      of '>': result.add("&gt;")
-      of '&': result.add("&amp;")
-      of '"': result.add("&quot;")
-      else: result.add(c)
+      of '<':
+        result.add("&lt;")
+      of '>':
+        result.add("&gt;")
+      of '&':
+        result.add("&amp;")
+      of '"':
+        result.add("&quot;")
+      else:
+        result.add(c)
 
-  if n == nil: return
+  if n == nil:
+    return
 
   case n.k
   of xnElement:
     if indent > 0 and not lastNodeIsText:
       result.addIndent(indent, addNewLines)
 
-    let
-      addNewLines = if n.noWhitespace():
-                      false
-                    else:
-                      addNewLines
+    let addNewLines = if n.noWhitespace(): false else: addNewLines
 
     result.add('<')
     result.add(n.fTag)
@@ -778,11 +799,11 @@ proc addImpl(result: var string, n: XmlNode, indent = 0, indWidth = 2,
       result.add(" />")
       return
 
-    let
-      indentNext = if n.noWhitespace():
-                     indent
-                   else:
-                     indent+indWidth
+    let indentNext =
+      if n.noWhitespace():
+        indent
+      else:
+        indent + indWidth
     result.add('>')
     var lastNodeIsText = false
     for i in 0 ..< n.len:
@@ -812,8 +833,9 @@ proc addImpl(result: var string, n: XmlNode, indent = 0, indWidth = 2,
     result.add(n.fText)
     result.add(';')
 
-proc add*(result: var string, n: XmlNode, indent = 0, indWidth = 2,
-          addNewLines = true) {.inline.} =
+proc add*(
+    result: var string, n: XmlNode, indent = 0, indWidth = 2, addNewLines = true
+) {.inline.} =
   ## Adds the textual representation of `n` to string `result`.
   runnableExamples:
     var
@@ -851,8 +873,9 @@ proc child*(n: XmlNode, name: string): XmlNode =
       if i.tag == name:
         return i
 
-proc findAll*(n: XmlNode, tag: string, result: var seq[XmlNode],
-    caseInsensitive = false) =
+proc findAll*(
+    n: XmlNode, tag: string, result: var seq[XmlNode], caseInsensitive = false
+) =
   ## Iterates over all the children of `n` returning those matching `tag`.
   ##
   ## Found nodes satisfying the condition will be appended to the `result`
@@ -885,8 +908,7 @@ proc findAll*(n: XmlNode, tag: string, result: var seq[XmlNode],
   for child in n.items():
     if child.k != xnElement:
       continue
-    if child.tag == tag or
-        (caseInsensitive and cmpIgnoreCase(child.tag, tag) == 0):
+    if child.tag == tag or (caseInsensitive and cmpIgnoreCase(child.tag, tag) == 0):
       result.add(child)
     child.findAll(tag, result)
 
@@ -905,8 +927,10 @@ proc findAll*(n: XmlNode, tag: string, caseInsensitive = false): seq[XmlNode] =
     let a = newXmlTree("father", [b, c, d, e])
     assert $(a.findAll("good")) == "@[<good>b text</good>]"
     assert $(a.findAll("BAD")) == "@[<BAD>d text</BAD>]"
-    assert $(a.findAll("good", caseInsensitive = true)) == "@[<good>b text</good>, <GOOD>e text</GOOD>]"
-    assert $(a.findAll("BAD", caseInsensitive = true)) == "@[<bad>c text</bad>, <BAD>d text</BAD>]"
+    assert $(a.findAll("good", caseInsensitive = true)) ==
+      "@[<good>b text</good>, <GOOD>e text</GOOD>]"
+    assert $(a.findAll("BAD", caseInsensitive = true)) ==
+      "@[<bad>c text</bad>, <BAD>d text</BAD>]"
 
   newSeq(result, 0)
   findAll(n, tag, result, caseInsensitive)
@@ -915,10 +939,10 @@ proc xmlConstructor(a: NimNode): NimNode =
   if a.kind == nnkCall:
     result = newCall("newXmlTree", toStrLit(a[0]))
     var attrs = newNimNode(nnkBracket, a)
-    var newStringTabCall = newCall(bindSym"newStringTable", attrs,
-                                    bindSym"modeCaseSensitive")
+    var newStringTabCall =
+      newCall(bindSym"newStringTable", attrs, bindSym"modeCaseSensitive")
     var elements = newNimNode(nnkBracket, a)
-    for i in 1..a.len-1:
+    for i in 1 .. a.len - 1:
       if a[i].kind == nnkExprEqExpr:
         # In order to support attributes like `data-lang` we have to
         # replace whitespace because `toStrLit` gives `data - lang`.

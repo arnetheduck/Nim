@@ -16,9 +16,12 @@ when defined(nimImportutilsExample):
   type
     Foo = object
       f0: int # private
+
     Goo*[T] = object
       g0: int # private
-  proc initFoo*(): auto = Foo()
+
+  proc initFoo*(): auto =
+    Foo()
 
 proc privateAccess*(t: typedesc) {.magic: "PrivateAccess".} =
   ## Enables access to private fields of `t` in current scope.

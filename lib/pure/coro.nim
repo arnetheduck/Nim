@@ -39,12 +39,13 @@ const defaultStackSize = 512 * 1024
 const useOrcArc = defined(gcArc) or defined(gcOrc) or defined(gcAtomicArc)
 
 when useOrcArc:
-  proc nimGC_setStackBottom*(theStackBottom: pointer) = discard
+  proc nimGC_setStackBottom*(theStackBottom: pointer) =
+    discard
 
 proc GC_addStack(bottom: pointer) {.cdecl, importc.}
 proc GC_removeStack(bottom: pointer) {.cdecl, importc.}
 proc GC_setActiveStack(bottom: pointer) {.cdecl, importc.}
-proc GC_getActiveStack() : pointer {.cdecl, importc.}
+proc GC_getActiveStack(): pointer {.cdecl, importc.}
 
 const
   CORO_BACKEND_UCONTEXT = 0
@@ -54,13 +55,22 @@ const
 when defined(windows):
   const coroBackend = CORO_BACKEND_FIBERS
   when defined(nimCoroutinesUcontext):
-    {.warning: "ucontext coroutine backend is not available on windows, defaulting to fibers.".}
+    {.
+      warning:
+        "ucontext coroutine backend is not available on windows, defaulting to fibers."
+    .}
   when defined(nimCoroutinesSetjmp):
-    {.warning: "setjmp coroutine backend is not available on windows, defaulting to fibers.".}
+    {.
+      warning:
+        "setjmp coroutine backend is not available on windows, defaulting to fibers."
+    .}
 elif defined(haiku) or defined(openbsd):
   const coroBackend = CORO_BACKEND_SETJMP
   when defined(nimCoroutinesUcontext):
-    {.warning: "ucontext coroutine backend is not available on haiku, defaulting to setjmp".}
+    {.
+      warning:
+        "ucontext coroutine backend is not available on haiku, defaulting to setjmp"
+    .}
 elif defined(nimCoroutinesSetjmp) or defined(nimCoroutinesSetjmpBundled):
   const coroBackend = CORO_BACKEND_SETJMP
 else:
@@ -68,9 +78,7 @@ else:
 
 when coroBackend == CORO_BACKEND_FIBERS:
   import std/winlean
-  type
-    Context = pointer
-
+  type Context = pointer
 elif coroBackend == CORO_BACKEND_UCONTEXT:
   type
     stack_t {.importc, header: "<ucontext.h>".} = object
@@ -84,18 +92,21 @@ elif coroBackend == CORO_BACKEND_UCONTEXT:
 
     Context = ucontext_t
 
-  proc getcontext(context: var ucontext_t): int32 {.importc,
-      header: "<ucontext.h>".}
-  proc setcontext(context: var ucontext_t): int32 {.importc,
-      header: "<ucontext.h>".}
-  proc swapcontext(fromCtx, toCtx: var ucontext_t): int32 {.importc,
-      header: "<ucontext.h>".}
-  proc makecontext(context: var ucontext_t, fn: pointer, argc: int32) {.importc,
-      header: "<ucontext.h>", varargs.}
+  proc getcontext(context: var ucontext_t): int32 {.importc, header: "<ucontext.h>".}
+  proc setcontext(context: var ucontext_t): int32 {.importc, header: "<ucontext.h>".}
+  proc swapcontext(
+    fromCtx, toCtx: var ucontext_t
+  ): int32 {.importc, header: "<ucontext.h>".}
+
+  proc makecontext(
+    context: var ucontext_t, fn: pointer, argc: int32
+  ) {.importc, header: "<ucontext.h>", varargs.}
 
 elif coroBackend == CORO_BACKEND_SETJMP:
-  proc coroExecWithStack*(fn: pointer, stack: pointer) {.noreturn,
-      importc: "narch_$1", fastcall.}
+  proc coroExecWithStack*(
+    fn: pointer, stack: pointer
+  ) {.noreturn, importc: "narch_$1", fastcall.}
+
   when defined(amd64):
     {.compile: "../arch/x86/amd64.S".}
   elif defined(i386):
@@ -108,11 +119,9 @@ elif coroBackend == CORO_BACKEND_SETJMP:
   when defined(nimCoroutinesSetjmpBundled):
     # Use setjmp/longjmp implementation shipped with compiler.
     when defined(amd64):
-      type
-        JmpBuf = array[0x50 + 0x10, uint8]
+      type JmpBuf = array[0x50 + 0x10, uint8]
     elif defined(i386):
-      type
-        JmpBuf = array[0x1C, uint8]
+      type JmpBuf = array[0x1C, uint8]
     else:
       # Bundled setjmp/longjmp are defined in assembly. To support other
       # platforms please provide implementations of these procedures.
@@ -122,14 +131,12 @@ elif coroBackend == CORO_BACKEND_SETJMP:
     proc longjmp(ctx: JmpBuf, ret = 1) {.importc: "narch_$1".}
   else:
     # Use setjmp/longjmp implementation provided by the system.
-    type
-      JmpBuf {.importc: "jmp_buf", header: "<setjmp.h>".} = object
+    type JmpBuf {.importc: "jmp_buf", header: "<setjmp.h>".} = object
 
     proc setjmp(ctx: var JmpBuf): int {.importc, header: "<setjmp.h>".}
     proc longjmp(ctx: JmpBuf, ret = 1) {.importc, header: "<setjmp.h>".}
 
-  type
-    Context = JmpBuf
+  type Context = JmpBuf
 
 when defined(unix):
   # GLibc fails with "*** longjmp causes uninitialized stack frame ***" because
@@ -148,7 +155,7 @@ const
 
 type
   Stack {.pure.} = object
-    top: pointer    # Top of the stack. Pointer used for deallocating stack if we own it.
+    top: pointer # Top of the stack. Pointer used for deallocating stack if we own it.
     bottom: pointer # Very bottom of the stack, acts as unique stack identifier.
     size: int
 
@@ -267,7 +274,9 @@ proc runCurrentTask() =
   suspend(0) # Exit coroutine without returning from coroExecWithStack()
   raiseAssert "unreachable"
 
-proc start*(c: proc(), stacksize: int = defaultStackSize): CoroutineRef {.discardable.} =
+proc start*(
+    c: proc(), stacksize: int = defaultStackSize
+): CoroutineRef {.discardable.} =
   ## Schedule coroutine for execution. It does not run immediately.
   if ctx == nil:
     initialize()
@@ -275,9 +284,16 @@ proc start*(c: proc(), stacksize: int = defaultStackSize): CoroutineRef {.discar
   var coro: CoroutinePtr
   when coroBackend == CORO_BACKEND_FIBERS:
     coro = cast[CoroutinePtr](alloc0(sizeof(Coroutine)))
-    coro.execContext = CreateFiberEx(stacksize, stacksize,
+    coro.execContext = CreateFiberEx(
+      stacksize,
+      stacksize,
       FIBER_FLAG_FLOAT_SWITCH,
-      (proc(p: pointer) {.stdcall.} = runCurrentTask()), nil)
+      (
+        proc(p: pointer) {.stdcall.} =
+          runCurrentTask()
+      ),
+      nil,
+    )
   else:
     coro = cast[CoroutinePtr](alloc0(sizeof(Coroutine) + stacksize))
     coro.stack.top = cast[pointer](cast[int](coro) + sizeof(Coroutine))
@@ -304,7 +320,8 @@ proc run*() =
   while ctx.current != nil:
     var current = getCurrent()
 
-    var remaining = current.sleepTime - (float(getTicks() - current.lastRun) / 1_000_000_000)
+    var remaining =
+      current.sleepTime - (float(getTicks() - current.lastRun) / 1_000_000_000)
     if remaining <= 0:
       # Save main loop context. Suspending coroutine will resume after this statement with
       switchTo(addr(ctx.loop), current)
@@ -336,8 +353,9 @@ proc run*() =
     else:
       ctx.current = ctx.current.next
 
-proc alive*(c: CoroutineRef): bool = c.coro != nil and c.coro.state != CORO_FINISHED
+proc alive*(c: CoroutineRef): bool =
   ## Returns `true` if coroutine has not returned, `false` otherwise.
+  c.coro != nil and c.coro.state != CORO_FINISHED
 
 proc wait*(c: CoroutineRef, interval = 0.01) =
   ## Returns only after coroutine `c` has returned. `interval` is time in seconds how often.

@@ -25,9 +25,11 @@ const nimStrVersion {.core.} = 2
 
 {.push overflowChecks: off, rangeChecks: off.}
 
-template isLiteral(s): bool = (s.p == nil) or (s.p.cap and strlitFlag) == strlitFlag
+template isLiteral(s): bool =
+  (s.p == nil) or (s.p.cap and strlitFlag) == strlitFlag
 
-template contentSize(cap): int = cap + 1 + sizeof(NimStrPayloadBase)
+template contentSize(cap): int =
+  cap + 1 + sizeof(NimStrPayloadBase)
 
 template frees(s) =
   if not isLiteral(s):
@@ -54,18 +56,21 @@ template reallocPayload(p: pointer, newLen: int): ptr NimStrPayload =
   else:
     cast[ptr NimStrPayload](realloc(p, contentSize(newLen)))
 
-template reallocPayload0(p: pointer; oldLen, newLen: int): ptr NimStrPayload =
+template reallocPayload0(p: pointer, oldLen, newLen: int): ptr NimStrPayload =
   when compileOption("threads"):
     cast[ptr NimStrPayload](reallocShared0(p, contentSize(oldLen), contentSize(newLen)))
   else:
     cast[ptr NimStrPayload](realloc0(p, contentSize(oldLen), contentSize(newLen)))
 
 proc resize(old: int): int {.inline.} =
-  if old <= 0: result = 4
-  elif old <= high(int16): result = old * 2
-  else: result = old div 2 + old # for large arrays * 3/2 is better
+  if old <= 0:
+    result = 4
+  elif old <= high(int16):
+    result = old * 2
+  else:
+    result = old div 2 + old # for large arrays * 3/2 is better
 
-proc prepareAdd(s: var NimStringV2; addLen: int) {.compilerRtl.} =
+proc prepareAdd(s: var NimStringV2, addLen: int) {.compilerRtl.} =
   let newLen = s.len + addLen
   if isLiteral(s):
     let oldP = s.p
@@ -86,9 +91,9 @@ proc prepareAdd(s: var NimStringV2; addLen: int) {.compilerRtl.} =
       s.p = reallocPayload(s.p, newCap)
       s.p.cap = newCap
       if newLen < newCap:
-        zeroMem(cast[pointer](addr s.p.data[newLen+1]), newCap - newLen)
+        zeroMem(cast[pointer](addr s.p.data[newLen + 1]), newCap - newLen)
 
-proc nimAddCharV1(s: var NimStringV2; c: char) {.compilerRtl, inl.} =
+proc nimAddCharV1(s: var NimStringV2, c: char) {.compilerRtl, inl.} =
   #if (s.p == nil) or (s.len+1 > s.p.cap and not strlitFlag):
   prepareAdd(s, 1)
   s.p.data[s.len] = c
@@ -101,25 +106,29 @@ proc toNimStr(str: cstring, len: int): NimStringV2 {.compilerproc.} =
   else:
     var p = allocPayload(len)
     p.cap = len
-    copyMem(unsafeAddr p.data[0], str, len+1)
+    copyMem(unsafeAddr p.data[0], str, len + 1)
     result = NimStringV2(len: len, p: p)
 
 proc cstrToNimstr(str: cstring): NimStringV2 {.compilerRtl.} =
-  if str == nil: toNimStr(str, 0)
-  else: toNimStr(str, str.len)
+  if str == nil:
+    toNimStr(str, 0)
+  else:
+    toNimStr(str, str.len)
 
 proc nimToCStringConv(s: NimStringV2): cstring {.compilerproc, nonReloadable, inline.} =
-  if s.len == 0: result = cstring""
-  else: result = cast[cstring](unsafeAddr s.p.data)
+  if s.len == 0:
+    result = cstring""
+  else:
+    result = cast[cstring](unsafeAddr s.p.data)
 
-proc appendString(dest: var NimStringV2; src: NimStringV2) {.compilerproc, inline.} =
+proc appendString(dest: var NimStringV2, src: NimStringV2) {.compilerproc, inline.} =
   if src.len > 0:
     # don't copy the \0 terminator:
     copyMem(unsafeAddr dest.p.data[dest.len], unsafeAddr src.p.data[0], src.len)
     inc dest.len, src.len
     dest.p.data[dest.len] = '\0'
 
-proc appendChar(dest: var NimStringV2; c: char) {.compilerproc, inline.} =
+proc appendChar(dest: var NimStringV2, c: char) {.compilerproc, inline.} =
   dest.p.data[dest.len] = c
   inc dest.len
   dest.p.data[dest.len] = '\0'
@@ -148,7 +157,8 @@ proc setLengthStrV2(s: var NimStringV2, newLen: int) {.compilerRtl.} =
   ## on length change, **excluding** `newLen == 0`.
   ## Negative `newLen` is **not** bound to zero.
   if newLen == 0:
-    discard "do not free the buffer here, pattern 's.setLen 0' is common for avoiding allocations"
+    discard
+      "do not free the buffer here, pattern 's.setLen 0' is common for avoiding allocations"
   else:
     if isLiteral(s):
       let oldP = s.p
@@ -173,7 +183,8 @@ proc setLengthStrV2(s: var NimStringV2, newLen: int) {.compilerRtl.} =
   s.len = newLen
 
 proc nimAsgnStrV2(a: var NimStringV2, b: NimStringV2) {.compilerRtl.} =
-  if a.p == b.p and a.len == b.len: return
+  if a.p == b.p and a.len == b.len:
+    return
   if isLiteral(b):
     # we can shallow copy literals:
     frees(a)
@@ -188,14 +199,14 @@ proc nimAsgnStrV2(a: var NimStringV2, b: NimStringV2) {.compilerRtl.} =
       a.p = allocPayload(b.len)
       a.p.cap = b.len
     a.len = b.len
-    copyMem(unsafeAddr a.p.data[0], unsafeAddr b.p.data[0], b.len+1)
+    copyMem(unsafeAddr a.p.data[0], unsafeAddr b.p.data[0], b.len + 1)
 
 proc nimPrepareStrMutationImpl(s: var NimStringV2) =
   let oldP = s.p
   # can't mutate a literal, so we need a fresh copy here:
   s.p = allocPayload(s.len)
   s.p.cap = s.len
-  copyMem(unsafeAddr s.p.data[0], unsafeAddr oldP.data[0], s.len+1)
+  copyMem(unsafeAddr s.p.data[0], unsafeAddr oldP.data[0], s.len + 1)
 
 proc nimPrepareStrMutationV2(s: var NimStringV2) {.compilerRtl, inl.} =
   if s.p != nil and (s.p.cap and strlitFlag) == strlitFlag:
@@ -208,7 +219,7 @@ proc prepareMutation*(s: var string) {.inline.} =
     let s = unsafeAddr s
     nimPrepareStrMutationV2(cast[ptr NimStringV2](s)[])
 
-proc nimAddStrV1(s: var NimStringV2; src: NimStringV2) {.compilerRtl, inl.} =
+proc nimAddStrV1(s: var NimStringV2, src: NimStringV2) {.compilerRtl, inl.} =
   #if (s.p == nil) or (s.len+1 > s.p.cap and not strlitFlag):
   prepareAdd(s, src.len)
   appendString s, src
@@ -216,7 +227,7 @@ proc nimAddStrV1(s: var NimStringV2; src: NimStringV2) {.compilerRtl, inl.} =
 proc nimDestroyStrV1(s: NimStringV2) {.compilerRtl, inl.} =
   frees(s)
 
-proc nimStrAtLe(s: string; idx: int; ch: char): bool {.compilerRtl, inl.} =
+proc nimStrAtLe(s: string, idx: int, ch: char): bool {.compilerRtl, inl.} =
   result = idx < s.len and s[idx] <= ch
 
 func capacity*(self: string): int {.inline.} =
@@ -228,6 +239,10 @@ func capacity*(self: string): int {.inline.} =
     assert str.capacity == 42
 
   let str = cast[ptr NimStringV2](unsafeAddr self)
-  result = if str.p != nil: str.p.cap and not strlitFlag else: 0
+  result =
+    if str.p != nil:
+      str.p.cap and not strlitFlag
+    else:
+      0
 
 {.pop.}

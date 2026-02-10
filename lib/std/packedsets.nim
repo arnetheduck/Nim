@@ -22,14 +22,14 @@ import std/hashes
 when defined(nimPreviewSlimSystem):
   import std/assertions
 
-type
-  BitScalar = uint
+type BitScalar = uint
 
 const
-  InitIntSetSize = 8              # must be a power of two!
+  InitIntSetSize = 8 # must be a power of two!
   TrunkShift = 9
-  BitsPerTrunk = 1 shl TrunkShift # needs to be a power of 2 and
-                                  # divisible by 64
+  BitsPerTrunk = 1 shl TrunkShift
+    # needs to be a power of 2 and
+    # divisible by 64
   TrunkMask = BitsPerTrunk - 1
   IntsPerTrunk = BitsPerTrunk div (sizeof(BitScalar) * 8)
   IntShift = 5 + ord(sizeof(BitScalar) == 8) # 5 or 6, depending on int width
@@ -37,19 +37,19 @@ const
 
 type
   Trunk {.acyclic.} = ref object
-    next: Trunk                                 # all nodes are connected with this pointer
-    key: int                                    # start address at bit 0
-    bits: array[0..IntsPerTrunk - 1, BitScalar] # a bit vector
+    next: Trunk # all nodes are connected with this pointer
+    key: int # start address at bit 0
+    bits: array[0 .. IntsPerTrunk - 1, BitScalar] # a bit vector
 
   TrunkSeq = seq[Trunk]
 
   PackedSet*[A: Ordinal] = object
     ## An efficient set of `Ordinal` types implemented as a sparse bit set.
-    elems: int           # only valid for small numbers
+    elems: int # only valid for small numbers
     counter, max: int
     head: Trunk
     data: TrunkSeq
-    a: array[0..33, int] # profiling shows that 34 elements are enough
+    a: array[0 .. 33, int] # profiling shows that 34 elements are enough
 
 proc mustRehash[T](t: T): bool {.inline.} =
   let length = t.max + 1
@@ -86,7 +86,8 @@ proc intSetEnlarge[A](t: var PackedSet[A]) =
   t.max = ((t.max + 1) * 2) - 1
   newSeq(n, t.max + 1)
   for i in countup(0, oldMax):
-    if t.data[i] != nil: intSetRawInsert(t, n, t.data[i])
+    if t.data[i] != nil:
+      intSetRawInsert(t, n, t.data[i])
   swap(t.data, n)
 
 proc intSetPut[A](t: var PackedSet[A], key: int): Trunk =
@@ -96,11 +97,13 @@ proc intSetPut[A](t: var PackedSet[A], key: int): Trunk =
     if t.data[h].key == key:
       return t.data[h]
     h = nextTry(h, t.max, perturb)
-  if mustRehash(t): intSetEnlarge(t)
+  if mustRehash(t):
+    intSetEnlarge(t)
   inc(t.counter)
   h = key and t.max
   perturb = key
-  while t.data[h] != nil: h = nextTry(h, t.max, perturb)
+  while t.data[h] != nil:
+    h = nextTry(h, t.max, perturb)
   assert t.data[h] == nil
   new(result)
   result.next = t.head
@@ -111,12 +114,11 @@ proc intSetPut[A](t: var PackedSet[A], key: int): Trunk =
 proc bitincl[A](s: var PackedSet[A], key: int) {.inline.} =
   var t = intSetPut(s, key shr TrunkShift)
   var u = key and TrunkMask
-  t.bits[u shr IntShift] = t.bits[u shr IntShift] or
-      (BitScalar(1) shl (u and IntMask))
+  t.bits[u shr IntShift] = t.bits[u shr IntShift] or (BitScalar(1) shl (u and IntMask))
 
 proc exclImpl[A](s: var PackedSet[A], key: int) =
   if s.elems <= s.a.len:
-    for i in 0..<s.elems:
+    for i in 0 ..< s.elems:
       if s.a[i] == key:
         s.a[i] = s.a[s.elems - 1]
         dec(s.elems)
@@ -125,20 +127,21 @@ proc exclImpl[A](s: var PackedSet[A], key: int) =
     var t = packedSetGet(s, key shr TrunkShift)
     if t != nil:
       var u = key and TrunkMask
-      t.bits[u shr IntShift] = t.bits[u shr IntShift] and
-          not(BitScalar(1) shl (u and IntMask))
+      t.bits[u shr IntShift] =
+        t.bits[u shr IntShift] and not (BitScalar(1) shl (u and IntMask))
 
 template dollarImpl(): untyped =
   result = "{"
   for key in items(s):
-    if result.len > 1: result.add(", ")
+    if result.len > 1:
+      result.add(", ")
     result.add $key
   result.add("}")
 
 iterator items*[A](s: PackedSet[A]): A {.inline.} =
   ## Iterates over any included element of `s`.
   if s.elems <= s.a.len:
-    for i in 0..<s.elems:
+    for i in 0 ..< s.elems:
       yield A(s.a[i])
   else:
     var r = s.head
@@ -157,7 +160,7 @@ iterator items*[A](s: PackedSet[A]): A {.inline.} =
         inc(i)
       r = r.next
 
-proc initPackedSet*[A]: PackedSet[A] =
+proc initPackedSet*[A](): PackedSet[A] =
   ## Returns an empty `PackedSet[A]`.
   ## `A` must be `Ordinal`.
   ##
@@ -171,12 +174,7 @@ proc initPackedSet*[A]: PackedSet[A] =
     var ids = initPackedSet[Id]()
     ids.incl(3.Id)
 
-  result = PackedSet[A](
-    elems: 0,
-    counter: 0,
-    max: 0,
-    head: nil,
-    data: @[])
+  result = PackedSet[A](elems: 0, counter: 0, max: 0, head: nil, data: @[])
   #  a: array[0..33, int] # profiling shows that 34 elements are enough
 
 proc contains*[A](s: PackedSet[A], key: A): bool =
@@ -184,7 +182,11 @@ proc contains*[A](s: PackedSet[A], key: A): bool =
   ##
   ## This allows the usage of the `in` operator.
   runnableExamples:
-    type ABCD = enum A, B, C, D
+    type ABCD = enum
+      A
+      B
+      C
+      D
 
     let a = [1, 3, 5].toPackedSet
     assert a.contains(3)
@@ -199,14 +201,14 @@ proc contains*[A](s: PackedSet[A], key: A): bool =
 
   if s.elems <= s.a.len:
     result = false
-    for i in 0..<s.elems:
-      if s.a[i] == ord(key): return true
+    for i in 0 ..< s.elems:
+      if s.a[i] == ord(key):
+        return true
   else:
     var t = packedSetGet(s, ord(key) shr TrunkShift)
     if t != nil:
       var u = ord(key) and TrunkMask
-      result = (t.bits[u shr IntShift] and
-                (BitScalar(1) shl (u and IntMask))) != 0
+      result = (t.bits[u shr IntShift] and (BitScalar(1) shl (u and IntMask))) != 0
     else:
       result = false
 
@@ -226,15 +228,16 @@ proc incl*[A](s: var PackedSet[A], key: A) =
     assert len(a) == 1
 
   if s.elems <= s.a.len:
-    for i in 0..<s.elems:
-      if s.a[i] == ord(key): return
+    for i in 0 ..< s.elems:
+      if s.a[i] == ord(key):
+        return
     if s.elems < s.a.len:
       s.a[s.elems] = ord(key)
       inc(s.elems)
       return
     newSeq(s.data, InitIntSetSize)
     s.max = InitIntSetSize - 1
-    for i in 0..<s.elems:
+    for i in 0 ..< s.elems:
       bitincl(s, s.a[i])
     s.elems = s.a.len + 1
     # fall through:
@@ -255,7 +258,8 @@ proc incl*[A](s: var PackedSet[A], other: PackedSet[A]) =
     assert len(a) == 2
     assert 5 in a
 
-  for item in other.items: incl(s, item)
+  for item in other.items:
+    incl(s, item)
 
 proc toPackedSet*[A](x: openArray[A]): PackedSet[A] {.since: (1, 3).} =
   ## Creates a new `PackedSet[A]` that contains the elements of `x`.
@@ -291,7 +295,7 @@ proc containsOrIncl*[A](s: var PackedSet[A], key: A): bool =
     assert a.containsOrIncl(4) == false
 
   if s.elems <= s.a.len:
-    for i in 0..<s.elems:
+    for i in 0 ..< s.elems:
       if s.a[i] == ord(key):
         return true
     incl(s, key)
@@ -302,8 +306,8 @@ proc containsOrIncl*[A](s: var PackedSet[A], key: A): bool =
       var u = ord(key) and TrunkMask
       result = (t.bits[u shr IntShift] and BitScalar(1) shl (u and IntMask)) != 0
       if not result:
-        t.bits[u shr IntShift] = t.bits[u shr IntShift] or
-            (BitScalar(1) shl (u and IntMask))
+        t.bits[u shr IntShift] =
+          t.bits[u shr IntShift] or (BitScalar(1) shl (u and IntMask))
     else:
       incl(s, key)
       result = false
@@ -427,7 +431,8 @@ proc `=copy`*[A](dest: var PackedSet[A], src: PackedSet[A]) =
     while it != nil:
       var h = it.key and dest.max
       var perturb = it.key
-      while dest.data[h] != nil: h = nextTry(h, dest.max, perturb)
+      while dest.data[h] != nil:
+        h = nextTry(h, dest.max, perturb)
       assert dest.data[h] == nil
       var n: Trunk
       new(n)

@@ -31,9 +31,9 @@ runnableExamples:
 ##
 
 runnableExamples:
-  let encodedInts = encode([1'u8,2,3])
+  let encodedInts = encode([1'u8, 2, 3])
   assert encodedInts == "AQID"
-  let encodedChars = encode(['h','e','y'])
+  let encodedChars = encode(['h', 'e', 'y'])
   assert encodedChars == "aGV5"
 
 ##[
@@ -59,21 +59,22 @@ runnableExamples:
 ## * `md5 module<md5.html>`_ for the MD5 checksum algorithm
 ## * `sha1 module<sha1.html>`_ for the SHA-1 checksum algorithm
 
-template cbBase(a, b): untyped = [
-  'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M',
-  'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z',
-  'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm',
-  'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z',
-  '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', a, b]
+template cbBase(a, b): untyped =
+  [
+    'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q',
+    'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h',
+    'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y',
+    'z', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', a, b,
+  ]
 
 const
   cb64 = cbBase('+', '/')
   cb64safe = cbBase('-', '_')
 
-const
-  invalidChar = 255
+const invalidChar = 255
 
-template encodeSize(size: int): int = (size div 3 + size) + 6
+template encodeSize(size: int): int =
+  (size div 3 + size) + 6
 
 template encodeInternal(s, alphabet: typed): untyped =
   ## encodes `s` into base64 representation.
@@ -118,7 +119,6 @@ template encodeInternal(s, alphabet: typed): untyped =
     outputChar(n shr 12)
     outputChar('=')
     outputChar('=')
-
   elif padding == 2:
     inputByte(b shl 16)
     inputByte(n or b shl 8)
@@ -135,7 +135,7 @@ template encodeImpl() {.dirty.} =
   else:
     encodeInternal(s, cb64)
 
-proc encode*[T: byte|char](s: openArray[T], safe = false): string =
+proc encode*[T: byte | char](s: openArray[T], safe = false): string =
   ## Encodes `s` into base64 representation.
   ##
   ## If `safe` is `true` then it will encode using the
@@ -153,12 +153,14 @@ proc encode*[T: byte|char](s: openArray[T], safe = false): string =
     assert encode([1'u8, 2, 3, 4, 5]) == "AQIDBAU="
   encodeImpl()
 
-proc encode*[T: SomeInteger and not byte](s: openArray[T], safe = false): string
-  {.deprecated: "use `byte` or `char` instead".} =
+proc encode*[T: SomeInteger and not byte](
+    s: openArray[T], safe = false
+): string {.deprecated: "use `byte` or `char` instead".} =
   encodeImpl()
 
-proc encodeMime*(s: string, lineLen = 75.Positive, newLine = "\r\n",
-                 safe = false): string =
+proc encodeMime*(
+    s: string, lineLen = 75.Positive, newLine = "\r\n", safe = false
+): string =
   ## Encodes `s` into base64 representation as lines.
   ## Used in email MIME format, use `lineLen` and `newline`.
   ##
@@ -182,11 +184,13 @@ proc encodeMime*(s: string, lineLen = 75.Positive, newLine = "\r\n",
       inc i
       inc idx
 
-  if s.len == 0: return
+  if s.len == 0:
+    return
   let e = encode(s, safe)
   if e.len <= lineLen or newLine.len == 0:
     return e
-  result = newString(e.len + newLine.len * ((e.len div lineLen) - int(e.len mod lineLen == 0)))
+  result =
+    newString(e.len + newLine.len * ((e.len div lineLen) - int(e.len mod lineLen == 0)))
   var i, j, k, b: int = 0
   let nd = e.len - lineLen
   while j < nd:
@@ -201,15 +205,19 @@ proc initDecodeTable*(): array[256, char] =
   for i in 0 ..< 256:
     let ch = char(i)
     var code = invalidChar
-    if ch >= 'A' and ch <= 'Z': code = i - 0x00000041
-    if ch >= 'a' and ch <= 'z': code = i - 0x00000047
-    if ch >= '0' and ch <= '9': code = i + 0x00000004
-    if ch == '+' or ch == '-': code = 0x0000003E
-    if ch == '/' or ch == '_': code = 0x0000003F
+    if ch >= 'A' and ch <= 'Z':
+      code = i - 0x00000041
+    if ch >= 'a' and ch <= 'z':
+      code = i - 0x00000047
+    if ch >= '0' and ch <= '9':
+      code = i + 0x00000004
+    if ch == '+' or ch == '-':
+      code = 0x0000003E
+    if ch == '/' or ch == '_':
+      code = 0x0000003F
     result[i] = char(code)
 
-const
-  decodeTable = initDecodeTable()
+const decodeTable = initDecodeTable()
 
 proc decode*(s: string): string =
   ## Decodes string `s` in base64 representation back into its original form.
@@ -221,7 +229,8 @@ proc decode*(s: string): string =
     assert decode("SGVsbG8gV29ybGQ=") == "Hello World"
     assert decode("  SGVsbG8gV29ybGQ=") == "Hello World"
   result = ""
-  if s.len == 0: return
+  if s.len == 0:
+    return
 
   proc decodeSize(size: int): int =
     return (size * 3 div 4) + 6
@@ -229,9 +238,11 @@ proc decode*(s: string): string =
   template inputChar(x: untyped) =
     let x = int decodeTable[ord(s[inputIndex])]
     if x == invalidChar:
-      raise newException(ValueError,
-        "Invalid base64 format character `" & s[inputIndex] &
-        "` (ord " & $s[inputIndex].ord & ") at location " & $inputIndex & ".")
+      raise newException(
+        ValueError,
+        "Invalid base64 format character `" & s[inputIndex] & "` (ord " &
+          $s[inputIndex].ord & ") at location " & $inputIndex & ".",
+      )
     inc inputIndex
 
   template outputChar(x: untyped) =

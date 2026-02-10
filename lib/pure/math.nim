@@ -27,7 +27,8 @@ runnableExamples:
     while true:
       u1 = rand(1.0)
       u2 = rand(1.0)
-      if u1 > epsilon(float): break
+      if u1 > epsilon(float):
+        break
     let mag = sigma * sqrt(-2 * ln(u1))
     let z0 = mag * cos(2 * PI * u2) + mu
     let z1 = mag * sin(2 * PI * u2) + mu
@@ -52,17 +53,16 @@ runnableExamples:
 ## * `system module <system.html>`_ for some very basic and trivial math operators
 ##   (`shr`, `shl`, `xor`, `clamp`, etc.)
 
-
 import std/private/since
-{.push debugger: off.} # the user does not want to trace a part
-                       # of the standard library!
+{.push debugger: off.}
+  # the user does not want to trace a part
+  # of the standard library!
 
 import std/[bitops, fenv]
 import system/countbits_impl
 
 when defined(nimPreviewSlimSystem):
   import std/assertions
-
 
 when not defined(js) and not defined(nimscript): # C
   proc c_isnan(x: float): bool {.importc: "isnan", header: "<math.h>".}
@@ -74,18 +74,22 @@ when not defined(js) and not defined(nimscript): # C
   proc c_signbit(x: SomeFloat): cint {.importc: "signbit", header: "<math.h>".}
 
   # don't export `c_frexp` in the future and remove `c_frexp2`.
-  func c_frexp2(x: cfloat, exponent: var cint): cfloat {.
-      importc: "frexpf", header: "<math.h>".}
-  func c_frexp2(x: cdouble, exponent: var cint): cdouble {.
-      importc: "frexp", header: "<math.h>".}
+  func c_frexp2(
+    x: cfloat, exponent: var cint
+  ): cfloat {.importc: "frexpf", header: "<math.h>".}
+  func c_frexp2(
+    x: cdouble, exponent: var cint
+  ): cdouble {.importc: "frexp", header: "<math.h>".}
 
   type
     div_t {.importc, header: "<stdlib.h>".} = object
       quot: cint
       rem: cint
+
     ldiv_t {.importc, header: "<stdlib.h>".} = object
       quot: clong
       rem: clong
+
     lldiv_t {.importc, header: "<stdlib.h>".} = object
       quot: clonglong
       rem: clonglong
@@ -121,13 +125,15 @@ func binom*(n, k: int): int =
     doAssert binom(-6, 2) == 1
     doAssert binom(6, 0) == 1
 
-  if k <= 0: return 1
-  if 2 * k > n: return binom(n, n - k)
+  if k <= 0:
+    return 1
+  if 2 * k > n:
+    return binom(n, n - k)
   result = n
   for i in countup(2, k):
     result = (result * (n + 1 - i)) div i
 
-func createFactTable[N: static[int]]: array[N, int] =
+func createFactTable[N: static[int]](): array[N, int] =
   result[0] = 1
   for i in 1 ..< N:
     result[i] = result[i - 1] * i
@@ -160,37 +166,41 @@ when defined(posix) and not defined(genode) and not defined(macosx):
   {.passl: "-lm".}
 
 const
-  PI* = 3.1415926535897932384626433          ## The circle constant PI (Ludolph's number).
-  TAU* = 2.0 * PI                            ## The circle constant TAU (= 2 * PI).
-  E* = 2.71828182845904523536028747          ## Euler's number.
+  PI* = 3.1415926535897932384626433 ## The circle constant PI (Ludolph's number).
+  TAU* = 2.0 * PI ## The circle constant TAU (= 2 * PI).
+  E* = 2.71828182845904523536028747 ## Euler's number.
 
-  MaxFloat64Precision* = 16                  ## Maximum number of meaningful digits
-                                             ## after the decimal point for Nim's
-                                             ## `float64` type.
-  MaxFloat32Precision* = 8                   ## Maximum number of meaningful digits
-                                             ## after the decimal point for Nim's
-                                             ## `float32` type.
-  MaxFloatPrecision* = MaxFloat64Precision   ## Maximum number of
-                                             ## meaningful digits
-                                             ## after the decimal point
-                                             ## for Nim's `float` type.
-  MinFloatNormal* = 2.225073858507201e-308   ## Smallest normal number for Nim's
-                                             ## `float` type (= 2^-1022).
-  RadPerDeg = PI / 180.0                     ## Number of radians per degree.
+  MaxFloat64Precision* = 16
+    ## Maximum number of meaningful digits
+    ## after the decimal point for Nim's
+    ## `float64` type.
+  MaxFloat32Precision* = 8
+    ## Maximum number of meaningful digits
+    ## after the decimal point for Nim's
+    ## `float32` type.
+  MaxFloatPrecision* = MaxFloat64Precision
+    ## Maximum number of
+    ## meaningful digits
+    ## after the decimal point
+    ## for Nim's `float` type.
+  MinFloatNormal* = 2.225073858507201e-308
+    ## Smallest normal number for Nim's
+    ## `float` type (= 2^-1022).
+  RadPerDeg = PI / 180.0 ## Number of radians per degree.
 
-type
-  FloatClass* = enum ## Describes the class a floating point value belongs to.
-                     ## This is the type that is returned by the
-                     ## `classify func <#classify,float>`_.
-    fcNormal,        ## value is an ordinary nonzero floating point value
-    fcSubnormal,     ## value is a subnormal (a very small) floating point value
-    fcZero,          ## value is zero
-    fcNegZero,       ## value is the negative zero
-    fcNan,           ## value is Not a Number (NaN)
-    fcInf,           ## value is positive infinity
-    fcNegInf         ## value is negative infinity
+type FloatClass* = enum
+  ## Describes the class a floating point value belongs to.
+  ## This is the type that is returned by the
+  ## `classify func <#classify,float>`_.
+  fcNormal ## value is an ordinary nonzero floating point value
+  fcSubnormal ## value is a subnormal (a very small) floating point value
+  fcZero ## value is zero
+  fcNegZero ## value is the negative zero
+  fcNan ## value is Not a Number (NaN)
+  fcInf ## value is positive infinity
+  fcNegInf ## value is negative infinity
 
-func isNaN*(x: SomeFloat): bool {.inline, since: (1,5,1).} =
+func isNaN*(x: SomeFloat): bool {.inline, since: (1, 5, 1).} =
   ## Returns whether `x` is a `NaN`, more efficiently than via `classify(x) == fcNan`.
   ## Works even with `--passc:-ffast-math`.
   runnableExamples:
@@ -198,11 +208,16 @@ func isNaN*(x: SomeFloat): bool {.inline, since: (1,5,1).} =
     doAssert not Inf.isNaN
     doAssert not isNaN(3.1415926)
 
-  template fn: untyped = result = x != x
-  when nimvm: fn()
+  template fn(): untyped =
+    result = x != x
+
+  when nimvm:
+    fn()
   else:
-    when defined(js) or defined(nimscript): fn()
-    else: result = c_isnan(x)
+    when defined(js) or defined(nimscript):
+      fn()
+    else:
+      result = c_isnan(x)
 
 when defined(js):
   import std/private/jsutils
@@ -220,13 +235,15 @@ when defined(js):
     let a = newFloat64Array(buffer)
     let b = newUint32Array(buffer)
     a[0] = x
-    {.emit: """
+    {.
+      emit: """
     function updateBit(num, bitPos, bitVal) {
       return (num & ~(1 << bitPos)) | (bitVal << bitPos);
     }
     `b`[1] = updateBit(`b`[1], 31, `sgn`);
     `result` = `a`[0];
-    """.}
+    """
+    .}
 
 proc signbit*(x: SomeFloat): bool {.inline, since: (1, 5, 1).} =
   ## Returns true if `x` is negative, false otherwise.
@@ -265,7 +282,8 @@ func copySign*[T: SomeFloat](x, y: T): T {.inline, since: (1, 5, 1).} =
         result = -abs(x)
       else: # must be NaN
         result = abs(x)
-    else: result = c_copysign(x, y)
+    else:
+      result = c_copysign(x, y)
 
 func classify*(x: float): FloatClass =
   ## Classifies a floating point value.
@@ -279,21 +297,25 @@ func classify*(x: float): FloatClass =
     doAssert classify(5.0e-324) == fcSubnormal
 
   # JavaScript and most C compilers have no classify:
-  if isNan(x): return fcNan
+  if isNan(x):
+    return fcNan
   if x == 0.0:
     if 1.0 / x == Inf:
       return fcZero
     else:
       return fcNegZero
   if x * 0.5 == x:
-    if x > 0.0: return fcInf
-    else: return fcNegInf
+    if x > 0.0:
+      return fcInf
+    else:
+      return fcNegInf
   if abs(x) < MinFloatNormal:
     return fcSubnormal
   return fcNormal
 
-func almostEqual*[T: SomeFloat](x, y: T; unitsInLastPlace: Natural = 4): bool {.
-    since: (1, 5), inline.} =
+func almostEqual*[T: SomeFloat](
+    x, y: T, unitsInLastPlace: Natural = 4
+): bool {.since: (1, 5), inline.} =
   ## Checks if two float values are almost equal, using the
   ## [machine epsilon](https://en.wikipedia.org/wiki/Machine_epsilon).
   ##
@@ -318,8 +340,9 @@ func almostEqual*[T: SomeFloat](x, y: T; unitsInLastPlace: Natural = 4): bool {.
     # the same sign. And perhaps speeds things up a bit sometimes.
     return true
   let diff = abs(x - y)
-  result = diff <= epsilon(T) * abs(x + y) * T(unitsInLastPlace) or
-      diff < minimumPositiveValue(T)
+  result =
+    diff <= epsilon(T) * abs(x + y) * T(unitsInLastPlace) or
+    diff < minimumPositiveValue(T)
 
 func isPowerOfTwo*(x: int): bool =
   ## Returns `true`, if `x` is a power of two, `false` otherwise.
@@ -360,9 +383,6 @@ func nextPowerOfTwo*(x: int): int =
   result = result or (result shr 2)
   result = result or (result shr 1)
   result += 1 + ord(x <= 0)
-
-
-
 
 when not defined(js): # C
   func sqrt*(x: float32): float32 {.importc: "sqrtf", header: "<math.h>".}
@@ -434,7 +454,7 @@ when not defined(js): # C
     ## * `log func <#log,T,T>`_
     ## * `log2 func <#log2,float64>`_
     runnableExamples:
-      doAssert almostEqual(log10(100.0) , 2.0)
+      doAssert almostEqual(log10(100.0), 2.0)
       doAssert almostEqual(log10(0.0), -Inf)
       doAssert log10(-100.0).isNaN
   func exp*(x: float32): float32 {.importc: "expf", header: "<math.h>".}
@@ -559,7 +579,6 @@ when not defined(js): # C
     ##
     ## **See also:**
     ## * `tanh func <#tanh,float64>`_
-
 else: # JS
   func log10*(x: float32): float32 {.importc: "Math.log10", nodecl.}
   func log10*(x: float64): float64 {.importc: "Math.log10", nodecl.}
@@ -568,52 +587,62 @@ else: # JS
   func exp*(x: float32): float32 {.importc: "Math.exp", nodecl.}
   func exp*(x: float64): float64 {.importc: "Math.exp", nodecl.}
 
-  func sin*[T: float32|float64](x: T): T {.importc: "Math.sin", nodecl.}
-  func cos*[T: float32|float64](x: T): T {.importc: "Math.cos", nodecl.}
-  func tan*[T: float32|float64](x: T): T {.importc: "Math.tan", nodecl.}
+  func sin*[T: float32 | float64](x: T): T {.importc: "Math.sin", nodecl.}
+  func cos*[T: float32 | float64](x: T): T {.importc: "Math.cos", nodecl.}
+  func tan*[T: float32 | float64](x: T): T {.importc: "Math.tan", nodecl.}
 
-  func sinh*[T: float32|float64](x: T): T {.importc: "Math.sinh", nodecl.}
-  func cosh*[T: float32|float64](x: T): T {.importc: "Math.cosh", nodecl.}
-  func tanh*[T: float32|float64](x: T): T {.importc: "Math.tanh", nodecl.}
+  func sinh*[T: float32 | float64](x: T): T {.importc: "Math.sinh", nodecl.}
+  func cosh*[T: float32 | float64](x: T): T {.importc: "Math.cosh", nodecl.}
+  func tanh*[T: float32 | float64](x: T): T {.importc: "Math.tanh", nodecl.}
 
-  func arcsin*[T: float32|float64](x: T): T {.importc: "Math.asin", nodecl.}
+  func arcsin*[T: float32 | float64](x: T): T {.importc: "Math.asin", nodecl.}
     # keep this as generic or update test in `tvmops.nim` to make sure we
     # keep testing that generic importc procs work
-  func arccos*[T: float32|float64](x: T): T {.importc: "Math.acos", nodecl.}
-  func arctan*[T: float32|float64](x: T): T {.importc: "Math.atan", nodecl.}
-  func arctan2*[T: float32|float64](y, x: T): T {.importc: "Math.atan2", nodecl.}
+  func arccos*[T: float32 | float64](x: T): T {.importc: "Math.acos", nodecl.}
+  func arctan*[T: float32 | float64](x: T): T {.importc: "Math.atan", nodecl.}
+  func arctan2*[T: float32 | float64](y, x: T): T {.importc: "Math.atan2", nodecl.}
 
-  func arcsinh*[T: float32|float64](x: T): T {.importc: "Math.asinh", nodecl.}
-  func arccosh*[T: float32|float64](x: T): T {.importc: "Math.acosh", nodecl.}
-  func arctanh*[T: float32|float64](x: T): T {.importc: "Math.atanh", nodecl.}
+  func arcsinh*[T: float32 | float64](x: T): T {.importc: "Math.asinh", nodecl.}
+  func arccosh*[T: float32 | float64](x: T): T {.importc: "Math.acosh", nodecl.}
+  func arctanh*[T: float32 | float64](x: T): T {.importc: "Math.atanh", nodecl.}
 
-func cot*[T: float32|float64](x: T): T = 1.0 / tan(x)
+func cot*[T: float32 | float64](x: T): T =
   ## Computes the cotangent of `x` (`1/tan(x)`).
-func sec*[T: float32|float64](x: T): T = 1.0 / cos(x)
-  ## Computes the secant of `x` (`1/cos(x)`).
-func csc*[T: float32|float64](x: T): T = 1.0 / sin(x)
-  ## Computes the cosecant of `x` (`1/sin(x)`).
+  1.0 / tan(x)
+func sec*[T: float32 | float64](x: T): T = ## Computes the secant of `x` (`1/cos(x)`).
+  1.0 / cos(x)
+func csc*[T: float32 | float64](x: T): T = ## Computes the cosecant of `x` (`1/sin(x)`).
+  1.0 / sin(x)
 
-func coth*[T: float32|float64](x: T): T = 1.0 / tanh(x)
+func coth*[T: float32 | float64](x: T): T =
   ## Computes the hyperbolic cotangent of `x` (`1/tanh(x)`).
-func sech*[T: float32|float64](x: T): T = 1.0 / cosh(x)
+  1.0 / tanh(x)
+func sech*[T: float32 | float64](x: T): T =
   ## Computes the hyperbolic secant of `x` (`1/cosh(x)`).
-func csch*[T: float32|float64](x: T): T = 1.0 / sinh(x)
+  1.0 / cosh(x)
+func csch*[T: float32 | float64](x: T): T =
   ## Computes the hyperbolic cosecant of `x` (`1/sinh(x)`).
+  1.0 / sinh(x)
 
-func arccot*[T: float32|float64](x: T): T = arctan(1.0 / x)
+func arccot*[T: float32 | float64](x: T): T =
   ## Computes the inverse cotangent of `x` (`arctan(1/x)`).
-func arcsec*[T: float32|float64](x: T): T = arccos(1.0 / x)
+  arctan(1.0 / x)
+func arcsec*[T: float32 | float64](x: T): T =
   ## Computes the inverse secant of `x` (`arccos(1/x)`).
-func arccsc*[T: float32|float64](x: T): T = arcsin(1.0 / x)
+  arccos(1.0 / x)
+func arccsc*[T: float32 | float64](x: T): T =
   ## Computes the inverse cosecant of `x` (`arcsin(1/x)`).
+  arcsin(1.0 / x)
 
-func arccoth*[T: float32|float64](x: T): T = arctanh(1.0 / x)
+func arccoth*[T: float32 | float64](x: T): T =
   ## Computes the inverse hyperbolic cotangent of `x` (`arctanh(1/x)`).
-func arcsech*[T: float32|float64](x: T): T = arccosh(1.0 / x)
+  arctanh(1.0 / x)
+func arcsech*[T: float32 | float64](x: T): T =
   ## Computes the inverse hyperbolic secant of `x` (`arccosh(1/x)`).
-func arccsch*[T: float32|float64](x: T): T = arcsinh(1.0 / x)
+  arccosh(1.0 / x)
+func arccsch*[T: float32 | float64](x: T): T =
   ## Computes the inverse hyperbolic cosecant of `x` (`arcsinh(1/x)`).
+  arcsinh(1.0 / x)
 
 const windowsCC89 = defined(windows) and defined(bcc)
 
@@ -681,8 +710,8 @@ when not defined(js): # C
     ## * `round func <#round,float64>`_
     ## * `trunc func <#trunc,float64>`_
     runnableExamples:
-      doAssert floor(2.1)  == 2.0
-      doAssert floor(2.9)  == 2.0
+      doAssert floor(2.1) == 2.0
+      doAssert floor(2.9) == 2.0
       doAssert floor(-3.5) == -4.0
 
   func ceil*(x: float32): float32 {.importc: "ceilf", header: "<math.h>".}
@@ -695,8 +724,8 @@ when not defined(js): # C
     ## * `round func <#round,float64>`_
     ## * `trunc func <#trunc,float64>`_
     runnableExamples:
-      doAssert ceil(2.1)  == 3.0
-      doAssert ceil(2.9)  == 3.0
+      doAssert ceil(2.1) == 3.0
+      doAssert ceil(2.9) == 3.0
       doAssert ceil(-2.1) == -2.0
 
   when windowsCC89:
@@ -709,9 +738,12 @@ when not defined(js): # C
         bias: uint64 = 0x3FF
 
       if f < 1:
-        if f < 0: return -truncImpl(-f)
-        elif f == 0: return f # Return -0 when f == -0
-        else: return 0
+        if f < 0:
+          return -truncImpl(-f)
+        elif f == 0:
+          return f # Return -0 when f == -0
+        else:
+          return 0
 
       var x = cast[uint64](f)
       let e = (x shr shift) and mask - bias
@@ -729,9 +761,12 @@ when not defined(js): # C
         bias: uint32 = 0x7F
 
       if f < 1:
-        if f < 0: return -truncImpl(-f)
-        elif f == 0: return f # Return -0 when f == -0
-        else: return 0
+        if f < 0:
+          return -truncImpl(-f)
+        elif f == 0:
+          return f # Return -0 when f == -0
+        else:
+          return 0
 
       var x = cast[uint32](f)
       let e = (x shr shift) and mask - bias
@@ -743,17 +778,23 @@ when not defined(js): # C
       result = cast[float32](x)
 
     func trunc*(x: float64): float64 =
-      if classify(x) in {fcZero, fcNegZero, fcNan, fcInf, fcNegInf}: return x
+      if classify(x) in {fcZero, fcNegZero, fcNan, fcInf, fcNegInf}:
+        return x
       result = truncImpl(x)
 
     func trunc*(x: float32): float32 =
-      if classify(x) in {fcZero, fcNegZero, fcNan, fcInf, fcNegInf}: return x
+      if classify(x) in {fcZero, fcNegZero, fcNan, fcInf, fcNegInf}:
+        return x
       result = truncImpl(x)
 
-    func round*[T: float32|float64](x: T): T =
+    func round*[T: float32 | float64](x: T): T =
       ## Windows compilers prior to MSVC 2012 do not implement 'round',
       ## 'roundl' or 'roundf'.
-      result = if x < 0.0: ceil(x - T(0.5)) else: floor(x + T(0.5))
+      result =
+        if x < 0.0:
+          ceil(x - T(0.5))
+        else:
+          floor(x + T(0.5))
   else:
     func round*(x: float32): float32 {.importc: "roundf", header: "<math.h>".}
     func round*(x: float64): float64 {.importc: "round", header: "<math.h>".} =
@@ -792,11 +833,10 @@ when not defined(js): # C
     ## **See also:**
     ## * `floorMod func <#floorMod,T,T>`_ for Python-like (`%` operator) behavior
     runnableExamples:
-      doAssert  6.5 mod  2.5 ==  1.5
-      doAssert -6.5 mod  2.5 == -1.5
-      doAssert  6.5 mod -2.5 ==  1.5
+      doAssert 6.5 mod 2.5 == 1.5
+      doAssert -6.5 mod 2.5 == -1.5
+      doAssert 6.5 mod -2.5 == 1.5
       doAssert -6.5 mod -2.5 == -1.5
-
 else: # JS
   func hypot*(x, y: float32): float32 {.importc: "Math.hypot", varargs, nodecl.}
   func hypot*(x, y: float64): float64 {.importc: "Math.hypot", varargs, nodecl.}
@@ -812,7 +852,8 @@ else: # JS
   else:
     func jsRound(x: float): float {.importc: "Math.round", nodecl.}
     func round*[T: float64 | float32](x: T): T =
-      if x >= 0: result = jsRound(x)
+      if x >= 0:
+        result = jsRound(x)
       else:
         result = ceil(x)
         if result - x >= T(0.5):
@@ -824,20 +865,19 @@ else: # JS
   func `mod`*(x, y: float64): float64 {.importjs: "(# % #)".} =
     ## Computes the modulo operation for float values (the remainder of `x` divided by `y`).
     runnableExamples:
-      doAssert  6.5 mod  2.5 ==  1.5
-      doAssert -6.5 mod  2.5 == -1.5
-      doAssert  6.5 mod -2.5 ==  1.5
+      doAssert 6.5 mod 2.5 == 1.5
+      doAssert -6.5 mod 2.5 == -1.5
+      doAssert 6.5 mod -2.5 == 1.5
       doAssert -6.5 mod -2.5 == -1.5
 
-  func divmod*[T:SomeInteger](num, denom: T): (T, T) =
+  func divmod*[T: SomeInteger](num, denom: T): (T, T) =
     runnableExamples:
-      doAssert  divmod(5, 2) ==  (2, 1)
+      doAssert divmod(5, 2) == (2, 1)
       doAssert divmod(5, -3) == (-1, 2)
     result[0] = num div denom
     result[1] = num mod denom
 
-
-func round*[T: float32|float64](x: T, places: int): T =
+func round*[T: float32 | float64](x: T, places: int): T =
   ## Decimal rounding on a binary floating point number.
   ##
   ## This function is NOT reliable. Floating point numbers cannot hold
@@ -868,14 +908,15 @@ func floorDiv*[T: SomeInteger](x, y: T): T =
   ## * `system.div proc <system.html#div,int,int>`_ for integer division
   ## * `floorMod func <#floorMod,T,T>`_ for Python-like (`%` operator) behavior
   runnableExamples:
-    doAssert floorDiv( 13,  3) ==  4
-    doAssert floorDiv(-13,  3) == -5
-    doAssert floorDiv( 13, -3) == -5
-    doAssert floorDiv(-13, -3) ==  4
+    doAssert floorDiv(13, 3) == 4
+    doAssert floorDiv(-13, 3) == -5
+    doAssert floorDiv(13, -3) == -5
+    doAssert floorDiv(-13, -3) == 4
 
   result = x div y
   let r = x mod y
-  if (r > 0 and y < 0) or (r < 0 and y > 0): result.dec 1
+  if (r > 0 and y < 0) or (r < 0 and y > 0):
+    result.dec 1
 
 func floorMod*[T: SomeNumber](x, y: T): T =
   ## Floor modulo is conceptually defined as `x - (floorDiv(x, y) * y)`.
@@ -886,13 +927,14 @@ func floorMod*[T: SomeNumber](x, y: T): T =
   ## * `mod func <#mod,float64,float64>`_
   ## * `floorDiv func <#floorDiv,T,T>`_
   runnableExamples:
-    doAssert floorMod( 13,  3) ==  1
-    doAssert floorMod(-13,  3) ==  2
-    doAssert floorMod( 13, -3) == -2
+    doAssert floorMod(13, 3) == 1
+    doAssert floorMod(-13, 3) == 2
+    doAssert floorMod(13, -3) == -2
     doAssert floorMod(-13, -3) == -1
 
   result = x mod y
-  if (result > 0 and y < 0) or (result < 0 and y > 0): result += y
+  if (result > 0 and y < 0) or (result < 0 and y > 0):
+    result += y
 
 func euclDiv*[T: SomeInteger](x, y: T): T {.since: (1, 5, 1).} =
   ## Returns euclidean division of `x` by `y`.
@@ -941,8 +983,8 @@ func ceilDiv*[T: SomeInteger](x, y: T): T {.inline, since: (1, 5, 1).} =
   ## * `system.div proc <system.html#div,int,int>`_ for integer division
   ## * `floorDiv func <#floorDiv,T,T>`_ for integer division which rounds down.
   runnableExamples:
-    assert ceilDiv(12, 3) ==  4
-    assert ceilDiv(13, 3) ==  5
+    assert ceilDiv(12, 3) == 4
+    assert ceilDiv(13, 3) == 5
 
   when sizeof(T) == 8:
     type UT = uint64
@@ -974,7 +1016,7 @@ func ceilDiv*[T: SomeInteger](x, y: T): T {.inline, since: (1, 5, 1).} =
   # `x + (y - 1)` can overflow.
   ((x.UT + (y.UT - 1.UT)) div y.UT).T
 
-func frexp*[T: float32|float64](x: T): tuple[frac: T, exp: int] {.inline.} =
+func frexp*[T: float32 | float64](x: T): tuple[frac: T, exp: int] {.inline.} =
   ## Splits `x` into a normalized fraction `frac` and an integral power of 2 `exp`,
   ## such that `abs(frac) in 0.5..<1` and `x == frac * 2 ^ exp`, except for special
   ## cases shown below.
@@ -1015,7 +1057,7 @@ func frexp*[T: float32|float64](x: T): tuple[frac: T, exp: int] {.inline.} =
       if result.exp == 1024 and result.frac == 0.0:
         result.frac = 0.99999999999999988898
 
-func frexp*[T: float32|float64](x: T, exponent: var int): T {.inline.} =
+func frexp*[T: float32 | float64](x: T, exponent: var int): T {.inline.} =
   ## Overload of `frexp` that calls `(result, exponent) = frexp(x)`.
   runnableExamples:
     var x: int
@@ -1023,7 +1065,6 @@ func frexp*[T: float32|float64](x: T, exponent: var int): T {.inline.} =
     doAssert x == 3
 
   (result, exponent) = frexp(x)
-
 
 when not defined(js):
   when windowsCC89:
@@ -1034,14 +1075,16 @@ when not defined(js):
       var frac = frexp(x, exp)
       # Make sure exact powers of two give an exact answer.
       # Don't depend on Log(0.5)*(1/Ln2)+exp being exactly exp-1.
-      if frac == 0.5: return T(exp - 1)
+      if frac == 0.5:
+        return T(exp - 1)
       log10(frac) * (1 / ln2) + T(exp)
 
-    func log2*(x: float32): float32 = log2Impl(x)
-    func log2*(x: float64): float64 = log2Impl(x)
+    func log2*(x: float32): float32 =
+      log2Impl(x)
+    func log2*(x: float64): float64 =
       ## Log2 returns the binary logarithm of x.
       ## The special cases are the same as for Log.
-
+      log2Impl(x)
   else:
     func log2*(x: float32): float32 {.importc: "log2f", header: "<math.h>".}
     func log2*(x: float64): float64 {.importc: "log2", header: "<math.h>".} =
@@ -1057,7 +1100,7 @@ when not defined(js):
         doAssert almostEqual(log2(0.0), -Inf)
         doAssert log2(-2.0).isNaN
 
-func splitDecimal*[T: float32|float64](x: T): tuple[intpart: T, floatpart: T] =
+func splitDecimal*[T: float32 | float64](x: T): tuple[intpart: T, floatpart: T] =
   ## Breaks `x` into an integer and a fractional part.
   ##
   ## Returns a tuple containing `intpart` and `floatpart`, representing
@@ -1069,8 +1112,7 @@ func splitDecimal*[T: float32|float64](x: T): tuple[intpart: T, floatpart: T] =
     doAssert splitDecimal(5.25) == (intpart: 5.0, floatpart: 0.25)
     doAssert splitDecimal(-2.73) == (intpart: -2.0, floatpart: -0.73)
 
-  var
-    absolute: T
+  var absolute: T
   absolute = abs(x)
   result.intpart = floor(absolute)
   result.floatpart = absolute - result.intpart
@@ -1078,8 +1120,7 @@ func splitDecimal*[T: float32|float64](x: T): tuple[intpart: T, floatpart: T] =
     result.intpart = -result.intpart
     result.floatpart = -result.floatpart
 
-
-func degToRad*[T: float32|float64](d: T): T {.inline.} =
+func degToRad*[T: float32 | float64](d: T): T {.inline.} =
   ## Converts from degrees to radians.
   ##
   ## **See also:**
@@ -1089,7 +1130,7 @@ func degToRad*[T: float32|float64](d: T): T {.inline.} =
 
   result = d * T(RadPerDeg)
 
-func radToDeg*[T: float32|float64](d: T): T {.inline.} =
+func radToDeg*[T: float32 | float64](d: T): T {.inline.} =
   ## Converts from radians to degrees.
   ##
   ## **See also:**
@@ -1129,7 +1170,8 @@ func sum*[T](x: openArray[T]): T =
     doAssert sum([1, 2, 3, 4]) == 10
     doAssert sum([-4, 3, 5]) == 4
 
-  for i in items(x): result = result + i
+  for i in items(x):
+    result = result + i
 
 func prod*[T](x: openArray[T]): T =
   ## Computes the product of the elements in `x`.
@@ -1144,7 +1186,8 @@ func prod*[T](x: openArray[T]): T =
     doAssert prod([-4, 3, 5]) == -60
 
   result = T(1)
-  for i in items(x): result = result * i
+  for i in items(x):
+    result = result * i
 
 func cumprod*[T](x: var openArray[T]) =
   ## Transforms ``x`` in-place (must be declared as `var`) into its
@@ -1158,7 +1201,8 @@ func cumprod*[T](x: var openArray[T]) =
     var a = [1, 2, 3, 4]
     cumprod(a)
     doAssert a == @[1, 2, 6, 24]
-  for i in 1 ..< x.len: x[i] = x[i-1] * x[i]
+  for i in 1 ..< x.len:
+    x[i] = x[i - 1] * x[i]
 
 func cumproded*[T](x: openArray[T]): seq[T] =
   ## Return cumulative (aka prefix) product of ``x``.
@@ -1175,7 +1219,8 @@ func cumproded*[T](x: openArray[T]): seq[T] =
     return @[]
   result.setLen(xLen)
   result[0] = x[0]
-  for i in 1 ..< xLen: result[i] = result[i-1] * x[i]
+  for i in 1 ..< xLen:
+    result[i] = result[i - 1] * x[i]
 
 func cumsummed*[T](x: openArray[T]): seq[T] =
   ## Returns the cumulative (aka prefix) summation of `x`.
@@ -1193,7 +1238,8 @@ func cumsummed*[T](x: openArray[T]): seq[T] =
     return @[]
   result.setLen(xLen)
   result[0] = x[0]
-  for i in 1 ..< xLen: result[i] = result[i - 1] + x[i]
+  for i in 1 ..< xLen:
+    result[i] = result[i - 1] + x[i]
 
 func cumsum*[T](x: var openArray[T]) =
   ## Transforms `x` in-place (must be declared as `var`) into its
@@ -1208,7 +1254,8 @@ func cumsum*[T](x: var openArray[T]) =
     cumsum(a)
     doAssert a == @[1, 3, 6, 10]
 
-  for i in 1 ..< x.len: x[i] = x[i - 1] + x[i]
+  for i in 1 ..< x.len:
+    x[i] = x[i - 1] + x[i]
 
 func `^`*[T: SomeNumber](x: T, y: Natural): T =
   ## Computes `x` to the power of `y`.
@@ -1227,10 +1274,14 @@ func `^`*[T: SomeNumber](x: T, y: Natural): T =
     doAssert -3 ^ 2 == 9
 
   case y
-  of 0: result = 1
-  of 1: result = x
-  of 2: result = x * x
-  of 3: result = x * x * x
+  of 0:
+    result = 1
+  of 1:
+    result = x
+  of 2:
+    result = x * x
+  of 3:
+    result = x * x * x
   else:
     var (x, y) = (x, y)
     result = 1
@@ -1267,11 +1318,11 @@ func `^`*[T: SomeNumber, U: SomeFloat](x: T, y: U): float =
     yIsFinite: bool = (y != Inf and y != -Inf)
     yIsOddInteger: bool = (isInteger(y) and yIsFinite and (abs(int(y) mod 2) == 1))
 
-  assert not(isPosZero and y < 0 and yIsOddInteger)
-  assert not(isNegZero and y < 0 and yIsOddInteger)
-  assert not(isZero_x and y < 0 and y != -Inf)
-  assert not(isZero_x and y == -Inf)
-  assert not(x < 0 and not isInteger(x) and yIsFinite and not yIsOddInteger)
+  assert not (isPosZero and y < 0 and yIsOddInteger)
+  assert not (isNegZero and y < 0 and yIsOddInteger)
+  assert not (isZero_x and y < 0 and y != -Inf)
+  assert not (isZero_x and y == -Inf)
+  assert not (x < 0 and not isInteger(x) and yIsFinite and not yIsOddInteger)
   when defined(js):
     # JS behavior follows an old version of IEEE 754 for compatibility reasons
     # See https://262.ecma-international.org/#sec-numeric-types-number-exponentiate
@@ -1315,7 +1366,7 @@ when useBuiltins:
     runnableExamples:
       doAssert gcd(12, 8) == 4
       doAssert gcd(17, 63) == 1
-  
+
     when x is SomeSignedInt:
       var x = abs(x)
     else:
@@ -1324,12 +1375,12 @@ when useBuiltins:
       var y = abs(y)
     else:
       var y = y
-  
+
     if x == 0:
       return y
     if y == 0:
       return x
-  
+
     let shift = countTrailingZeroBits(x or y)
     y = y shr countTrailingZeroBits(y)
     while x != 0:
@@ -1338,7 +1389,7 @@ when useBuiltins:
         swap y, x
       x -= y
     y shl shift
-  
+
 func gcd*[T](x: openArray[T]): T {.since: (1, 1).} =
   ## Computes the greatest common (positive) divisor of the elements of `x`.
   ##
@@ -1367,10 +1418,18 @@ func clamp*[T](val: T, bounds: Slice[T]): T {.since: (1, 5), inline.} =
   runnableExamples:
     assert clamp(10, 1 .. 5) == 5
     assert clamp(1, 1 .. 3) == 1
-    type A = enum a0, a1, a2, a3, a4, a5
-    assert a1.clamp(a2..a4) == a2
+    type A = enum
+      a0
+      a1
+      a2
+      a3
+      a4
+      a5
+
+    assert a1.clamp(a2 .. a4) == a2
     assert clamp((3, 0), (1, 0) .. (2, 9)) == (2, 9)
-    doAssertRaises(AssertionDefect): discard clamp(1, 3..2) # invalid bounds
+    doAssertRaises(AssertionDefect):
+      discard clamp(1, 3 .. 2) # invalid bounds
   assert bounds.a <= bounds.b, $(bounds.a, bounds.b)
   clamp(val, bounds.a, bounds.b)
 
@@ -1385,4 +1444,3 @@ func lcm*[T](x: openArray[T]): T {.since: (1, 1).} =
   result = x[0]
   for i in 1 ..< x.len:
     result = lcm(result, x[i])
-

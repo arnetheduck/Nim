@@ -25,8 +25,8 @@ when defined(windows):
     {.link: "../icons/nim-i386-windows-vcc.res".}
 
 import
-  commands, options, msgs, extccomp, main, idents, lineinfos, cmdlinehelper,
-  pathutils, modulegraphs
+  commands, options, msgs, extccomp, main, idents, lineinfos, cmdlinehelper, pathutils,
+  modulegraphs
 
 from std/browsers import openDefaultBrowser
 from nodejs import findNodeJs
@@ -40,24 +40,28 @@ when defined(profiler) or defined(memProfiler):
 
 proc nimbleLockExists(config: ConfigRef): bool =
   const nimbleLock = "nimble.lock"
-  let pd = if not config.projectPath.isEmpty: config.projectPath else: AbsoluteDir(getCurrentDir())
+  let pd =
+    if not config.projectPath.isEmpty:
+      config.projectPath
+    else:
+      AbsoluteDir(getCurrentDir())
   if optSkipParentConfigFiles notin config.globalOptions:
-    for dir in parentDirs(pd.string, fromRoot=true, inclusive=false):
+    for dir in parentDirs(pd.string, fromRoot = true, inclusive = false):
       if fileExists(dir / nimbleLock):
         return true
   return fileExists(pd.string / nimbleLock)
 
-proc processCmdLine(pass: TCmdLinePass, cmd: string; config: ConfigRef) =
+proc processCmdLine(pass: TCmdLinePass, cmd: string, config: ConfigRef) =
   var p = parseopt.initOptParser(cmd)
   var argsCount = 0
 
-  config.commandLine.setLen 0
-    # bugfix: otherwise, config.commandLine ends up duplicated
+  config.commandLine.setLen 0 # bugfix: otherwise, config.commandLine ends up duplicated
 
   while true:
     parseopt.next(p)
     case p.kind
-    of cmdEnd: break
+    of cmdEnd:
+      break
     of cmdLongOption, cmdShortOption:
       config.commandLine.add " "
       config.commandLine.addCmdPrefix p.kind
@@ -68,13 +72,15 @@ proc processCmdLine(pass: TCmdLinePass, cmd: string; config: ConfigRef) =
 
       if p.key == "": # `-` was passed to indicate main project is stdin
         p.key = "-"
-        if processArgument(pass, p, argsCount, config): break
+        if processArgument(pass, p, argsCount, config):
+          break
       else:
         processSwitch(pass, p, config)
     of cmdArgument:
       config.commandLine.add " "
       config.commandLine.add p.key.quoteShell
-      if processArgument(pass, p, argsCount, config): break
+      if processArgument(pass, p, argsCount, config):
+        break
   if pass == passCmd2:
     if {optRun, optWasNimscript} * config.globalOptions == {} and
         config.arguments.len > 0 and config.cmd notin {cmdTcc, cmdNimscript, cmdCrun}:
@@ -89,17 +95,17 @@ proc getNimRunExe(conf: ConfigRef): string =
   # xxx consider defining `conf.getConfigVar("nimrun.exe")` to allow users to
   # customize the binary to run the command with, e.g. for custom `nodejs` or `wine`.
   if conf.isDefined("mingw"):
-    if conf.isDefined("i386"): result = "wine"
-    elif conf.isDefined("amd64"): result = "wine64"
-    else: result = ""
+    if conf.isDefined("i386"):
+      result = "wine"
+    elif conf.isDefined("amd64"):
+      result = "wine64"
+    else:
+      result = ""
   else:
     result = ""
 
-proc handleCmdLine(cache: IdentCache; conf: ConfigRef) =
-  let self = NimProg(
-    supportsStdinFile: true,
-    processCmdLine: processCmdLine
-  )
+proc handleCmdLine(cache: IdentCache, conf: ConfigRef) =
+  let self = NimProg(supportsStdinFile: true, processCmdLine: processCmdLine)
   self.initDefinesProg(conf, "nim_compiler")
   if paramCount() == 0:
     writeCommandLineUsage(conf)
@@ -112,7 +118,7 @@ proc handleCmdLine(cache: IdentCache; conf: ConfigRef) =
     return
 
   if conf.cmd == cmdCheck and optWasNimscript notin conf.globalOptions and
-       conf.backend == backendInvalid:
+      conf.backend == backendInvalid:
     conf.backend = backendC
 
   if conf.selectedGC == gcUnselected:
@@ -122,9 +128,11 @@ proc handleCmdLine(cache: IdentCache; conf: ConfigRef) =
       initOrcDefines(conf)
 
   mainCommand(graph)
-  if conf.hasHint(hintGCStats): echo(GC_getStatistics())
+  if conf.hasHint(hintGCStats):
+    echo(GC_getStatistics())
   #echo(GC_getStatistics())
-  if conf.errorCounter != 0: return
+  if conf.errorCounter != 0:
+    return
   when hasTinyCBackend:
     if conf.cmd == cmdTcc:
       tccgen.run(conf, conf.arguments)
@@ -134,21 +142,27 @@ proc handleCmdLine(cache: IdentCache; conf: ConfigRef) =
     of cmdBackends, cmdTcc:
       let nimRunExe = getNimRunExe(conf)
       var cmdPrefix = ""
-      if nimRunExe.len > 0: cmdPrefix.add nimRunExe.quoteShell
+      if nimRunExe.len > 0:
+        cmdPrefix.add nimRunExe.quoteShell
       case conf.backend
-      of backendC, backendCpp, backendObjc: discard
+      of backendC, backendCpp, backendObjc:
+        discard
       of backendJs:
         # D20210217T215950:here this flag is needed for node < v15.0.0, otherwise
         # tasyncjs_fail` would fail, refs https://nodejs.org/api/cli.html#cli_unhandled_rejections_mode
-        if cmdPrefix.len == 0: cmdPrefix = findNodeJs().quoteShell
+        if cmdPrefix.len == 0:
+          cmdPrefix = findNodeJs().quoteShell
         cmdPrefix.add " --unhandled-rejections=strict"
-      else: raiseAssert $conf.backend
-      if cmdPrefix.len > 0: cmdPrefix.add " "
+      else:
+        raiseAssert $conf.backend
+      if cmdPrefix.len > 0:
+        cmdPrefix.add " "
         # without the `cmdPrefix.len > 0` check, on windows you'd get a cryptic:
         # `The parameter is incorrect`
       let cmd = cmdPrefix & output.quoteShell & ' ' & conf.arguments
-      execExternalProgram(conf, cmd.strip(leading=false,trailing=true))
-    of cmdDocLike, cmdRst2html, cmdRst2tex, cmdMd2html, cmdMd2tex: # bugfix(cmdRst2tex was missing)
+      execExternalProgram(conf, cmd.strip(leading = false, trailing = true))
+    of cmdDocLike, cmdRst2html, cmdRst2tex, cmdMd2html, cmdMd2tex:
+      # bugfix(cmdRst2tex was missing)
       if conf.arguments.len > 0:
         # reserved for future use
         rawMessage(conf, errGenerated, "'$1 cannot handle arguments" % [$conf.cmd])

@@ -17,10 +17,8 @@ when defined(nimPreviewSlimSystem):
 
 export isolation
 
-
 when compileOption("threads"):
   from std/effecttraits import isGcSafe
-
 
 #
 # proc hello(a: int, b: string) =
@@ -58,13 +56,10 @@ when compileOption("threads"):
 # let t = Task(callback: hello_369098781, args: scratch_369098762, destroy: destroyScratch_369098782)
 #
 
-
-type
-  Task* = object ## `Task` contains the callback and its arguments.
-    callback: proc (args, res: pointer) {.nimcall, gcsafe.}
-    args: pointer
-    destroy: proc (args: pointer) {.nimcall, gcsafe.}
-
+type Task* = object ## `Task` contains the callback and its arguments.
+  callback: proc(args, res: pointer) {.nimcall, gcsafe.}
+  args: pointer
+  destroy: proc(args: pointer) {.nimcall, gcsafe.}
 
 proc `=copy`*(x: var Task, y: Task) {.error.}
 
@@ -76,6 +71,7 @@ when defined(nimAllowNonVarDestructor) and arcLike:
       if t.destroy != nil:
         t.destroy(t.args)
       deallocShared(t.args)
+
 else:
   proc `=destroy`*(t: var Task) {.inline, gcsafe.} =
     ## Frees the resources allocated for a `Task`.
@@ -84,21 +80,26 @@ else:
         t.destroy(t.args)
       deallocShared(t.args)
 
-proc invoke*(task: Task; res: pointer = nil) {.inline, gcsafe.} =
+proc invoke*(task: Task, res: pointer = nil) {.inline, gcsafe.} =
   ## Invokes the `task`.
   assert task.callback != nil
   task.callback(task.args, res)
 
-template checkIsolate(scratchAssignList: seq[NimNode], procParam, scratchDotExpr: NimNode) =
+template checkIsolate(
+    scratchAssignList: seq[NimNode], procParam, scratchDotExpr: NimNode
+) =
   # block:
   #   var isoTempA = isolate(521)
   #   scratch.a = extract(isolateA)
   #   var isoTempB = isolate(literal)
   #   scratch.b = extract(isolateB)
   let isolatedTemp = genSym(nskTemp, "isoTemp")
-  scratchAssignList.add newVarStmt(isolatedTemp, newCall(newIdentNode("isolate"), procParam))
-  scratchAssignList.add newAssignment(scratchDotExpr,
-      newCall(newIdentNode("extract"), isolatedTemp))
+  scratchAssignList.add newVarStmt(
+    isolatedTemp, newCall(newIdentNode("isolate"), procParam)
+  )
+  scratchAssignList.add newAssignment(
+    scratchDotExpr, newCall(newIdentNode("extract"), isolatedTemp)
+  )
 
 template addAllNode(assignParam: NimNode, procParam: NimNode) =
   let scratchDotExpr = newDotExpr(scratchIdent, formalParams[i][0])
@@ -114,8 +115,7 @@ proc analyseRootSym(s: NimNode): NimNode =
   result = s
   while true:
     case result.kind
-    of nnkBracketExpr, nnkDerefExpr, nnkHiddenDeref,
-        nnkAddr, nnkHiddenAddr,
+    of nnkBracketExpr, nnkDerefExpr, nnkHiddenDeref, nnkAddr, nnkHiddenAddr,
         nnkObjDownConv, nnkObjUpConv:
       result = result[0]
     of nnkDotExpr, nnkCheckedFieldExpr, nnkHiddenStdConv, nnkHiddenSubConv:
@@ -123,10 +123,13 @@ proc analyseRootSym(s: NimNode): NimNode =
     else:
       break
 
-macro toTask*(e: typed{nkCall | nkInfix | nkPrefix | nkPostfix | nkCommand | nkCallStrLit}): Task =
+macro toTask*(
+    e: typed{nkCall | nkInfix | nkPrefix | nkPostfix | nkCommand | nkCallStrLit}
+): Task =
   ## Converts the call and its arguments to `Task`.
   runnableExamples:
-    proc hello(a: int) = echo a
+    proc hello(a: int) =
+      echo a
 
     let b = toTask hello(13)
     assert b is Task
@@ -159,8 +162,7 @@ macro toTask*(e: typed{nkCall | nkInfix | nkPrefix | nkPostfix | nkCommand | nkC
       tempAssignList: seq[NimNode]
       callNode: seq[NimNode]
 
-    let
-      objTemp = genSym(nskTemp, ident = "objTemp")
+    let objTemp = genSym(nskTemp, ident = "objTemp")
 
     for i in 1 ..< formalParams.len:
       var param = formalParams[i][1]
@@ -192,26 +194,23 @@ macro toTask*(e: typed{nkCall | nkInfix | nkPrefix | nkPostfix | nkCommand | nkC
         callNode.add nnkExprEqExpr.newTree(formalParams[i][0], e[i])
       of nnkSym, nnkPtrTy, nnkProcTy, nnkTupleTy, nnkTupleConstr:
         addAllNode(param, e[i])
-      of nnkCharLit..nnkNilLit:
+      of nnkCharLit .. nnkNilLit:
         callNode.add nnkExprEqExpr.newTree(formalParams[i][0], e[i])
       else:
-        error("'toTask'ed function cannot have a parameter of " & $param.kind & " kind", e)
+        error(
+          "'toTask'ed function cannot have a parameter of " & $param.kind & " kind", e
+        )
 
     let scratchObjType = genSym(kind = nskType, ident = "ScratchObj")
     let scratchObj = nnkTypeSection.newTree(
-                      nnkTypeDef.newTree(
-                        scratchObjType,
-                        newEmptyNode(),
-                        nnkObjectTy.newTree(
-                          newEmptyNode(),
-                          newEmptyNode(),
-                          scratchRecList
-                        )
-                      )
-                    )
+      nnkTypeDef.newTree(
+        scratchObjType,
+        newEmptyNode(),
+        nnkObjectTy.newTree(newEmptyNode(), newEmptyNode(), scratchRecList),
+      )
+    )
 
-
-    let scratchObjPtrType = quote do:
+    let scratchObjPtrType = quote:
       cast[ptr `scratchObjType`](allocShared0(sizeof(`scratchObjType`)))
 
     let scratchLetSection = newLetStmt(scratchIdent, scratchObjPtrType)
@@ -228,24 +227,25 @@ macro toTask*(e: typed{nkCall | nkInfix | nkPrefix | nkPostfix | nkCommand | nkC
     let funcName = genSym(nskProc, rootSym.strVal)
     let destroyName = genSym(nskProc, "destroyScratch")
     let objTemp2 = genSym(ident = "obj")
-    let tempNode = quote("@") do:
-        `=destroy`(@objTemp2[])
+    let tempNode = quote("@"):
+      `=destroy`(@objTemp2[])
 
     var funcDecl: NimNode
     if returnsVoid:
-      funcDecl = quote do:
+      funcDecl = quote:
         proc `funcName`(args, res: pointer) {.gcsafe, nimcall.} =
           let `objTemp` = cast[ptr `scratchObjType`](args)
           `functionStmtList`
           `funcCall`
+
     else:
-      funcDecl = quote do:
+      funcDecl = quote:
         proc `funcName`(args, res: pointer) {.gcsafe, nimcall.} =
           let `objTemp` = cast[ptr `scratchObjType`](args)
           `functionStmtList`
           cast[ptr `retType`](res)[] = `funcCall`
 
-    result = quote do:
+    result = quote:
       `stmtList`
 
       `funcDecl`
@@ -260,18 +260,17 @@ macro toTask*(e: typed{nkCall | nkInfix | nkPrefix | nkPostfix | nkCommand | nkC
     let funcName = genSym(nskProc, rootSym.strVal)
 
     if returnsVoid:
-      result = quote do:
+      result = quote:
         proc `funcName`(args, res: pointer) {.gcsafe, nimcall.} =
           `funcCall`
 
         Task(callback: `funcName`, args: nil)
     else:
-      result = quote do:
+      result = quote:
         proc `funcName`(args, res: pointer) {.gcsafe, nimcall.} =
           cast[ptr `retType`](res)[] = `funcCall`
 
         Task(callback: `funcName`, args: nil)
-
 
   when defined(nimTasksDebug):
     echo result.repr
@@ -279,7 +278,8 @@ macro toTask*(e: typed{nkCall | nkInfix | nkPrefix | nkPostfix | nkCommand | nkC
 runnableExamples:
   block:
     var num = 0
-    proc hello(a: int) = inc num, a
+    proc hello(a: int) =
+      inc num, a
 
     let b = toTask hello(13)
     b.invoke()
@@ -289,15 +289,13 @@ runnableExamples:
     assert num == 26
 
   block:
-    type
-      Runnable = ref object
-        data: int
+    type Runnable = ref object
+      data: int
 
     var data: int
     proc hello(a: Runnable) {.nimcall.} =
       a.data += 2
       data = a.data
-
 
     when false:
       # the parameters of call must be isolated.

@@ -119,30 +119,40 @@ type
     ## **Note:**
     ## * That these fields here shouldn't be used directly.
     ##   They are accessible so that a stream implementation can override them.
-    closeImpl*: proc (s: Stream)
-      {.nimcall, raises: [IOError, OSError], tags: [WriteIOEffect], gcsafe.}
-    atEndImpl*: proc (s: Stream): bool
-      {.nimcall, raises: [Defect, IOError, OSError], tags: [], gcsafe.}
-    setPositionImpl*: proc (s: Stream, pos: int)
-      {.nimcall, raises: [Defect, IOError, OSError], tags: [], gcsafe.}
-    getPositionImpl*: proc (s: Stream): int
-      {.nimcall, raises: [Defect, IOError, OSError], tags: [], gcsafe.}
+    closeImpl*: proc(s: Stream) {.
+      nimcall, raises: [IOError, OSError], tags: [WriteIOEffect], gcsafe
+    .}
+    atEndImpl*: proc(s: Stream): bool {.
+      nimcall, raises: [Defect, IOError, OSError], tags: [], gcsafe
+    .}
+    setPositionImpl*: proc(s: Stream, pos: int) {.
+      nimcall, raises: [Defect, IOError, OSError], tags: [], gcsafe
+    .}
+    getPositionImpl*: proc(s: Stream): int {.
+      nimcall, raises: [Defect, IOError, OSError], tags: [], gcsafe
+    .}
 
-    readDataStrImpl*: proc (s: Stream, buffer: var string, slice: Slice[int]): int
-      {.nimcall, raises: [Defect, IOError, OSError], tags: [ReadIOEffect], gcsafe.}
+    readDataStrImpl*: proc(s: Stream, buffer: var string, slice: Slice[int]): int {.
+      nimcall, raises: [Defect, IOError, OSError], tags: [ReadIOEffect], gcsafe
+    .}
 
-    readLineImpl*: proc(s: Stream, line: var string): bool
-      {.nimcall, raises: [Defect, IOError, OSError], tags: [ReadIOEffect], gcsafe.}
+    readLineImpl*: proc(s: Stream, line: var string): bool {.
+      nimcall, raises: [Defect, IOError, OSError], tags: [ReadIOEffect], gcsafe
+    .}
 
-    readDataImpl*: proc (s: Stream, buffer: pointer, bufLen: int): int
-      {.nimcall, raises: [Defect, IOError, OSError], tags: [ReadIOEffect], gcsafe.}
-    peekDataImpl*: proc (s: Stream, buffer: pointer, bufLen: int): int
-      {.nimcall, raises: [Defect, IOError, OSError], tags: [ReadIOEffect], gcsafe.}
-    writeDataImpl*: proc (s: Stream, buffer: pointer, bufLen: int)
-      {.nimcall, raises: [Defect, IOError, OSError], tags: [WriteIOEffect], gcsafe.}
+    readDataImpl*: proc(s: Stream, buffer: pointer, bufLen: int): int {.
+      nimcall, raises: [Defect, IOError, OSError], tags: [ReadIOEffect], gcsafe
+    .}
+    peekDataImpl*: proc(s: Stream, buffer: pointer, bufLen: int): int {.
+      nimcall, raises: [Defect, IOError, OSError], tags: [ReadIOEffect], gcsafe
+    .}
+    writeDataImpl*: proc(s: Stream, buffer: pointer, bufLen: int) {.
+      nimcall, raises: [Defect, IOError, OSError], tags: [WriteIOEffect], gcsafe
+    .}
 
-    flushImpl*: proc (s: Stream)
-      {.nimcall, raises: [Defect, IOError, OSError], tags: [WriteIOEffect], gcsafe.}
+    flushImpl*: proc(s: Stream) {.
+      nimcall, raises: [Defect, IOError, OSError], tags: [WriteIOEffect], gcsafe
+    .}
 
 proc flush*(s: Stream) =
   ## Flushes the buffers that the stream `s` might use.
@@ -171,7 +181,8 @@ proc flush*(s: Stream) =
     doAssert "After  close:" & readFile("somefile.txt") == "After  close:helloHELLO"
     removeFile("somefile.txt")
 
-  if not isNil(s.flushImpl): s.flushImpl(s)
+  if not isNil(s.flushImpl):
+    s.flushImpl(s)
 
 proc close*(s: Stream) =
   ## Closes the stream `s`.
@@ -187,7 +198,8 @@ proc close*(s: Stream) =
     block:
       let strm = newFileStream("amissingfile.txt")
       # deferring works even if newFileStream fails
-      defer: strm.close()
+      defer:
+        strm.close()
       if not isNil(strm):
         ## do something...
 
@@ -251,7 +263,7 @@ proc readDataStr*(s: Stream, buffer: var string, slice: Slice[int]): int =
   runnableExamples:
     var strm = newStringStream("abcde")
     var buffer = "12345"
-    doAssert strm.readDataStr(buffer, 0..3) == 4
+    doAssert strm.readDataStr(buffer, 0 .. 3) == 4
     doAssert buffer == "abcd5"
     strm.close()
 
@@ -290,15 +302,15 @@ when (NimMajor, NimMinor) >= (1, 3) or not defined(js):
     jsOrVmBlock:
       var buffer2 = newString(bufferSize)
       while true:
-        let readBytes = readDataStr(s, buffer2, 0..<bufferSize)
+        let readBytes = readDataStr(s, buffer2, 0 ..< bufferSize)
         if readBytes == 0:
           break
         let prevLen = result.len
         result.setLen(prevLen + readBytes)
-        result[prevLen..<prevLen+readBytes] = buffer2[0..<readBytes]
+        result[prevLen ..< prevLen + readBytes] = buffer2[0 ..< readBytes]
         if readBytes < bufferSize:
           break
-    do: # not JS or VM
+    do:
       var buffer {.noinit.}: array[bufferSize, char]
       while true:
         let readBytes = readData(s, addr(buffer[0]), bufferSize)
@@ -395,7 +407,8 @@ proc write*(s: Stream, args: varargs[string, `$`]) =
     doAssert strm.readLine() == "1234"
     strm.close()
 
-  for str in args: write(s, str)
+  for str in args:
+    write(s, str)
 
 proc writeLine*(s: Stream, args: varargs[string, `$`]) =
   ## Writes one or more strings to the the stream `s` followed
@@ -408,7 +421,8 @@ proc writeLine*(s: Stream, args: varargs[string, `$`]) =
     doAssert strm.readAll() == "12\n34\n"
     strm.close()
 
-  for str in args: write(s, str)
+  for str in args:
+    write(s, str)
   write(s, "\n")
 
 proc read*[T](s: Stream, result: var T) =
@@ -465,10 +479,13 @@ proc readChar*(s: Stream): char =
   result = '\0'
   jsOrVmBlock:
     var str = " "
-    if readDataStr(s, str, 0..0) != 1: result = '\0'
-    else: result = str[0]
+    if readDataStr(s, str, 0 .. 0) != 1:
+      result = '\0'
+    else:
+      result = str[0]
   do:
-    if readData(s, addr(result), sizeof(result)) != 1: result = '\0'
+    if readData(s, addr(result), sizeof(result)) != 1:
+      result = '\0'
 
 proc peekChar*(s: Stream): char =
   ## Peeks a char from the stream `s`. Raises `IOError` if an error occurred.
@@ -484,10 +501,13 @@ proc peekChar*(s: Stream): char =
   result = '\0'
   when defined(js):
     var str = " "
-    if peekData(s, addr(str), sizeof(result)) != 1: result = '\0'
-    else: result = str[0]
+    if peekData(s, addr(str), sizeof(result)) != 1:
+      result = '\0'
+    else:
+      result = str[0]
   else:
-    if peekData(s, addr(result), sizeof(result)) != 1: result = '\0'
+    if peekData(s, addr(result), sizeof(result)) != 1:
+      result = '\0'
 
 proc readBool*(s: Stream): bool =
   ## Reads a bool from the stream `s`.
@@ -507,7 +527,8 @@ proc readBool*(s: Stream): bool =
     ## get data
     doAssert strm.readBool() == true
     doAssert strm.readBool() == false
-    doAssertRaises(IOError): discard strm.readBool()
+    doAssertRaises(IOError):
+      discard strm.readBool()
     strm.close()
 
   var t: byte = byte(0)
@@ -555,7 +576,8 @@ proc readInt8*(s: Stream): int8 =
     ## get data
     doAssert strm.readInt8() == 1'i8
     doAssert strm.readInt8() == 2'i8
-    doAssertRaises(IOError): discard strm.readInt8()
+    doAssertRaises(IOError):
+      discard strm.readInt8()
     strm.close()
   result = int8(0)
   read(s, result)
@@ -595,7 +617,8 @@ proc readInt16*(s: Stream): int16 =
     ## get data
     doAssert strm.readInt16() == 1'i16
     doAssert strm.readInt16() == 2'i16
-    doAssertRaises(IOError): discard strm.readInt16()
+    doAssertRaises(IOError):
+      discard strm.readInt16()
     strm.close()
   result = int16(0)
   read(s, result)
@@ -635,7 +658,8 @@ proc readInt32*(s: Stream): int32 =
     ## get data
     doAssert strm.readInt32() == 1'i32
     doAssert strm.readInt32() == 2'i32
-    doAssertRaises(IOError): discard strm.readInt32()
+    doAssertRaises(IOError):
+      discard strm.readInt32()
     strm.close()
   result = int32(0)
   read(s, result)
@@ -675,7 +699,8 @@ proc readInt64*(s: Stream): int64 =
     ## get data
     doAssert strm.readInt64() == 1'i64
     doAssert strm.readInt64() == 2'i64
-    doAssertRaises(IOError): discard strm.readInt64()
+    doAssertRaises(IOError):
+      discard strm.readInt64()
     strm.close()
   result = int64(0)
   read(s, result)
@@ -715,7 +740,8 @@ proc readUint8*(s: Stream): uint8 =
     ## get data
     doAssert strm.readUint8() == 1'u8
     doAssert strm.readUint8() == 2'u8
-    doAssertRaises(IOError): discard strm.readUint8()
+    doAssertRaises(IOError):
+      discard strm.readUint8()
     strm.close()
   result = uint8(0)
   read(s, result)
@@ -755,7 +781,8 @@ proc readUint16*(s: Stream): uint16 =
     ## get data
     doAssert strm.readUint16() == 1'u16
     doAssert strm.readUint16() == 2'u16
-    doAssertRaises(IOError): discard strm.readUint16()
+    doAssertRaises(IOError):
+      discard strm.readUint16()
     strm.close()
   result = uint16(0)
   read(s, result)
@@ -796,7 +823,8 @@ proc readUint32*(s: Stream): uint32 =
     ## get data
     doAssert strm.readUint32() == 1'u32
     doAssert strm.readUint32() == 2'u32
-    doAssertRaises(IOError): discard strm.readUint32()
+    doAssertRaises(IOError):
+      discard strm.readUint32()
     strm.close()
   result = uint32(0)
   read(s, result)
@@ -836,7 +864,8 @@ proc readUint64*(s: Stream): uint64 =
     ## get data
     doAssert strm.readUint64() == 1'u64
     doAssert strm.readUint64() == 2'u64
-    doAssertRaises(IOError): discard strm.readUint64()
+    doAssertRaises(IOError):
+      discard strm.readUint64()
     strm.close()
   result = uint64(0)
   read(s, result)
@@ -876,7 +905,8 @@ proc readFloat32*(s: Stream): float32 =
     ## get data
     doAssert strm.readFloat32() == 1'f32
     doAssert strm.readFloat32() == 2'f32
-    doAssertRaises(IOError): discard strm.readFloat32()
+    doAssertRaises(IOError):
+      discard strm.readFloat32()
     strm.close()
   result = 0.0
   read(s, result)
@@ -916,7 +946,8 @@ proc readFloat64*(s: Stream): float64 =
     ## get data
     doAssert strm.readFloat64() == 1'f64
     doAssert strm.readFloat64() == 2'f64
-    doAssertRaises(IOError): discard strm.readFloat64()
+    doAssertRaises(IOError):
+      discard strm.readFloat64()
     strm.close()
   result = 0.0
   read(s, result)
@@ -943,16 +974,18 @@ proc peekFloat64*(s: Stream): float64 =
   peek(s, result)
 
 proc readStrPrivate(s: Stream, length: int, str: var string) =
-  if length > len(str): setLen(str, length)
+  if length > len(str):
+    setLen(str, length)
   var L: int
   when nimvm:
-    L = readDataStr(s, str, 0..length-1)
+    L = readDataStr(s, str, 0 .. length - 1)
   else:
     when defined(js):
       L = readData(s, addr(str), length)
     else:
       L = readData(s, cstring(str), length)
-  if L != len(str): setLen(str, L)
+  if L != len(str):
+    setLen(str, L)
 
 proc readStr*(s: Stream, length: int, str: var string) {.since: (1, 3).} =
   ## Reads a string of length `length` from the stream `s`. Raises `IOError` if
@@ -973,12 +1006,14 @@ proc readStr*(s: Stream, length: int): string =
   readStrPrivate(s, length, result)
 
 proc peekStrPrivate(s: Stream, length: int, str: var string) =
-  if length > len(str): setLen(str, length)
+  if length > len(str):
+    setLen(str, length)
   when defined(js):
     let L = peekData(s, addr(str), length)
   else:
     let L = peekData(s, cstring(str), length)
-  if L != len(str): setLen(str, L)
+  if L != len(str):
+    setLen(str, L)
 
 proc peekStr*(s: Stream, length: int, str: var string) {.since: (1, 3).} =
   ## Peeks a string of length `length` from the stream `s`. Raises `IOError` if
@@ -1035,10 +1070,13 @@ proc readLine*(s: Stream, line: var string): bool =
       if c == '\c':
         c = readChar(s)
         break
-      elif c == '\L': break
+      elif c == '\L':
+        break
       elif c == '\0':
-        if line.len > 0: break
-        else: return false
+        if line.len > 0:
+          break
+        else:
+          return false
       line.add(c)
     result = true
 
@@ -1070,7 +1108,8 @@ proc peekLine*(s: Stream, line: var string): bool =
     strm.close()
 
   let pos = getPosition(s)
-  defer: setPosition(s, pos)
+  defer:
+    setPosition(s, pos)
   result = readLine(s, line)
 
 proc readLine*(s: Stream): string =
@@ -1087,7 +1126,8 @@ proc readLine*(s: Stream): string =
     doAssert strm.readLine() == "The first line"
     doAssert strm.readLine() == "the second line"
     doAssert strm.readLine() == "the third line"
-    doAssertRaises(IOError): discard strm.readLine()
+    doAssertRaises(IOError):
+      discard strm.readLine()
     strm.close()
 
   result = ""
@@ -1122,7 +1162,8 @@ proc peekLine*(s: Stream): string =
     strm.close()
 
   let pos = getPosition(s)
-  defer: setPosition(s, pos)
+  defer:
+    setPosition(s, pos)
   result = readLine(s)
 
 iterator lines*(s: Stream): string =
@@ -1145,12 +1186,11 @@ iterator lines*(s: Stream): string =
     yield line
 
 type
-  StringStream* = ref StringStreamObj
-    ## A stream that encapsulates a string.
-  StringStreamObj* = object of StreamObj
-    ## A string stream object.
-    data*: string ## A string data.
-                  ## This is updated when called `writeLine` etc.
+  StringStream* = ref StringStreamObj ## A stream that encapsulates a string.
+  StringStreamObj* = object of StreamObj ## A string stream object.
+    data*: string
+      ## A string data.
+      ## This is updated when called `writeLine` etc.
     pos: int
 
 when (NimMajor, NimMinor) < (1, 3) and defined(js):
@@ -1166,11 +1206,13 @@ when (NimMajor, NimMinor) < (1, 3) and defined(js):
     var s = StringStream(s)
     return s.pos
 
-  proc ssReadDataStr(s: Stream, buffer: var string, slice: Slice[int]): int {.compileTime.} =
+  proc ssReadDataStr(
+      s: Stream, buffer: var string, slice: Slice[int]
+  ): int {.compileTime.} =
     var s = StringStream(s)
     result = min(slice.b + 1 - slice.a, s.data.len - s.pos)
     if result > 0:
-      buffer[slice.a..<slice.a+result] = s.data[s.pos..<s.pos+result]
+      buffer[slice.a ..< slice.a + result] = s.data[s.pos ..< s.pos + result]
       inc(s.pos, result)
     else:
       result = 0
@@ -1194,12 +1236,12 @@ when (NimMajor, NimMinor) < (1, 3) and defined(js):
     var bufferr: string
     bufferr.setLen(bufferSize)
     while true:
-      let readBytes = readDataStr(s, bufferr, 0..<bufferSize)
+      let readBytes = readDataStr(s, bufferr, 0 ..< bufferSize)
       if readBytes == 0:
         break
       let prevLen = result.len
       result.setLen(prevLen + readBytes)
-      result[prevLen..<prevLen+readBytes] = bufferr[0..<readBytes]
+      result[prevLen ..< prevLen + readBytes] = bufferr[0 ..< readBytes]
       if readBytes < bufferSize:
         break
 
@@ -1226,7 +1268,7 @@ else: # after 1.3 or JS not defined
     result = min(slice.b + 1 - slice.a, s.data.len - s.pos)
     if result > 0:
       jsOrVmBlock:
-        buffer[slice.a..<slice.a+result] = s.data[s.pos..<s.pos+result]
+        buffer[slice.a ..< slice.a + result] = s.data[s.pos ..< s.pos + result]
       do:
         copyMem(unsafeAddr buffer[slice.a], addr s.data[s.pos], result)
       inc(s.pos, result)
@@ -1239,10 +1281,13 @@ else: # after 1.3 or JS not defined
     if result > 0:
       when defined(js):
         try:
-          cast[ptr string](buffer)[][0..<result] = s.data[s.pos..<s.pos+result]
+          cast[ptr string](buffer)[][0 ..< result] = s.data[s.pos ..< s.pos + result]
         except:
-          raise newException(Defect, "could not read string stream, " &
-            "did you use a non-string buffer pointer?", getCurrentException())
+          raise newException(
+            Defect,
+            "could not read string stream, " & "did you use a non-string buffer pointer?",
+            getCurrentException(),
+          )
       elif not defined(nimscript):
         copyMem(buffer, addr(s.data[s.pos]), result)
       inc(s.pos, result)
@@ -1255,10 +1300,13 @@ else: # after 1.3 or JS not defined
     if result > 0:
       when defined(js):
         try:
-          cast[ptr string](buffer)[][0..<result] = s.data[s.pos..<s.pos+result]
+          cast[ptr string](buffer)[][0 ..< result] = s.data[s.pos ..< s.pos + result]
         except:
-          raise newException(Defect, "could not peek string stream, " &
-            "did you use a non-string buffer pointer?", getCurrentException())
+          raise newException(
+            Defect,
+            "could not peek string stream, " & "did you use a non-string buffer pointer?",
+            getCurrentException(),
+          )
       elif not defined(nimscript):
         copyMem(buffer, addr(s.data[s.pos]), result)
     else:
@@ -1272,10 +1320,14 @@ else: # after 1.3 or JS not defined
       setLen(s.data, s.pos + bufLen)
     when defined(js):
       try:
-        s.data[s.pos..<s.pos+bufLen] = cast[ptr string](buffer)[][0..<bufLen]
+        s.data[s.pos ..< s.pos + bufLen] = cast[ptr string](buffer)[][0 ..< bufLen]
       except:
-        raise newException(Defect, "could not write to string stream, " &
-          "did you use a non-string buffer pointer?", getCurrentException())
+        raise newException(
+          Defect,
+          "could not write to string stream, " &
+            "did you use a non-string buffer pointer?",
+          getCurrentException(),
+        )
     elif not defined(nimscript):
       copyMem(addr(s.data[s.pos]), buffer, bufLen)
     inc(s.pos, bufLen)
@@ -1307,7 +1359,8 @@ else: # after 1.3 or JS not defined
       discard
     else:
       when declared(prepareMutation):
-        prepareMutation(result.data) # Allows us to mutate using `addr` logic like `copyMem`, otherwise it errors.
+        prepareMutation(result.data)
+          # Allows us to mutate using `addr` logic like `copyMem`, otherwise it errors.
     result.pos = 0
     result.closeImpl = ssClose
     result.atEndImpl = ssAtEnd
@@ -1336,10 +1389,18 @@ proc fsClose(s: Stream) =
   if FileStream(s).f != nil:
     close(FileStream(s).f)
     FileStream(s).f = nil
-proc fsFlush(s: Stream) = flushFile(FileStream(s).f)
-proc fsAtEnd(s: Stream): bool = return endOfFile(FileStream(s).f)
-proc fsSetPosition(s: Stream, pos: int) = setFilePos(FileStream(s).f, pos)
-proc fsGetPosition(s: Stream): int = return int(getFilePos(FileStream(s).f))
+
+proc fsFlush(s: Stream) =
+  flushFile(FileStream(s).f)
+
+proc fsAtEnd(s: Stream): bool =
+  return endOfFile(FileStream(s).f)
+
+proc fsSetPosition(s: Stream, pos: int) =
+  setFilePos(FileStream(s).f, pos)
+
+proc fsGetPosition(s: Stream): int =
+  return int(getFilePos(FileStream(s).f))
 
 proc fsReadData(s: Stream, buffer: pointer, bufLen: int): int =
   result = readBuffer(FileStream(s).f, buffer, bufLen)
@@ -1349,7 +1410,8 @@ proc fsReadDataStr(s: Stream, buffer: var string, slice: Slice[int]): int =
 
 proc fsPeekData(s: Stream, buffer: pointer, bufLen: int): int =
   let pos = fsGetPosition(s)
-  defer: fsSetPosition(s, pos)
+  defer:
+    fsSetPosition(s, pos)
   result = readBuffer(FileStream(s).f, buffer, bufLen)
 
 proc fsWriteData(s: Stream, buffer: pointer, bufLen: int) =
@@ -1402,8 +1464,9 @@ proc newFileStream*(f: File): owned FileStream =
   result.writeDataImpl = fsWriteData
   result.flushImpl = fsFlush
 
-proc newFileStream*(filename: string, mode: FileMode = fmRead,
-    bufSize: int = -1): owned FileStream =
+proc newFileStream*(
+    filename: string, mode: FileMode = fmRead, bufSize: int = -1
+): owned FileStream =
   ## Creates a new stream from the file named `filename` with the mode `mode`.
   ##
   ## If the file cannot be opened, `nil` is returned. See the `io module
@@ -1438,11 +1501,14 @@ proc newFileStream*(filename: string, mode: FileMode = fmRead,
       removeFile("somefile.txt")
 
   var f: File = default(File)
-  if open(f, filename, mode, bufSize): result = newFileStream(f)
-  else: result = nil
+  if open(f, filename, mode, bufSize):
+    result = newFileStream(f)
+  else:
+    result = nil
 
-proc openFileStream*(filename: string, mode: FileMode = fmRead,
-    bufSize: int = -1): owned FileStream =
+proc openFileStream*(
+    filename: string, mode: FileMode = fmRead, bufSize: int = -1
+): owned FileStream =
   ## Creates a new stream from the file named `filename` with the mode `mode`.
   ## If the file cannot be opened, an IO exception is raised.
   ##
@@ -1498,7 +1564,9 @@ when false:
     proc hsSetPosition(s: FileHandleStream, pos: int) =
       discard lseek(s.handle, pos, SEEK_SET)
 
-    proc hsClose(s: FileHandleStream) = discard close(s.handle)
+    proc hsClose(s: FileHandleStream) =
+      discard close(s.handle)
+
     proc hsAtEnd(s: FileHandleStream): bool =
       var pos = hsGetPosition(s)
       var theEnd = lseek(s.handle, 0, SEEK_END)
@@ -1529,19 +1597,26 @@ when false:
     result.peekData = hsPeekData
     result.writeData = hsWriteData
 
-  proc newFileHandleStream*(filename: string,
-                            mode: FileMode): owned FileHandleStream =
+  proc newFileHandleStream*(filename: string, mode: FileMode): owned FileHandleStream =
     when defined(windows):
       discard
     else:
       var flags: cint
       case mode
-      of fmRead: flags = posix.O_RDONLY
-      of fmWrite: flags = O_WRONLY or int(O_CREAT)
-      of fmReadWrite: flags = O_RDWR or int(O_CREAT)
-      of fmReadWriteExisting: flags = O_RDWR
-      of fmAppend: flags = O_WRONLY or int(O_CREAT) or O_APPEND
-      static: raiseAssert "unreachable" # handle bug #17888
+      of fmRead:
+        flags = posix.O_RDONLY
+      of fmWrite:
+        flags = O_WRONLY or int(O_CREAT)
+      of fmReadWrite:
+        flags = O_RDWR or int(O_CREAT)
+      of fmReadWriteExisting:
+        flags = O_RDWR
+      of fmAppend:
+        flags = O_WRONLY or int(O_CREAT) or O_APPEND
+      static:
+        raiseAssert "unreachable"
+        # handle bug #17888
       var handle = open(filename, flags)
-      if handle < 0: raise newEOS("posix.open() call failed")
+      if handle < 0:
+        raise newEOS("posix.open() call failed")
     result = newFileHandleStream(handle)

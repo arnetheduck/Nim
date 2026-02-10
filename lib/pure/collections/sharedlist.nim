@@ -15,17 +15,16 @@
 
 {.push stackTrace: off.}
 
-import
-  std/locks
+import std/locks
 
-const
-  ElemsPerNode = 100
+const ElemsPerNode = 100
 
 type
-  SharedListNode[A] = ptr object
-    next: SharedListNode[A]
-    dataLen: int
-    d: array[ElemsPerNode, A]
+  SharedListNode[A] =
+    ptr object
+      next: SharedListNode[A]
+      dataLen: int
+      d: array[ElemsPerNode, A]
 
   SharedList*[A] = object ## generic shared list
     head, tail: SharedListNode[A]
@@ -36,7 +35,7 @@ template withLock(t, x: untyped) =
   x
   release(t.lock)
 
-proc iterAndMutate*[A](x: var SharedList[A]; action: proc(x: A): bool) =
+proc iterAndMutate*[A](x: var SharedList[A], action: proc(x: A): bool) =
   ## Iterates over the list. If `action` returns true, the
   ## current item is removed from the list.
   ##
@@ -51,8 +50,9 @@ proc iterAndMutate*[A](x: var SharedList[A]; action: proc(x: A): bool) =
         if action(n.d[i]):
           acquire(x.lock)
           let t = x.tail
-          dec t.dataLen # TODO considering t.dataLen == 0,
-                        # probably the module should be refactored using doubly linked lists
+          dec t.dataLen
+            # TODO considering t.dataLen == 0,
+            # probably the module should be refactored using doubly linked lists
           n.d[i] = t.d[t.dataLen]
         else:
           acquire(x.lock)
@@ -63,11 +63,11 @@ iterator items*[A](x: var SharedList[A]): A =
   withLock(x):
     var it = x.head
     while it != nil:
-      for i in 0..it.dataLen-1:
+      for i in 0 .. it.dataLen - 1:
         yield it.d[i]
       it = it.next
 
-proc add*[A](x: var SharedList[A]; y: A) =
+proc add*[A](x: var SharedList[A], y: A) =
   withLock(x):
     var node: SharedListNode[A]
     if x.tail == nil:

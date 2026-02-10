@@ -17,7 +17,7 @@ See also:
 * `mkstemp` (posix), refs https://man7.org/linux/man-pages/man3/mkstemp.3.html
 ]#
 
-import std / [os, random]
+import std/[os, random]
 
 when defined(nimPreviewSlimSystem):
   import std/syncio
@@ -27,7 +27,6 @@ const
   letters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
   nimTempPathLength {.intdefine.} = 8
 
-
 when defined(windows):
   import std/winlean
   when defined(nimPreviewSlimSystem):
@@ -36,23 +35,20 @@ when defined(windows):
   var O_RDWR {.importc: "_O_RDWR", header: "<fcntl.h>".}: cint
 
   proc c_fdopen(
-    filehandle: cint,
-    mode: cstring
-  ): File {.importc: "_fdopen",header: "<stdio.h>".}
+    filehandle: cint, mode: cstring
+  ): File {.importc: "_fdopen", header: "<stdio.h>".}
 
-  proc open_osfhandle(osh: Handle, mode: cint): cint {.
-    importc: "_open_osfhandle", header: "<io.h>".}
+  proc open_osfhandle(
+    osh: Handle, mode: cint
+  ): cint {.importc: "_open_osfhandle", header: "<io.h>".}
 
-  proc close_osfandle(fd: cint): cint {.
-    importc: "_close", header: "<io.h>".}
+  proc close_osfandle(fd: cint): cint {.importc: "_close", header: "<io.h>".}
 else:
   import std/posix
 
   proc c_fdopen(
-    filehandle: cint,
-    mode: cstring
-  ): File {.importc: "fdopen",header: "<stdio.h>".}
-
+    filehandle: cint, mode: cstring
+  ): File {.importc: "fdopen", header: "<stdio.h>".}
 
 proc safeOpen(filename: string): File =
   ## Open files exclusively; returns `nil` if the file already exists.
@@ -62,8 +58,15 @@ proc safeOpen(filename: string): File =
     let dwShareMode = FILE_SHARE_DELETE or FILE_SHARE_READ or FILE_SHARE_WRITE
     let dwCreation = CREATE_NEW
     let dwFlags = FILE_FLAG_BACKUP_SEMANTICS or FILE_ATTRIBUTE_NORMAL
-    let handle = createFileW(newWideCString(filename), GENERIC_READ or GENERIC_WRITE, dwShareMode,
-                              nil, dwCreation, dwFlags, Handle(0))
+    let handle = createFileW(
+      newWideCString(filename),
+      GENERIC_READ or GENERIC_WRITE,
+      dwShareMode,
+      nil,
+      dwCreation,
+      dwFlags,
+      Handle(0),
+    )
 
     if handle == INVALID_HANDLE_VALUE:
       if getLastError() == ERROR_FILE_EXISTS:
@@ -100,11 +103,9 @@ proc safeOpen(filename: string): File =
       discard posix.close(fileHandle) # TODO handles failure when closing file
       raiseOSError(osLastError(), filename)
 
-
-type
-  NimTempPathState = object
-    state: Rand
-    isInit: bool
+type NimTempPathState = object
+  state: Rand
+  isInit: bool
 
 var nimTempPathState {.threadvar.}: NimTempPathState
 
@@ -132,7 +133,9 @@ proc genTempPath*(prefix, suffix: string, dir = ""): string =
   let dir = getTempDirImpl(dir)
   result = dir / (prefix & randomPathName(nimTempPathLength) & suffix)
 
-proc createTempFile*(prefix, suffix: string, dir = ""): tuple[cfile: File, path: string] =
+proc createTempFile*(
+    prefix, suffix: string, dir = ""
+): tuple[cfile: File, path: string] =
   ## Creates a new temporary file in the directory `dir`.
   ##
   ## This generates a path name using `genTempPath(prefix, suffix, dir)` and
@@ -146,7 +149,8 @@ proc createTempFile*(prefix, suffix: string, dir = ""): tuple[cfile: File, path:
   ## .. note:: `dir` must exist (empty `dir` will resolve to `getTempDir <appdirs.html#getTempDir>`_).
   runnableExamples:
     import std/os
-    doAssertRaises(OSError): discard createTempFile("", "", "nonexistent")
+    doAssertRaises(OSError):
+      discard createTempFile("", "", "nonexistent")
     let (cfile, path) = createTempFile("tmpprefix_", "_end.tmp")
     # path looks like: getTempDir() / "tmpprefix_FDCIRZA0_end.tmp"
     cfile.write "foo"
@@ -164,7 +168,8 @@ proc createTempFile*(prefix, suffix: string, dir = ""): tuple[cfile: File, path:
     if result.cfile != nil:
       return
 
-  raise newException(OSError, "Failed to create a temporary file under directory " & dir)
+  raise
+    newException(OSError, "Failed to create a temporary file under directory " & dir)
 
 proc createTempDir*(prefix, suffix: string, dir = ""): string =
   ## Creates a new temporary directory in the directory `dir`.
@@ -179,7 +184,8 @@ proc createTempDir*(prefix, suffix: string, dir = ""): string =
   ## .. note:: `dir` must exist (empty `dir` will resolve to `getTempDir <appdirs.html#getTempDir>`_).
   runnableExamples:
     import std/os
-    doAssertRaises(OSError): discard createTempDir("", "", "nonexistent")
+    doAssertRaises(OSError):
+      discard createTempDir("", "", "nonexistent")
     let dir = createTempDir("tmpprefix_", "_end")
     # dir looks like: getTempDir() / "tmpprefix_YEl9VuVj_end"
     assert dirExists(dir)
@@ -190,4 +196,6 @@ proc createTempDir*(prefix, suffix: string, dir = ""): string =
     if not existsOrCreateDir(result):
       return
 
-  raise newException(OSError, "Failed to create a temporary directory under directory " & dir)
+  raise newException(
+    OSError, "Failed to create a temporary directory under directory " & dir
+  )

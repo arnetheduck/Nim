@@ -8,8 +8,8 @@
 #
 
 type Constructible*[T] {.
-  importcpp: "Genode::Constructible",
-  header: "<util/reconstructible.h>", byref, pure.} = object
+  importcpp: "Genode::Constructible", header: "<util/reconstructible.h>", byref, pure
+.} = object
 
 proc construct*[T](x: Constructible[T]) {.importcpp.}
   ## Construct a constructible C++ object.

@@ -53,10 +53,12 @@ when defined(nimdoc):
       ##
       ## .. warning:: The underlying Nim type is an implementation detail and
       ##    should not be relied upon.
+
 elif defined(windows):
   type
     clong* {.importc: "long", nodecl.} = int32
     culong* {.importc: "unsigned long", nodecl.} = uint32
+
 else:
   type
     clong* {.importc: "long", nodecl.} = int
@@ -69,8 +71,7 @@ type # these work for most platforms:
     ## This is the same as the type `signed char` in *C*.
   cshort* {.importc: "short", nodecl.} = int16
     ## This is the same as the type `short` in *C*.
-  cint* {.importc: "int", nodecl.} = int32
-    ## This is the same as the type `int` in *C*.
+  cint* {.importc: "int", nodecl.} = int32 ## This is the same as the type `int` in *C*.
   csize_t* {.importc: "size_t", nodecl.} = uint
     ## This is the same as the type `size_t` in *C*.
   clonglong* {.importc: "long long", nodecl.} = int64
@@ -83,7 +84,9 @@ type # these work for most platforms:
     ## This is the same as the type `long double` in *C*.
     ## This C type is not supported by Nim's code generator.
 
-  cuchar* {.importc: "unsigned char", nodecl, deprecated: "Use `char` or `uint8` instead".} = char
+  cuchar* {.
+    importc: "unsigned char", nodecl, deprecated: "Use `char` or `uint8` instead"
+  .} = char
   cushort* {.importc: "unsigned short", nodecl.} = uint16
     ## This is the same as the type `unsigned short` in *C*.
   cuint* {.importc: "unsigned int", nodecl.} = uint32
@@ -109,7 +112,5 @@ when not defined(nimPreviewSlimSystem):
       ## An alias for `ptr float32`.
     PFloat64* {.deprecated: "use `ptr float64`".} = ptr float64
       ## An alias for `ptr float64`.
-    PInt64* {.deprecated: "use `ptr int64`".} = ptr int64
-      ## An alias for `ptr int64`.
-    PInt32* {.deprecated: "use `ptr int32`".} = ptr int32
-      ## An alias for `ptr int32`.
+    PInt64* {.deprecated: "use `ptr int64`".} = ptr int64 ## An alias for `ptr int64`.
+    PInt32* {.deprecated: "use `ptr int32`".} = ptr int32 ## An alias for `ptr int32`.

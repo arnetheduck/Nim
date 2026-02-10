@@ -14,7 +14,7 @@ import ast, typeallowed, renderer
 from aliasanalysis import PathKinds0, PathKinds1
 from trees import getMagic
 
-proc isDangerousLocation*(n: PNode; owner: PSym): bool =
+proc isDangerousLocation*(n: PNode, owner: PSym): bool =
   var n = n
   var hasDeref = false
   while true:

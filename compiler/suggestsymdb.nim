@@ -31,12 +31,8 @@ type
 
   SuggestSymbolDatabase* = Table[FileIndex, SuggestFileSymbolDatabase]
 
-
 func newPackedBoolArray*(): PackedBoolArray =
-  PackedBoolArray(
-    s: initIntSet(),
-    len: 0
-  )
+  PackedBoolArray(s: initIntSet(), len: 0)
 
 func low*(s: PackedBoolArray): int =
   0
@@ -44,35 +40,32 @@ func low*(s: PackedBoolArray): int =
 func high*(s: PackedBoolArray): int =
   s.len - 1
 
-func `[]`*(s: PackedBoolArray; idx: int): bool =
+func `[]`*(s: PackedBoolArray, idx: int): bool =
   s.s.contains(idx)
 
-proc `[]=`*(s: var PackedBoolArray; idx: int; v: bool) =
+proc `[]=`*(s: var PackedBoolArray, idx: int, v: bool) =
   if v:
     s.s.incl(idx)
   else:
     s.s.excl(idx)
 
-proc add*(s: var PackedBoolArray; v: bool) =
+proc add*(s: var PackedBoolArray, v: bool) =
   inc(s.len)
   if v:
     s.s.incl(s.len - 1)
 
 proc reverse*(s: var PackedBoolArray) =
-  var
-    reversedSet = initIntSet()
-  for i in 0..s.high:
+  var reversedSet = initIntSet()
+  for i in 0 .. s.high:
     if s.s.contains(i):
       reversedSet.incl(s.high - i)
   s.s = reversedSet
 
-proc getSymInfoPair*(s: SuggestFileSymbolDatabase; idx: int): SymInfoPair =
+proc getSymInfoPair*(s: SuggestFileSymbolDatabase, idx: int): SymInfoPair =
   SymInfoPair(
     sym: s.sym[idx],
     info: TLineInfo(
-      line: s.lineInfo[idx].line,
-      col: s.lineInfo[idx].col,
-      fileIndex: s.fileIndex
+      line: s.lineInfo[idx].line, col: s.lineInfo[idx].col, fileIndex: s.fileIndex
     ),
     caughtExceptions:
       if s.trackCaughtExceptions:
@@ -89,7 +82,7 @@ proc getSymInfoPair*(s: SuggestFileSymbolDatabase; idx: int): SymInfoPair =
         s.isGenericInstance[idx]
       else:
         false,
-    isDecl: s.isDecl[idx]
+    isDecl: s.isDecl[idx],
   )
 
 proc reverse*(s: var SuggestFileSymbolDatabase) =
@@ -100,7 +93,9 @@ proc reverse*(s: var SuggestFileSymbolDatabase) =
   s.isGenericInstance.reverse()
   s.isDecl.reverse()
 
-proc newSuggestFileSymbolDatabase*(aFileIndex: FileIndex; aTrackCaughtExceptions: bool): SuggestFileSymbolDatabase =
+proc newSuggestFileSymbolDatabase*(
+    aFileIndex: FileIndex, aTrackCaughtExceptions: bool
+): SuggestFileSymbolDatabase =
   SuggestFileSymbolDatabase(
     lineInfo: @[],
     sym: @[],
@@ -110,7 +105,7 @@ proc newSuggestFileSymbolDatabase*(aFileIndex: FileIndex; aTrackCaughtExceptions
     isGenericInstance: newPackedBoolArray(),
     fileIndex: aFileIndex,
     trackCaughtExceptions: aTrackCaughtExceptions,
-    isSorted: true
+    isSorted: true,
   )
 
 proc exactEquals*(a, b: TinyLineInfo): bool =
@@ -119,19 +114,19 @@ proc exactEquals*(a, b: TinyLineInfo): bool =
 proc `==`*(a, b: SymInfoPair): bool =
   result = a.sym == b.sym and a.info.exactEquals(b.info)
 
-func cmp*(a: TinyLineInfo; b: TinyLineInfo): int =
+func cmp*(a: TinyLineInfo, b: TinyLineInfo): int =
   result = cmp(a.line, b.line)
   if result == 0:
     result = cmp(a.col, b.col)
 
-func compare*(s: var SuggestFileSymbolDatabase; i, j: int): int =
+func compare*(s: var SuggestFileSymbolDatabase, i, j: int): int =
   result = cmp(s.lineInfo[i], s.lineInfo[j])
   if result == 0:
     result = cmp(s.isDecl[i], s.isDecl[j])
   if result == 0 and s.trackCaughtExceptions:
     result = cmp(s.isGenericInstance[i], s.isGenericInstance[j])
 
-proc exchange(s: var SuggestFileSymbolDatabase; i, j: int) =
+proc exchange(s: var SuggestFileSymbolDatabase, i, j: int) =
   if i == j:
     return
   var tmp1 = s.lineInfo[i]
@@ -154,7 +149,7 @@ proc exchange(s: var SuggestFileSymbolDatabase; i, j: int) =
   s.sym[i] = s.sym[j]
   s.sym[j] = tmp5
 
-proc quickSort(s: var SuggestFileSymbolDatabase; ll, rr: int) =
+proc quickSort(s: var SuggestFileSymbolDatabase, ll, rr: int) =
   var
     i, j, pivotIdx: int
     l = ll
@@ -199,12 +194,9 @@ proc sort*(s: var SuggestFileSymbolDatabase) =
   s.quickSort(s.lineInfo.low, s.lineInfo.high)
   s.isSorted = true
 
-proc add*(s: var SuggestFileSymbolDatabase; v: SymInfoPair) =
+proc add*(s: var SuggestFileSymbolDatabase, v: SymInfoPair) =
   doAssert(v.info.fileIndex == s.fileIndex)
-  s.lineInfo.add(TinyLineInfo(
-    line: v.info.line,
-    col: v.info.col
-  ))
+  s.lineInfo.add(TinyLineInfo(line: v.info.line, col: v.info.col))
   s.sym.add(v.sym)
   s.isDecl.add(v.isDecl)
   if s.trackCaughtExceptions:
@@ -213,10 +205,17 @@ proc add*(s: var SuggestFileSymbolDatabase; v: SymInfoPair) =
     s.isGenericInstance.add(v.isGenericInstance)
   s.isSorted = false
 
-proc add*(s: var SuggestSymbolDatabase; v: SymInfoPair; trackCaughtExceptions: bool) =
-  s.mgetOrPut(v.info.fileIndex, newSuggestFileSymbolDatabase(v.info.fileIndex, trackCaughtExceptions)).add(v)
+proc add*(s: var SuggestSymbolDatabase, v: SymInfoPair, trackCaughtExceptions: bool) =
+  s
+    .mgetOrPut(
+      v.info.fileIndex,
+      newSuggestFileSymbolDatabase(v.info.fileIndex, trackCaughtExceptions),
+    )
+    .add(v)
 
-proc findSymInfoIndex*(s: var SuggestFileSymbolDatabase; li: TLineInfo; isGenericInstance: bool): int =
+proc findSymInfoIndex*(
+    s: var SuggestFileSymbolDatabase, li: TLineInfo, isGenericInstance: bool
+): int =
   # if trackCaughtExceptions is false, then all records in the database are not generic instances, so
   # if we're searching for a generic instance, we find none
   if isGenericInstance and not s.trackCaughtExceptions:
@@ -224,10 +223,7 @@ proc findSymInfoIndex*(s: var SuggestFileSymbolDatabase; li: TLineInfo; isGeneri
   doAssert(li.fileIndex == s.fileIndex)
   if not s.isSorted:
     s.sort()
-  var q = TinyLineInfo(
-    line: li.line,
-    col: li.col
-  )
+  var q = TinyLineInfo(line: li.line, col: li.col)
   result = binarySearch(s.lineInfo, q, cmp)
   # if trackCaughtExceptions is false, then all records in the database are not generic instances, so
   # if we're a searching for a non-generic instance, then we're done, we return what we have found
@@ -237,9 +233,13 @@ proc findSymInfoIndex*(s: var SuggestFileSymbolDatabase; li: TLineInfo; isGeneri
   # to check the isGenericInstance flag also
   if result != -1:
     # search through a sequence of equal lineInfos to find a matching isGenericInstance
-    while result > 0 and s.isGenericInstance[result] != isGenericInstance and cmp(s.lineInfo[result], s.lineInfo[result - 1]) == 0:
+    while result > 0 and s.isGenericInstance[result] != isGenericInstance and
+        cmp(s.lineInfo[result], s.lineInfo[result - 1]) == 0:
       dec result
-    while result < (s.lineInfo.len - 1) and s.isGenericInstance[result] != isGenericInstance and cmp(s.lineInfo[result], s.lineInfo[result + 1]) == 0:
+    while result < (s.lineInfo.len - 1) and
+        s.isGenericInstance[result] != isGenericInstance and
+        cmp(s.lineInfo[result], s.lineInfo[result + 1]) == 0
+    :
       inc result
     if s.isGenericInstance[result] != isGenericInstance:
       result = -1

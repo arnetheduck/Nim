@@ -27,11 +27,11 @@ runnableExamples:
 
   # Pick a number in 0..100.
   let num = rand(100)
-  doAssert num in 0..100
+  doAssert num in 0 .. 100
 
   # Roll a six-sided die.
-  let roll = rand(1..6)
-  doAssert roll in 1..6
+  let roll = rand(1 .. 6)
+  doAssert roll in 1 .. 6
 
   # Pick a marble from a bag.
   let marbles = ["red", "blue", "green", "yellow", "purple"]
@@ -80,7 +80,6 @@ when defined(nimPreviewSlimSystem):
 include system/inclrtl
 {.push debugger: off.}
 
-
 when hasWorkingInt64:
   type Ui = uint64
 
@@ -90,34 +89,30 @@ else:
 
   const randMax = 4_294_967_295u32
 
-
-type
-  Rand* = object ## State of a random number generator.
-                 ##
-                 ## Create a new Rand state using the `initRand proc <#initRand,int64>`_.
-                 ##
-                 ## The module contains a default Rand state for convenience.
-                 ## It corresponds to the default RNG's state.
-                 ## The default Rand state always starts with the same values, but the
-                 ## `randomize proc <#randomize>`_ can be used to seed the default generator
-                 ## with a value based on the current time.
-                 ##
-                 ## Many procs have two variations: one that takes in a Rand parameter and
-                 ## another that uses the default generator. The procs that use the default
-                 ## generator are **not** thread-safe!
-    a0, a1: Ui
+type Rand* = object
+  ## State of a random number generator.
+  ##
+  ## Create a new Rand state using the `initRand proc <#initRand,int64>`_.
+  ##
+  ## The module contains a default Rand state for convenience.
+  ## It corresponds to the default RNG's state.
+  ## The default Rand state always starts with the same values, but the
+  ## `randomize proc <#randomize>`_ can be used to seed the default generator
+  ## with a value based on the current time.
+  ##
+  ## Many procs have two variations: one that takes in a Rand parameter and
+  ## another that uses the default generator. The procs that use the default
+  ## generator are **not** thread-safe!
+  a0, a1: Ui
 
 when hasWorkingInt64:
-  const DefaultRandSeed = Rand(
-    a0: 0x69B4C98CB8530805u64,
-    a1: 0xFED1DD3004688D67CAu64)
+  const DefaultRandSeed = Rand(a0: 0x69B4C98CB8530805u64, a1: 0xFED1DD3004688D67CAu64)
 
   # racy for multi-threading but good enough for now:
   var state = DefaultRandSeed # global for backwards compatibility
 else:
-  var state = Rand(
-    a0: 0x69B4C98Cu32,
-    a1: 0xFED1DD30u32) # global for backwards compatibility
+  var state = Rand(a0: 0x69B4C98Cu32, a1: 0xFED1DD30u32)
+    # global for backwards compatibility
 
 func isValid(r: Rand): bool {.inline.} =
   ## Check whether state of `r` is valid.
@@ -187,18 +182,18 @@ proc skipRandomNumbers*(s: var Rand) =
     const numbers = 100000
 
     var
-      thr: array[0..3, Thread[(Rand, int)]]
-      vals: array[0..3, int]
+      thr: array[0 .. 3, Thread[(Rand, int)]]
+      vals: array[0 .. 3, int]
 
     proc randomSum(params: tuple[r: Rand, index: int]) {.thread.} =
       var r = params.r
       var s = 0 # avoid cache thrashing
-      for i in 1..numbers:
-        s += r.rand(0..10)
+      for i in 1 .. numbers:
+        s += r.rand(0 .. 10)
       vals[params.index] = s
 
     var r = initRand(2019)
-    for i in 0..<thr.len:
+    for i in 0 ..< thr.len:
       createThread(thr[i], randomSum, (r, i))
       r.skipRandomNumbers()
 
@@ -209,7 +204,6 @@ proc skipRandomNumbers*(s: var Rand) =
 
     doAssert vals == [501737, 497901, 500683, 500157]
 
-
   when hasWorkingInt64:
     const helper = [0xbeac0467eba5facbu64, 0xd86b048b86aa9922u64]
   else:
@@ -217,7 +211,7 @@ proc skipRandomNumbers*(s: var Rand) =
   var
     s0 = Ui 0
     s1 = Ui 0
-  for i in 0..high(helper):
+  for i in 0 .. high(helper):
     for b in 0 ..< 64:
       if (helper[i] and (Ui(1) shl Ui(b))) != 0:
         s0 = s0 xor s.a0
@@ -226,13 +220,15 @@ proc skipRandomNumbers*(s: var Rand) =
   s.a0 = s0
   s.a1 = s1
 
-proc rand[T: uint | uint64](r: var Rand; max: T): T =
+proc rand[T: uint | uint64](r: var Rand, max: T): T =
   # xxx export in future work
-  if max == 0: return
+  if max == 0:
+    return
   else:
     let max = uint64(max)
     when T.high.uint64 == uint64.high:
-      if max == uint64.high: return T(next(r))
+      if max == uint64.high:
+        return T(next(r))
     var iters = 0
     while true:
       let x = next(r)
@@ -242,7 +238,7 @@ proc rand[T: uint | uint64](r: var Rand; max: T): T =
       else:
         inc iters
 
-proc rand*(r: var Rand; max: Natural): int {.benign.} =
+proc rand*(r: var Rand, max: Natural): int {.benign.} =
   ## Returns a random integer in the range `0..max` using the given state.
   ##
   ## **See also:**
@@ -280,7 +276,7 @@ proc rand*(max: int): int {.benign.} =
 
   rand(state, max)
 
-proc rand*(r: var Rand; max: range[0.0 .. high(float)]): float {.benign.} =
+proc rand*(r: var Rand, max: range[0.0 .. high(float)]): float {.benign.} =
   ## Returns a random floating point number in the range `0.0..max`
   ## using the given state.
   ##
@@ -328,7 +324,7 @@ proc rand*(max: float): float {.benign.} =
 
   rand(state, max)
 
-proc rand*[T: Ordinal or SomeFloat](r: var Rand; x: HSlice[T, T]): T =
+proc rand*[T: Ordinal or SomeFloat](r: var Rand, x: HSlice[T, T]): T =
   ## For a slice `a..b`, returns a value in the range `a..b` using the given
   ## state.
   ##
@@ -342,7 +338,7 @@ proc rand*[T: Ordinal or SomeFloat](r: var Rand; x: HSlice[T, T]): T =
   ## * `rand proc<#rand,typedesc[T]>`_ that accepts an integer or range type
   runnableExamples:
     var r = initRand(345)
-    assert r.rand(1..5) <= 5
+    assert r.rand(1 .. 5) <= 5
     assert r.rand(-1.1 .. 1.2) >= -1.1
   assert x.a <= x.b
   when T is SomeFloat:
@@ -351,7 +347,8 @@ proc rand*[T: Ordinal or SomeFloat](r: var Rand; x: HSlice[T, T]): T =
     when jsNoBigInt64:
       result = cast[T](rand(r, cast[uint](x.b) - cast[uint](x.a)) + cast[uint](x.a))
     else:
-      result = cast[T](rand(r, cast[uint64](x.b) - cast[uint64](x.a)) + cast[uint64](x.a))
+      result =
+        cast[T](rand(r, cast[uint64](x.b) - cast[uint64](x.a)) + cast[uint64](x.a))
 
 proc rand*[T: Ordinal or SomeFloat](x: HSlice[T, T]): T =
   ## For a slice `a..b`, returns a value in the range `a..b`.
@@ -371,11 +368,11 @@ proc rand*[T: Ordinal or SomeFloat](x: HSlice[T, T]): T =
   ## * `rand proc<#rand,typedesc[T]>`_ that accepts an integer or range type
   runnableExamples:
     randomize(345)
-    assert rand(1..6) <= 6
+    assert rand(1 .. 6) <= 6
 
   result = rand(state, x)
 
-proc rand*[T: Ordinal](r: var Rand; t: typedesc[T]): T {.since: (1, 7, 1).} =
+proc rand*[T: Ordinal](r: var Rand, t: typedesc[T]): T {.since: (1, 7, 1).} =
   ## Returns a random Ordinal in the range `low(T)..high(T)`.
   ##
   ## If `randomize <#randomize>`_ has not been called, the sequence of random
@@ -387,14 +384,14 @@ proc rand*[T: Ordinal](r: var Rand; t: typedesc[T]): T {.since: (1, 7, 1).} =
   ## * `rand proc<#rand,HSlice[T: Ordinal or float or float32 or float64,T: Ordinal or float or float32 or float64]>`_
   ##   that accepts a slice
   when T is range or T is enum:
-    result = rand(r, low(T)..high(T))
+    result = rand(r, low(T) .. high(T))
   elif T is bool:
     result = r.next < randMax div 2
   else:
     when jsNoBigInt64:
-      result = cast[T](r.next shr (sizeof(uint)*8 - sizeof(T)*8))
+      result = cast[T](r.next shr (sizeof(uint) * 8 - sizeof(T) * 8))
     else:
-      result = cast[T](r.next shr (sizeof(uint64)*8 - sizeof(T)*8))
+      result = cast[T](r.next shr (sizeof(uint64) * 8 - sizeof(T) * 8))
 
 proc rand*[T: Ordinal](t: typedesc[T]): T =
   ## Returns a random Ordinal in the range `low(T)..high(T)`.
@@ -411,17 +408,21 @@ proc rand*[T: Ordinal](t: typedesc[T]): T =
   ##   that accepts a slice
   runnableExamples:
     randomize(567)
-    type E = enum a, b, c, d
+    type E = enum
+      a
+      b
+      c
+      d
 
-    assert rand(E) in a..d
-    assert rand(char) in low(char)..high(char)
-    assert rand(int8) in low(int8)..high(int8)
-    assert rand(uint32) in low(uint32)..high(uint32)
-    assert rand(range[1..16]) in 1..16
+    assert rand(E) in a .. d
+    assert rand(char) in low(char) .. high(char)
+    assert rand(int8) in low(int8) .. high(int8)
+    assert rand(uint32) in low(uint32) .. high(uint32)
+    assert rand(range[1 .. 16]) in 1 .. 16
 
   result = rand(state, t)
 
-proc sample*[T](r: var Rand; s: set[T]): T =
+proc sample*[T](r: var Rand, s: set[T]): T =
   ## Returns a random element from the set `s` using the given state.
   ##
   ## **See also:**
@@ -437,7 +438,8 @@ proc sample*[T](r: var Rand; s: set[T]): T =
   assert card(s) != 0
   var i = rand(r, card(s) - 1)
   for e in s:
-    if i == 0: return e
+    if i == 0:
+      return e
     dec(i)
 
 proc sample*[T](s: set[T]): T =
@@ -460,7 +462,7 @@ proc sample*[T](s: set[T]): T =
 
   sample(state, s)
 
-proc sample*[T](r: var Rand; a: openArray[T]): T =
+proc sample*[T](r: var Rand, a: openArray[T]): T =
   ## Returns a random element from `a` using the given state.
   ##
   ## **See also:**
@@ -473,7 +475,7 @@ proc sample*[T](r: var Rand; a: openArray[T]): T =
     var r = initRand(456)
     assert r.sample(marbles) in marbles
 
-  result = a[r.rand(a.low..a.high)]
+  result = a[r.rand(a.low .. a.high)]
 
 proc sample*[T](a: openArray[T]): lent T =
   ## Returns a random element from `a`.
@@ -493,9 +495,9 @@ proc sample*[T](a: openArray[T]): lent T =
     randomize(456)
     assert sample(marbles) in marbles
 
-  result = a[rand(a.low..a.high)]
+  result = a[rand(a.low .. a.high)]
 
-proc sample*[T, U](r: var Rand; a: openArray[T]; cdf: openArray[U]): T =
+proc sample*[T, U](r: var Rand, a: openArray[T], cdf: openArray[U]): T =
   ## Returns an element from `a` using a cumulative distribution function
   ## (CDF) and the given state.
   ##
@@ -529,7 +531,7 @@ proc sample*[T, U](r: var Rand; a: openArray[T]; cdf: openArray[U]): T =
   let u = r.rand(float(cdf[^1]))
   a[cdf.upperBound(U(u))]
 
-proc sample*[T, U](a: openArray[T]; cdf: openArray[U]): T =
+proc sample*[T, U](a: openArray[T], cdf: openArray[U]): T =
   ## Returns an element from `a` using a cumulative distribution function
   ## (CDF).
   ##
@@ -558,7 +560,7 @@ proc sample*[T, U](a: openArray[T]; cdf: openArray[U]): T =
 
   state.sample(a, cdf)
 
-proc gauss*(r: var Rand; mu = 0.0; sigma = 1.0): float {.since: (1, 3).} =
+proc gauss*(r: var Rand, mu = 0.0, sigma = 1.0): float {.since: (1, 3).} =
   ## Returns a Gaussian random variate,
   ## with mean `mu` and standard deviation `sigma`
   ## using the given state.
@@ -571,7 +573,8 @@ proc gauss*(r: var Rand; mu = 0.0; sigma = 1.0): float {.since: (1, 3).} =
   while true:
     a = rand(r, 1.0)
     b = (2.0 * rand(r, 1.0) - 1.0) * K
-    if  b * b <= -4.0 * a * a * ln(a): break
+    if b * b <= -4.0 * a * a * ln(a):
+      break
   result = mu + sigma * (b / a)
 
 proc gauss*(mu = 0.0, sigma = 1.0): float {.since: (1, 3).} =
@@ -632,7 +635,7 @@ proc randomize*(seed: int64) {.benign.} =
 
   state = initRand(seed)
 
-proc shuffle*[T](r: var Rand; x: var openArray[T]) =
+proc shuffle*[T](r: var Rand, x: var openArray[T]) =
   ## Shuffles a sequence of elements in-place using the given state.
   ##
   ## **See also:**
@@ -700,9 +703,7 @@ when not defined(standalone):
     else:
       proc getRandomState(): Rand =
         when defined(nimscript):
-          result = Rand(
-            a0: CompileTime.hash.Ui,
-            a1: CompileDate.hash.Ui)
+          result = Rand(a0: CompileTime.hash.Ui, a1: CompileDate.hash.Ui)
           if not result.isValid:
             result = DefaultRandSeed
         else:
@@ -718,7 +719,9 @@ when not defined(standalone):
           if not result.isValid:
             # Don't try to get alternative random values from other source like time or process/thread id,
             # because such code would be never tested and is a liability for security.
-            quit("Failed to initializes baseState in random module as sysrand.urandom doesn't work.")
+            quit(
+              "Failed to initializes baseState in random module as sysrand.urandom doesn't work."
+            )
 
       when compileOption("threads"):
         baseSeedLock.withLock:

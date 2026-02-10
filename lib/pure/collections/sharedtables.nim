@@ -16,8 +16,7 @@
 
 {.deprecated.}
 
-import
-  std/[hashes, math, locks]
+import std/[hashes, math, locks]
 
 type
   KeyValuePair[A, B] = tuple[hcode: Hash, key: A, val: B]
@@ -27,7 +26,8 @@ type
     counter, dataLen: int
     lock: Lock
 
-template maxHash(t): untyped = t.dataLen-1
+template maxHash(t): untyped =
+  t.dataLen - 1
 
 include tableimpl
 
@@ -42,11 +42,10 @@ template st_maybeRehashPutImpl(enlarge) {.dirty.} =
 proc enlarge[A, B](t: var SharedTable[A, B]) =
   let oldSize = t.dataLen
   let size = oldSize * growthFactor
-  var n = cast[KeyValuePairSeq[A, B]](allocShared0(
-                                      sizeof(KeyValuePair[A, B]) * size))
+  var n = cast[KeyValuePairSeq[A, B]](allocShared0(sizeof(KeyValuePair[A, B]) * size))
   t.dataLen = size
   swap(t.data, n)
-  for i in 0..<oldSize:
+  for i in 0 ..< oldSize:
     let eh = n[i].hcode
     if isFilled(eh):
       var j: Hash = eh and maxHash(t)
@@ -60,8 +59,7 @@ template withLock(t, x: untyped) =
   x
   release(t.lock)
 
-template withValue*[A, B](t: var SharedTable[A, B], key: A,
-                          value, body: untyped) =
+template withValue*[A, B](t: var SharedTable[A, B], key: A, value, body: untyped) =
   ## Retrieves the value at `t[key]`.
   ## `value` can be modified in the scope of the `withValue` call.
   runnableExamples:
@@ -94,8 +92,9 @@ template withValue*[A, B](t: var SharedTable[A, B], key: A,
   finally:
     release(t.lock)
 
-template withValue*[A, B](t: var SharedTable[A, B], key: A,
-                          value, body1, body2: untyped) =
+template withValue*[A, B](
+    t: var SharedTable[A, B], key: A, value, body1, body2: untyped
+) =
   ## Retrieves the value at `t[key]`.
   ## `value` can be modified in the scope of the `withValue` call.
   runnableExamples:
@@ -106,7 +105,6 @@ template withValue*[A, B](t: var SharedTable[A, B], key: A,
     table["b"] = "y"
     table["c"] = "z"
 
-
     table.withValue("a", value):
       value[] = "m"
 
@@ -114,7 +112,7 @@ template withValue*[A, B](t: var SharedTable[A, B], key: A,
     table.withValue("d", value):
       discard value
       doAssert false
-    do: # if "d" notin table
+    do:
       flag = true
 
     if flag:
@@ -143,7 +141,8 @@ proc mget*[A, B](t: var SharedTable[A, B], key: A): var B =
     var hc: Hash
     var index = rawGet(t, key, hc)
     let hasKey = index >= 0
-    if hasKey: result = t.data[index].val
+    if hasKey:
+      result = t.data[index].val
   if not hasKey:
     when compiles($key):
       raise newException(KeyError, "key not found: " & $key)
@@ -163,12 +162,20 @@ proc hasKeyOrPut*[A, B](t: var SharedTable[A, B], key: A, val: B): bool =
   withLock t:
     hasKeyOrPutImpl(enlarge)
 
-template tabMakeEmpty(i) = t.data[i].hcode = 0
-template tabCellEmpty(i) = isEmpty(t.data[i].hcode)
-template tabCellHash(i)  = t.data[i].hcode
+template tabMakeEmpty(i) =
+  t.data[i].hcode = 0
 
-proc withKey*[A, B](t: var SharedTable[A, B], key: A,
-                    mapper: proc(key: A, val: var B, pairExists: var bool)) =
+template tabCellEmpty(i) =
+  isEmpty(t.data[i].hcode)
+
+template tabCellHash(i) =
+  t.data[i].hcode
+
+proc withKey*[A, B](
+    t: var SharedTable[A, B],
+    key: A,
+    mapper: proc(key: A, val: var B, pairExists: var bool),
+) =
   ## Computes a new mapping for the `key` with the specified `mapper`
   ## procedure.
   ##
@@ -243,8 +250,8 @@ proc init*[A, B](t: var SharedTable[A, B], initialSize = 32) =
   let initialSize = slotsNeeded(initialSize)
   t.counter = 0
   t.dataLen = initialSize
-  t.data = cast[KeyValuePairSeq[A, B]](allocShared0(
-                                      sizeof(KeyValuePair[A, B]) * initialSize))
+  t.data =
+    cast[KeyValuePairSeq[A, B]](allocShared0(sizeof(KeyValuePair[A, B]) * initialSize))
   initLock t.lock
 
 proc deinitSharedTable*[A, B](t: var SharedTable[A, B]) =

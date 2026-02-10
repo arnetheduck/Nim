@@ -12,7 +12,7 @@
 import "."/[ast, lineinfos, msgs, options, rodutils]
 import std/[intsets, strutils]
 
-proc addYamlString*(res: var string; s: string) =
+proc addYamlString*(res: var string, s: string) =
   res.add "\""
   for c in s:
     case c
@@ -40,16 +40,43 @@ proc flagsToStr[T](flags: set[T]): string =
       result.addYamlString($x)
     result = "[" & result & "]"
 
-proc lineInfoToStr*(conf: ConfigRef; info: TLineInfo): string =
+proc lineInfoToStr*(conf: ConfigRef, info: TLineInfo): string =
   result = "["
   result.addYamlString(toFilename(conf, info))
   result.addf ", $1, $2]", [toLinenumber(info), toColumn(info)]
 
-proc treeToYamlAux(res: var string; conf: ConfigRef; n: PNode; marker: var IntSet; indent, maxRecDepth: int)
-proc symToYamlAux(res: var string; conf: ConfigRef; n: PSym; marker: var IntSet; indent, maxRecDepth: int)
-proc typeToYamlAux(res: var string; conf: ConfigRef; n: PType; marker: var IntSet; indent, maxRecDepth: int)
+proc treeToYamlAux(
+  res: var string,
+  conf: ConfigRef,
+  n: PNode,
+  marker: var IntSet,
+  indent, maxRecDepth: int,
+)
 
-proc symToYamlAux(res: var string; conf: ConfigRef; n: PSym; marker: var IntSet; indent: int; maxRecDepth: int) =
+proc symToYamlAux(
+  res: var string,
+  conf: ConfigRef,
+  n: PSym,
+  marker: var IntSet,
+  indent, maxRecDepth: int,
+)
+
+proc typeToYamlAux(
+  res: var string,
+  conf: ConfigRef,
+  n: PType,
+  marker: var IntSet,
+  indent, maxRecDepth: int,
+)
+
+proc symToYamlAux(
+    res: var string,
+    conf: ConfigRef,
+    n: PSym,
+    marker: var IntSet,
+    indent: int,
+    maxRecDepth: int,
+) =
   if n == nil:
     res.add("null")
   elif containsOrIncl(marker, n.id):
@@ -79,7 +106,14 @@ proc symToYamlAux(res: var string; conf: ConfigRef; n: PSym; marker: var IntSet;
     res.addf("\n$1lode: $2", [istr])
     res.treeToYamlAux(conf, n.loc.lode, marker, indent + 1, maxRecDepth - 1)
 
-proc typeToYamlAux(res: var string; conf: ConfigRef; n: PType; marker: var IntSet; indent: int; maxRecDepth: int) =
+proc typeToYamlAux(
+    res: var string,
+    conf: ConfigRef,
+    n: PType,
+    marker: var IntSet,
+    indent: int,
+    maxRecDepth: int,
+) =
   if n == nil:
     res.add("null")
   elif containsOrIncl(marker, n.id):
@@ -102,8 +136,14 @@ proc typeToYamlAux(res: var string; conf: ConfigRef; n: PType; marker: var IntSe
         res.addf("\n  - ")
         res.typeToYamlAux(conf, a, marker, indent + 1, maxRecDepth - 1)
 
-proc treeToYamlAux(res: var string; conf: ConfigRef; n: PNode; marker: var IntSet; indent: int;
-                   maxRecDepth: int) =
+proc treeToYamlAux(
+    res: var string,
+    conf: ConfigRef,
+    n: PNode,
+    marker: var IntSet,
+    indent: int,
+    maxRecDepth: int,
+) =
   if n == nil:
     res.add("null")
   else:
@@ -138,17 +178,23 @@ proc treeToYamlAux(res: var string; conf: ConfigRef; n: PNode; marker: var IntSe
         res.addf("\n$1typ: ", [istr])
         res.typeToYamlAux(conf, n.typ, marker, indent + 1, maxRecDepth)
 
-proc treeToYaml*(conf: ConfigRef; n: PNode; indent: int = 0; maxRecDepth: int = -1): string =
+proc treeToYaml*(
+    conf: ConfigRef, n: PNode, indent: int = 0, maxRecDepth: int = -1
+): string =
   var marker = initIntSet()
   result = newStringOfCap(1024)
   result.treeToYamlAux(conf, n, marker, indent, maxRecDepth)
 
-proc typeToYaml*(conf: ConfigRef; n: PType; indent: int = 0; maxRecDepth: int = -1): string =
+proc typeToYaml*(
+    conf: ConfigRef, n: PType, indent: int = 0, maxRecDepth: int = -1
+): string =
   var marker = initIntSet()
   result = newStringOfCap(1024)
   result.typeToYamlAux(conf, n, marker, indent, maxRecDepth)
 
-proc symToYaml*(conf: ConfigRef; n: PSym; indent: int = 0; maxRecDepth: int = -1): string =
+proc symToYaml*(
+    conf: ConfigRef, n: PSym, indent: int = 0, maxRecDepth: int = -1
+): string =
   var marker = initIntSet()
   result = newStringOfCap(1024)
   result.symToYamlAux(conf, n, marker, indent, maxRecDepth)

@@ -38,29 +38,28 @@ func internalBitor[T: SomeInteger](x, y: T): T {.magic: "BitorI".}
 
 func internalBitxor[T: SomeInteger](x, y: T): T {.magic: "BitxorI".}
 
-macro bitand*[T: SomeInteger](x, y: T; z: varargs[T]): T =
+macro bitand*[T: SomeInteger](x, y: T, z: varargs[T]): T =
   ## Computes the `bitwise and` of all arguments collectively.
   let fn = bindSym("internalBitand")
   result = newCall(fn, x, y)
   for extra in z:
     result = newCall(fn, result, extra)
 
-macro bitor*[T: SomeInteger](x, y: T; z: varargs[T]): T =
+macro bitor*[T: SomeInteger](x, y: T, z: varargs[T]): T =
   ## Computes the `bitwise or` of all arguments collectively.
   let fn = bindSym("internalBitor")
   result = newCall(fn, x, y)
   for extra in z:
     result = newCall(fn, result, extra)
 
-macro bitxor*[T: SomeInteger](x, y: T; z: varargs[T]): T =
+macro bitxor*[T: SomeInteger](x, y: T, z: varargs[T]): T =
   ## Computes the `bitwise xor` of all arguments collectively.
   let fn = bindSym("internalBitxor")
   result = newCall(fn, x, y)
   for extra in z:
     result = newCall(fn, result, extra)
 
-
-type BitsRange*[T] = range[0..sizeof(T)*8-1]
+type BitsRange*[T] = range[0 .. sizeof(T) * 8 - 1]
   ## A range with all bit positions for type `T`.
 
 template typeMasked[T: SomeInteger](x: T): T =
@@ -69,7 +68,7 @@ template typeMasked[T: SomeInteger](x: T): T =
   else:
     x
 
-func bitsliced*[T: SomeInteger](v: T; slice: Slice[int]): T {.inline, since: (1, 3).} =
+func bitsliced*[T: SomeInteger](v: T, slice: Slice[int]): T {.inline, since: (1, 3).} =
   ## Returns an extracted (and shifted) slice of bits from `v`.
   runnableExamples:
     doAssert 0b10111.bitsliced(2 .. 4) == 0b101
@@ -78,10 +77,10 @@ func bitsliced*[T: SomeInteger](v: T; slice: Slice[int]): T {.inline, since: (1,
 
   let
     upmost = sizeof(T) * 8 - 1
-    uv     = v.castToUnsigned
+    uv = v.castToUnsigned
   ((uv shl (upmost - slice.b)).typeMasked shr (upmost - slice.b + slice.a)).T
 
-proc bitslice*[T: SomeInteger](v: var T; slice: Slice[int]) {.inline, since: (1, 3).} =
+proc bitslice*[T: SomeInteger](v: var T, slice: Slice[int]) {.inline, since: (1, 3).} =
   ## Mutates `v` into an extracted (and shifted) slice of bits from `v`.
   runnableExamples:
     var x = 0b101110
@@ -90,7 +89,7 @@ proc bitslice*[T: SomeInteger](v: var T; slice: Slice[int]) {.inline, since: (1,
 
   let
     upmost = sizeof(T) * 8 - 1
-    uv     = v.castToUnsigned
+    uv = v.castToUnsigned
   v = ((uv shl (upmost - slice.b)).typeMasked shr (upmost - slice.b + slice.a)).T
 
 func toMask*[T: SomeInteger](slice: Slice[int]): T {.inline, since: (1, 3).} =
@@ -104,7 +103,7 @@ func toMask*[T: SomeInteger](slice: Slice[int]): T {.inline, since: (1, 3).} =
     bitmask = bitnot(0.T).castToUnsigned
   ((bitmask shl (upmost - slice.b + slice.a)).typeMasked shr (upmost - slice.b)).T
 
-proc masked*[T: SomeInteger](v, mask :T): T {.inline, since: (1, 3).} =
+proc masked*[T: SomeInteger](v, mask: T): T {.inline, since: (1, 3).} =
   ## Returns `v`, with only the `1` bits from `mask` matching those of
   ## `v` set to 1.
   ##
@@ -115,7 +114,7 @@ proc masked*[T: SomeInteger](v, mask :T): T {.inline, since: (1, 3).} =
 
   bitand(v, mask)
 
-func masked*[T: SomeInteger](v: T; slice: Slice[int]): T {.inline, since: (1, 3).} =
+func masked*[T: SomeInteger](v: T, slice: Slice[int]): T {.inline, since: (1, 3).} =
   ## Returns `v`, with only the `1` bits in the range of `slice`
   ## matching those of `v` set to 1.
   ##
@@ -126,7 +125,7 @@ func masked*[T: SomeInteger](v: T; slice: Slice[int]): T {.inline, since: (1, 3)
 
   bitand(v, toMask[T](slice))
 
-proc mask*[T: SomeInteger](v: var T; mask: T) {.inline, since: (1, 3).} =
+proc mask*[T: SomeInteger](v: var T, mask: T) {.inline, since: (1, 3).} =
   ## Mutates `v`, with only the `1` bits from `mask` matching those of
   ## `v` set to 1.
   ##
@@ -138,7 +137,7 @@ proc mask*[T: SomeInteger](v: var T; mask: T) {.inline, since: (1, 3).} =
 
   v = bitand(v, mask)
 
-proc mask*[T: SomeInteger](v: var T; slice: Slice[int]) {.inline, since: (1, 3).} =
+proc mask*[T: SomeInteger](v: var T, slice: Slice[int]) {.inline, since: (1, 3).} =
   ## Mutates `v`, with only the `1` bits in the range of `slice`
   ## matching those of `v` set to 1.
   ##
@@ -150,7 +149,7 @@ proc mask*[T: SomeInteger](v: var T; slice: Slice[int]) {.inline, since: (1, 3).
 
   v = bitand(v, toMask[T](slice))
 
-func setMasked*[T: SomeInteger](v, mask :T): T {.inline, since: (1, 3).} =
+func setMasked*[T: SomeInteger](v, mask: T): T {.inline, since: (1, 3).} =
   ## Returns `v`, with all the `1` bits from `mask` set to 1.
   ##
   ## Effectively maps to a `bitor <#bitor.m,T,T,varargs[T]>`_ operation.
@@ -160,7 +159,7 @@ func setMasked*[T: SomeInteger](v, mask :T): T {.inline, since: (1, 3).} =
 
   bitor(v, mask)
 
-func setMasked*[T: SomeInteger](v: T; slice: Slice[int]): T {.inline, since: (1, 3).} =
+func setMasked*[T: SomeInteger](v: T, slice: Slice[int]): T {.inline, since: (1, 3).} =
   ## Returns `v`, with all the `1` bits in the range of `slice` set to 1.
   ##
   ## Effectively maps to a `bitor <#bitor.m,T,T,varargs[T]>`_ operation.
@@ -170,7 +169,7 @@ func setMasked*[T: SomeInteger](v: T; slice: Slice[int]): T {.inline, since: (1,
 
   bitor(v, toMask[T](slice))
 
-proc setMask*[T: SomeInteger](v: var T; mask: T) {.inline.} =
+proc setMask*[T: SomeInteger](v: var T, mask: T) {.inline.} =
   ## Mutates `v`, with all the `1` bits from `mask` set to 1.
   ##
   ## Effectively maps to a `bitor <#bitor.m,T,T,varargs[T]>`_ operation.
@@ -181,7 +180,7 @@ proc setMask*[T: SomeInteger](v: var T; mask: T) {.inline.} =
 
   v = bitor(v, mask)
 
-proc setMask*[T: SomeInteger](v: var T; slice: Slice[int]) {.inline, since: (1, 3).} =
+proc setMask*[T: SomeInteger](v: var T, slice: Slice[int]) {.inline, since: (1, 3).} =
   ## Mutates `v`, with all the `1` bits in the range of `slice` set to 1.
   ##
   ## Effectively maps to a `bitor <#bitor.m,T,T,varargs[T]>`_ operation.
@@ -192,7 +191,7 @@ proc setMask*[T: SomeInteger](v: var T; slice: Slice[int]) {.inline, since: (1, 
 
   v = bitor(v, toMask[T](slice))
 
-func clearMasked*[T: SomeInteger](v, mask :T): T {.inline, since: (1, 3).} =
+func clearMasked*[T: SomeInteger](v, mask: T): T {.inline, since: (1, 3).} =
   ## Returns `v`, with all the `1` bits from `mask` set to 0.
   ##
   ## Effectively maps to a `bitand <#bitand.m,T,T,varargs[T]>`_ operation
@@ -203,7 +202,9 @@ func clearMasked*[T: SomeInteger](v, mask :T): T {.inline, since: (1, 3).} =
 
   bitand(v, bitnot(mask))
 
-func clearMasked*[T: SomeInteger](v: T; slice: Slice[int]): T {.inline, since: (1, 3).} =
+func clearMasked*[T: SomeInteger](
+    v: T, slice: Slice[int]
+): T {.inline, since: (1, 3).} =
   ## Returns `v`, with all the `1` bits in the range of `slice` set to 0.
   ##
   ## Effectively maps to a `bitand <#bitand.m,T,T,varargs[T]>`_ operation
@@ -214,7 +215,7 @@ func clearMasked*[T: SomeInteger](v: T; slice: Slice[int]): T {.inline, since: (
 
   bitand(v, bitnot(toMask[T](slice)))
 
-proc clearMask*[T: SomeInteger](v: var T; mask: T) {.inline.} =
+proc clearMask*[T: SomeInteger](v: var T, mask: T) {.inline.} =
   ## Mutates `v`, with all the `1` bits from `mask` set to 0.
   ##
   ## Effectively maps to a `bitand <#bitand.m,T,T,varargs[T]>`_ operation
@@ -226,7 +227,7 @@ proc clearMask*[T: SomeInteger](v: var T; mask: T) {.inline.} =
 
   v = bitand(v, bitnot(mask))
 
-proc clearMask*[T: SomeInteger](v: var T; slice: Slice[int]) {.inline, since: (1, 3).} =
+proc clearMask*[T: SomeInteger](v: var T, slice: Slice[int]) {.inline, since: (1, 3).} =
   ## Mutates `v`, with all the `1` bits in the range of `slice` set to 0.
   ##
   ## Effectively maps to a `bitand <#bitand.m,T,T,varargs[T]>`_ operation
@@ -238,7 +239,7 @@ proc clearMask*[T: SomeInteger](v: var T; slice: Slice[int]) {.inline, since: (1
 
   v = bitand(v, bitnot(toMask[T](slice)))
 
-func flipMasked*[T: SomeInteger](v, mask :T): T {.inline, since: (1, 3).} =
+func flipMasked*[T: SomeInteger](v, mask: T): T {.inline, since: (1, 3).} =
   ## Returns `v`, with all the `1` bits from `mask` flipped.
   ##
   ## Effectively maps to a `bitxor <#bitxor.m,T,T,varargs[T]>`_ operation.
@@ -248,7 +249,7 @@ func flipMasked*[T: SomeInteger](v, mask :T): T {.inline, since: (1, 3).} =
 
   bitxor(v, mask)
 
-func flipMasked*[T: SomeInteger](v: T; slice: Slice[int]): T {.inline, since: (1, 3).} =
+func flipMasked*[T: SomeInteger](v: T, slice: Slice[int]): T {.inline, since: (1, 3).} =
   ## Returns `v`, with all the `1` bits in the range of `slice` flipped.
   ##
   ## Effectively maps to a `bitxor <#bitxor.m,T,T,varargs[T]>`_ operation.
@@ -258,7 +259,7 @@ func flipMasked*[T: SomeInteger](v: T; slice: Slice[int]): T {.inline, since: (1
 
   bitxor(v, toMask[T](slice))
 
-proc flipMask*[T: SomeInteger](v: var T; mask: T) {.inline.} =
+proc flipMask*[T: SomeInteger](v: var T, mask: T) {.inline.} =
   ## Mutates `v`, with all the `1` bits from `mask` flipped.
   ##
   ## Effectively maps to a `bitxor <#bitxor.m,T,T,varargs[T]>`_ operation.
@@ -269,7 +270,7 @@ proc flipMask*[T: SomeInteger](v: var T; mask: T) {.inline.} =
 
   v = bitxor(v, mask)
 
-proc flipMask*[T: SomeInteger](v: var T; slice: Slice[int]) {.inline, since: (1, 3).} =
+proc flipMask*[T: SomeInteger](v: var T, slice: Slice[int]) {.inline, since: (1, 3).} =
   ## Mutates `v`, with all the `1` bits in the range of `slice` flipped.
   ##
   ## Effectively maps to a `bitxor <#bitxor.m,T,T,varargs[T]>`_ operation.
@@ -280,7 +281,7 @@ proc flipMask*[T: SomeInteger](v: var T; slice: Slice[int]) {.inline, since: (1,
 
   v = bitxor(v, toMask[T](slice))
 
-proc setBit*[T: SomeInteger](v: var T; bit: BitsRange[T]) {.inline.} =
+proc setBit*[T: SomeInteger](v: var T, bit: BitsRange[T]) {.inline.} =
   ## Mutates `v`, with the bit at position `bit` set to 1.
   runnableExamples:
     var v = 0b0000_0011'u8
@@ -289,7 +290,7 @@ proc setBit*[T: SomeInteger](v: var T; bit: BitsRange[T]) {.inline.} =
 
   v.setMask(1.T shl bit)
 
-proc clearBit*[T: SomeInteger](v: var T; bit: BitsRange[T]) {.inline.} =
+proc clearBit*[T: SomeInteger](v: var T, bit: BitsRange[T]) {.inline.} =
   ## Mutates `v`, with the bit at position `bit` set to 0.
   runnableExamples:
     var v = 0b0000_0011'u8
@@ -298,7 +299,7 @@ proc clearBit*[T: SomeInteger](v: var T; bit: BitsRange[T]) {.inline.} =
 
   v.clearMask(1.T shl bit)
 
-proc flipBit*[T: SomeInteger](v: var T; bit: BitsRange[T]) {.inline.} =
+proc flipBit*[T: SomeInteger](v: var T, bit: BitsRange[T]) {.inline.} =
   ## Mutates `v`, with the bit at position `bit` flipped.
   runnableExamples:
     var v = 0b0000_0011'u8
@@ -311,7 +312,7 @@ proc flipBit*[T: SomeInteger](v: var T; bit: BitsRange[T]) {.inline.} =
 
   v.flipMask(1.T shl bit)
 
-macro setBits*(v: typed; bits: varargs[typed]): untyped =
+macro setBits*(v: typed, bits: varargs[typed]): untyped =
   ## Mutates `v`, with the bits at positions `bits` set to 1.
   runnableExamples:
     var v = 0b0000_0011'u8
@@ -323,7 +324,7 @@ macro setBits*(v: typed; bits: varargs[typed]): untyped =
   for bit in bits:
     result.add newCall("setBit", v, bit)
 
-macro clearBits*(v: typed; bits: varargs[typed]): untyped =
+macro clearBits*(v: typed, bits: varargs[typed]): untyped =
   ## Mutates `v`, with the bits at positions `bits` set to 0.
   runnableExamples:
     var v = 0b1111_1111'u8
@@ -335,7 +336,7 @@ macro clearBits*(v: typed; bits: varargs[typed]): untyped =
   for bit in bits:
     result.add newCall("clearBit", v, bit)
 
-macro flipBits*(v: typed; bits: varargs[typed]): untyped =
+macro flipBits*(v: typed, bits: varargs[typed]): untyped =
   ## Mutates `v`, with the bits at positions `bits` set to 0.
   runnableExamples:
     var v = 0b0000_1111'u8
@@ -347,8 +348,7 @@ macro flipBits*(v: typed; bits: varargs[typed]): untyped =
   for bit in bits:
     result.add newCall("flipBit", v, bit)
 
-
-proc testBit*[T: SomeInteger](v: T; bit: BitsRange[T]): bool {.inline.} =
+proc testBit*[T: SomeInteger](v: T, bit: BitsRange[T]): bool {.inline.} =
   ## Returns true if the bit in `v` at positions `bit` is set to 1.
   runnableExamples:
     let v = 0b0000_1111'u8
@@ -363,8 +363,10 @@ proc testBit*[T: SomeInteger](v: T; bit: BitsRange[T]): bool {.inline.} =
 func firstSetBitNim(x: uint32): int {.inline.} =
   ## Returns the 1-based index of the least significant set bit of x, or if x is zero, returns zero.
   # https://graphics.stanford.edu/%7Eseander/bithacks.html#ZerosOnRightMultLookup
-  const lookup: array[32, uint8] = [0'u8, 1, 28, 2, 29, 14, 24, 3, 30, 22, 20, 15,
-    25, 17, 4, 8, 31, 27, 13, 23, 21, 19, 16, 7, 26, 12, 18, 6, 11, 5, 10, 9]
+  const lookup: array[32, uint8] = [
+    0'u8, 1, 28, 2, 29, 14, 24, 3, 30, 22, 20, 15, 25, 17, 4, 8, 31, 27, 13, 23, 21, 19,
+    16, 7, 26, 12, 18, 6, 11, 5, 10, 9,
+  ]
   let v = x.uint32
   let k = not v + 1 # get two's complement # cast[uint32](-cast[int32](v))
   result = 1 + lookup[uint32((v and k) * 0x077CB531'u32) shr 27].int
@@ -385,8 +387,10 @@ func fastlog2Nim(x: uint32): int {.inline.} =
   ## Quickly find the log base 2 of a 32-bit or less integer.
   # https://graphics.stanford.edu/%7Eseander/bithacks.html#IntegerLogDeBruijn
   # https://stackoverflow.com/questions/11376288/fast-computing-of-log2-for-64-bit-integers
-  const lookup: array[32, uint8] = [0'u8, 9, 1, 10, 13, 21, 2, 29, 11, 14, 16, 18,
-    22, 25, 3, 30, 8, 12, 20, 28, 15, 17, 24, 7, 19, 27, 23, 6, 26, 5, 4, 31]
+  const lookup: array[32, uint8] = [
+    0'u8, 9, 1, 10, 13, 21, 2, 29, 11, 14, 16, 18, 22, 25, 3, 30, 8, 12, 20, 28, 15, 17,
+    24, 7, 19, 27, 23, 6, 26, 5, 4, 31,
+  ]
   var v = x.uint32
   v = v or v shr 1 # first round down to one less than a power of 2
   v = v or v shr 2
@@ -399,10 +403,11 @@ func fastlog2Nim(x: uint64): int {.inline.} =
   ## Quickly find the log base 2 of a 64-bit integer.
   # https://graphics.stanford.edu/%7Eseander/bithacks.html#IntegerLogDeBruijn
   # https://stackoverflow.com/questions/11376288/fast-computing-of-log2-for-64-bit-integers
-  const lookup: array[64, uint8] = [0'u8, 58, 1, 59, 47, 53, 2, 60, 39, 48, 27, 54,
-    33, 42, 3, 61, 51, 37, 40, 49, 18, 28, 20, 55, 30, 34, 11, 43, 14, 22, 4, 62,
-    57, 46, 52, 38, 26, 32, 41, 50, 36, 17, 19, 29, 10, 13, 21, 56, 45, 25, 31,
-    35, 16, 9, 12, 44, 24, 15, 8, 23, 7, 6, 5, 63]
+  const lookup: array[64, uint8] = [
+    0'u8, 58, 1, 59, 47, 53, 2, 60, 39, 48, 27, 54, 33, 42, 3, 61, 51, 37, 40, 49, 18,
+    28, 20, 55, 30, 34, 11, 43, 14, 22, 4, 62, 57, 46, 52, 38, 26, 32, 41, 50, 36, 17,
+    19, 29, 10, 13, 21, 56, 45, 25, 31, 35, 16, 9, 12, 44, 24, 15, 8, 23, 7, 6, 5, 63,
+  ]
   var v = x.uint64
   v = v or v shr 1 # first round down to one less than a power of 2
   v = v or v shr 2
@@ -414,9 +419,12 @@ func fastlog2Nim(x: uint64): int {.inline.} =
 
 import system/countbits_impl
 
-const useBuiltinsRotate = (defined(amd64) or defined(i386)) and
-                          (defined(gcc) or defined(clang) or defined(vcc) or
-                           (defined(icl) and not defined(cpp))) and useBuiltins
+const useBuiltinsRotate =
+  (defined(amd64) or defined(i386)) and (
+    defined(gcc) or defined(clang) or defined(vcc) or (
+      defined(icl) and not defined(cpp)
+    )
+  ) and useBuiltins
 
 template parityImpl[T](value: T): int =
   # formula id from: https://graphics.stanford.edu/%7Eseander/bithacks.html#ParityParallel
@@ -430,7 +438,6 @@ template parityImpl[T](value: T): int =
   v = v xor (v shr 4)
   v = v and 0xf
   ((0x6996'u shr v) and 1).int
-
 
 when useGCC_builtins:
   # Returns the bit parity in value
@@ -448,39 +455,46 @@ when useGCC_builtins:
   # Returns the number of trailing 0-bits in x, starting at the least significant bit position. If x is 0, the result is undefined.
   proc builtin_ctz(x: cuint): cint {.importc: "__builtin_ctz", cdecl.}
   proc builtin_ctzll(x: culonglong): cint {.importc: "__builtin_ctzll", cdecl.}
-
 elif useVCC_builtins:
   # Search the mask data from most significant bit (MSB) to least significant bit (LSB) for a set bit (1).
-  func bitScanReverse(index: ptr culong, mask: culong): uint8 {.
-      importc: "_BitScanReverse", header: "<intrin.h>".}
-  func bitScanReverse64(index: ptr culong, mask: uint64): uint8 {.
-      importc: "_BitScanReverse64", header: "<intrin.h>".}
+  func bitScanReverse(
+    index: ptr culong, mask: culong
+  ): uint8 {.importc: "_BitScanReverse", header: "<intrin.h>".}
+  func bitScanReverse64(
+    index: ptr culong, mask: uint64
+  ): uint8 {.importc: "_BitScanReverse64", header: "<intrin.h>".}
 
   # Search the mask data from least significant bit (LSB) to the most significant bit (MSB) for a set bit (1).
-  func bitScanForward(index: ptr culong, mask: culong): uint8 {.
-      importc: "_BitScanForward", header: "<intrin.h>".}
-  func bitScanForward64(index: ptr culong, mask: uint64): uint8 {.
-      importc: "_BitScanForward64", header: "<intrin.h>".}
+  func bitScanForward(
+    index: ptr culong, mask: culong
+  ): uint8 {.importc: "_BitScanForward", header: "<intrin.h>".}
+  func bitScanForward64(
+    index: ptr culong, mask: uint64
+  ): uint8 {.importc: "_BitScanForward64", header: "<intrin.h>".}
 
-  template vcc_scan_impl(fnc: untyped; v: untyped): int =
+  template vcc_scan_impl(fnc: untyped, v: untyped): int =
     var index {.inject.}: culong = 0
     discard fnc(index.addr, v)
     index.int
 
 elif useICC_builtins:
   # Returns the number of trailing 0-bits in x, starting at the least significant bit position. If x is 0, the result is undefined.
-  func bitScanForward(p: ptr uint32, b: uint32): uint8 {.
-      importc: "_BitScanForward", header: "<immintrin.h>".}
-  func bitScanForward64(p: ptr uint32, b: uint64): uint8 {.
-      importc: "_BitScanForward64", header: "<immintrin.h>".}
+  func bitScanForward(
+    p: ptr uint32, b: uint32
+  ): uint8 {.importc: "_BitScanForward", header: "<immintrin.h>".}
+  func bitScanForward64(
+    p: ptr uint32, b: uint64
+  ): uint8 {.importc: "_BitScanForward64", header: "<immintrin.h>".}
 
   # Returns the number of leading 0-bits in x, starting at the most significant bit position. If x is 0, the result is undefined.
-  func bitScanReverse(p: ptr uint32, b: uint32): uint8 {.
-      importc: "_BitScanReverse", header: "<immintrin.h>".}
-  func bitScanReverse64(p: ptr uint32, b: uint64): uint8 {.
-      importc: "_BitScanReverse64", header: "<immintrin.h>".}
+  func bitScanReverse(
+    p: ptr uint32, b: uint32
+  ): uint8 {.importc: "_BitScanReverse", header: "<immintrin.h>".}
+  func bitScanReverse64(
+    p: ptr uint32, b: uint64
+  ): uint8 {.importc: "_BitScanReverse64", header: "<immintrin.h>".}
 
-  template icc_scan_impl(fnc: untyped; v: untyped): int =
+  template icc_scan_impl(fnc: untyped, v: untyped): int =
     var index: uint32
     discard fnc(index.addr, v)
     index.int
@@ -513,11 +527,15 @@ func parityBits*(x: SomeInteger): int {.inline.} =
     result = forwardImpl(parityImpl, x)
   else:
     when useGCC_builtins:
-      when sizeof(x) <= 4: result = builtin_parity(x.uint32).int
-      else: result = builtin_parityll(x.uint64).int
+      when sizeof(x) <= 4:
+        result = builtin_parity(x.uint32).int
+      else:
+        result = builtin_parityll(x.uint64).int
     else:
-      when sizeof(x) <= 4: result = parityImpl(x.uint32)
-      else: result = parityImpl(x.uint64)
+      when sizeof(x) <= 4:
+        result = parityImpl(x.uint32)
+      else:
+        result = parityImpl(x.uint64)
 
 func firstSetBit*(x: SomeInteger): int {.inline.} =
   ## Returns the 1-based index of the least significant set bit of `x`.
@@ -542,8 +560,10 @@ func firstSetBit*(x: SomeInteger): int {.inline.} =
       if x == 0:
         return 0
     when useGCC_builtins:
-      when sizeof(x) <= 4: result = builtin_ffs(cast[cint](x.cuint)).int
-      else: result = builtin_ffsll(cast[clonglong](x.culonglong)).int
+      when sizeof(x) <= 4:
+        result = builtin_ffs(cast[cint](x.cuint)).int
+      else:
+        result = builtin_ffsll(cast[clonglong](x.culonglong)).int
     elif useVCC_builtins:
       when sizeof(x) <= 4:
         result = 1 + vcc_scan_impl(bitScanForward, x.culong)
@@ -559,8 +579,10 @@ func firstSetBit*(x: SomeInteger): int {.inline.} =
       else:
         result = firstSetBitNim(x.uint64)
     else:
-      when sizeof(x) <= 4: result = firstSetBitNim(x.uint32)
-      else: result = firstSetBitNim(x.uint64)
+      when sizeof(x) <= 4:
+        result = firstSetBitNim(x.uint32)
+      else:
+        result = firstSetBitNim(x.uint64)
 
 func fastLog2*(x: SomeInteger): int {.inline.} =
   ## Quickly find the log base 2 of an integer.
@@ -581,8 +603,10 @@ func fastLog2*(x: SomeInteger): int {.inline.} =
     result = forwardImpl(fastlog2Nim, x)
   else:
     when useGCC_builtins:
-      when sizeof(x) <= 4: result = 31 - builtin_clz(x.uint32).int
-      else: result = 63 - builtin_clzll(x.uint64).int
+      when sizeof(x) <= 4:
+        result = 31 - builtin_clz(x.uint32).int
+      else:
+        result = 63 - builtin_clzll(x.uint64).int
     elif useVCC_builtins:
       when sizeof(x) <= 4:
         result = vcc_scan_impl(bitScanReverse, x.culong)
@@ -598,8 +622,10 @@ func fastLog2*(x: SomeInteger): int {.inline.} =
       else:
         result = fastlog2Nim(x.uint64)
     else:
-      when sizeof(x) <= 4: result = fastlog2Nim(x.uint32)
-      else: result = fastlog2Nim(x.uint64)
+      when sizeof(x) <= 4:
+        result = fastlog2Nim(x.uint32)
+      else:
+        result = fastlog2Nim(x.uint64)
 
 func countLeadingZeroBits*(x: SomeInteger): int {.inline.} =
   ## Returns the number of leading zero bits in an integer.
@@ -620,14 +646,18 @@ func countLeadingZeroBits*(x: SomeInteger): int {.inline.} =
     if x == 0:
       return 0
   when nimvm:
-    result = sizeof(x)*8 - 1 - forwardImpl(fastlog2Nim, x)
+    result = sizeof(x) * 8 - 1 - forwardImpl(fastlog2Nim, x)
   else:
     when useGCC_builtins:
-      when sizeof(x) <= 4: result = builtin_clz(x.uint32).int - (32 - sizeof(x)*8)
-      else: result = builtin_clzll(x.uint64).int
+      when sizeof(x) <= 4:
+        result = builtin_clz(x.uint32).int - (32 - sizeof(x) * 8)
+      else:
+        result = builtin_clzll(x.uint64).int
     else:
-      when sizeof(x) <= 4: result = sizeof(x)*8 - 1 - fastlog2Nim(x.uint32)
-      else: result = sizeof(x)*8 - 1 - fastlog2Nim(x.uint64)
+      when sizeof(x) <= 4:
+        result = sizeof(x) * 8 - 1 - fastlog2Nim(x.uint32)
+      else:
+        result = sizeof(x) * 8 - 1 - fastlog2Nim(x.uint64)
 
 func countTrailingZeroBits*(x: SomeInteger): int {.inline.} =
   ## Returns the number of trailing zeros in an integer.
@@ -651,8 +681,10 @@ func countTrailingZeroBits*(x: SomeInteger): int {.inline.} =
     result = firstSetBit(x) - 1
   else:
     when useGCC_builtins:
-      when sizeof(x) <= 4: result = builtin_ctz(x.uint32).int
-      else: result = builtin_ctzll(x.uint64).int
+      when sizeof(x) <= 4:
+        result = builtin_ctz(x.uint32).int
+      else:
+        result = builtin_ctzll(x.uint64).int
     else:
       result = firstSetBit(x) - 1
 
@@ -660,25 +692,33 @@ when useBuiltinsRotate:
   when defined(gcc):
     # GCC was tested until version 4.8.1 and intrinsics were present. Not tested
     # in previous versions.
-    func builtin_rotl8(value: uint8, shift: cint): uint8
-                      {.importc: "__rolb", header: "<x86intrin.h>".}
-    func builtin_rotl16(value: cushort, shift: cint): cushort
-                       {.importc: "__rolw", header: "<x86intrin.h>".}
-    func builtin_rotl32(value: cuint, shift: cint): cuint
-                       {.importc: "__rold", header: "<x86intrin.h>".}
+    func builtin_rotl8(
+      value: uint8, shift: cint
+    ): uint8 {.importc: "__rolb", header: "<x86intrin.h>".}
+    func builtin_rotl16(
+      value: cushort, shift: cint
+    ): cushort {.importc: "__rolw", header: "<x86intrin.h>".}
+    func builtin_rotl32(
+      value: cuint, shift: cint
+    ): cuint {.importc: "__rold", header: "<x86intrin.h>".}
     when defined(amd64):
-      func builtin_rotl64(value: culonglong, shift: cint): culonglong
-                         {.importc: "__rolq", header: "<x86intrin.h>".}
+      func builtin_rotl64(
+        value: culonglong, shift: cint
+      ): culonglong {.importc: "__rolq", header: "<x86intrin.h>".}
 
-    func builtin_rotr8(value: uint8, shift: cint): uint8
-                      {.importc: "__rorb", header: "<x86intrin.h>".}
-    func builtin_rotr16(value: cushort, shift: cint): cushort
-                       {.importc: "__rorw", header: "<x86intrin.h>".}
-    func builtin_rotr32(value: cuint, shift: cint): cuint
-                       {.importc: "__rord", header: "<x86intrin.h>".}
+    func builtin_rotr8(
+      value: uint8, shift: cint
+    ): uint8 {.importc: "__rorb", header: "<x86intrin.h>".}
+    func builtin_rotr16(
+      value: cushort, shift: cint
+    ): cushort {.importc: "__rorw", header: "<x86intrin.h>".}
+    func builtin_rotr32(
+      value: cuint, shift: cint
+    ): cuint {.importc: "__rord", header: "<x86intrin.h>".}
     when defined(amd64):
-      func builtin_rotr64(value: culonglong, shift: cint): culonglong
-                         {.importc: "__rorq", header: "<x86intrin.h>".}
+      func builtin_rotr64(
+        value: culonglong, shift: cint
+      ): culonglong {.importc: "__rorq", header: "<x86intrin.h>".}
   elif defined(clang):
     # In CLANG, builtins have been present since version 8.0.0 and intrinsics
     # since version 9.0.0. This implementation chose the builtins, as they have
@@ -686,73 +726,97 @@ when useBuiltinsRotate:
     # https://releases.llvm.org/8.0.0/tools/clang/docs/ReleaseNotes.html#non-comprehensive-list-of-changes-in-this-release
     # https://releases.llvm.org/8.0.0/tools/clang/docs/LanguageExtensions.html#builtin-rotateleft
     # source for correct declarations: https://github.com/llvm/llvm-project/blob/main/clang/include/clang/Basic/Builtins.def
-    func builtin_rotl8(value: uint8, shift: uint8): uint8
-                      {.importc: "__builtin_rotateleft8", nodecl.}
-    func builtin_rotl16(value: cushort, shift: cushort): cushort
-                       {.importc: "__builtin_rotateleft16", nodecl.}
-    func builtin_rotl32(value: cuint, shift: cuint): cuint
-                       {.importc: "__builtin_rotateleft32", nodecl.}
+    func builtin_rotl8(
+      value: uint8, shift: uint8
+    ): uint8 {.importc: "__builtin_rotateleft8", nodecl.}
+    func builtin_rotl16(
+      value: cushort, shift: cushort
+    ): cushort {.importc: "__builtin_rotateleft16", nodecl.}
+    func builtin_rotl32(
+      value: cuint, shift: cuint
+    ): cuint {.importc: "__builtin_rotateleft32", nodecl.}
     when defined(amd64):
-      func builtin_rotl64(value: culonglong, shift: culonglong): culonglong
-                         {.importc: "__builtin_rotateleft64", nodecl.}
+      func builtin_rotl64(
+        value: culonglong, shift: culonglong
+      ): culonglong {.importc: "__builtin_rotateleft64", nodecl.}
 
-    func builtin_rotr8(value: uint8, shift: uint8): uint8
-                      {.importc: "__builtin_rotateright8", nodecl.}
-    func builtin_rotr16(value: cushort, shift: cushort): cushort
-                       {.importc: "__builtin_rotateright16", nodecl.}
-    func builtin_rotr32(value: cuint, shift: cuint): cuint
-                       {.importc: "__builtin_rotateright32", nodecl.}
+    func builtin_rotr8(
+      value: uint8, shift: uint8
+    ): uint8 {.importc: "__builtin_rotateright8", nodecl.}
+    func builtin_rotr16(
+      value: cushort, shift: cushort
+    ): cushort {.importc: "__builtin_rotateright16", nodecl.}
+    func builtin_rotr32(
+      value: cuint, shift: cuint
+    ): cuint {.importc: "__builtin_rotateright32", nodecl.}
     when defined(amd64):
       # shift is unsigned, refs https://github.com/llvm-mirror/clang/commit/892de415b7fde609dafc4e6c1643b7eaa0150a4d
-      func builtin_rotr64(value: culonglong, shift: culonglong): culonglong
-                         {.importc: "__builtin_rotateright64", nodecl.}
+      func builtin_rotr64(
+        value: culonglong, shift: culonglong
+      ): culonglong {.importc: "__builtin_rotateright64", nodecl.}
   elif defined(vcc):
     # Tested on Microsoft (R) C/C++ Optimizing Compiler 19.28.29335 x64 and x86.
     # Not tested in previous versions.
     # https://docs.microsoft.com/en-us/cpp/intrinsics/rotl8-rotl16?view=msvc-160
     # https://docs.microsoft.com/en-us/cpp/intrinsics/rotr8-rotr16?view=msvc-160
     # https://docs.microsoft.com/en-us/cpp/c-runtime-library/reference/rotl-rotl64-rotr-rotr64?view=msvc-160
-    func builtin_rotl8(value: uint8, shift: uint8): uint8
-                      {.importc: "_rotl8", header: "<intrin.h>".}
-    func builtin_rotl16(value: cushort, shift: uint8): cushort
-                       {.importc: "_rotl16", header: "<intrin.h>".}
-    func builtin_rotl32(value: cuint, shift: cint): cuint
-                       {.importc: "_rotl", header: "<stdlib.h>".}
+    func builtin_rotl8(
+      value: uint8, shift: uint8
+    ): uint8 {.importc: "_rotl8", header: "<intrin.h>".}
+    func builtin_rotl16(
+      value: cushort, shift: uint8
+    ): cushort {.importc: "_rotl16", header: "<intrin.h>".}
+    func builtin_rotl32(
+      value: cuint, shift: cint
+    ): cuint {.importc: "_rotl", header: "<stdlib.h>".}
     when defined(amd64):
-      func builtin_rotl64(value: culonglong, shift: cint): culonglong
-                         {.importc: "_rotl64", header: "<stdlib.h>".}
+      func builtin_rotl64(
+        value: culonglong, shift: cint
+      ): culonglong {.importc: "_rotl64", header: "<stdlib.h>".}
 
-    func builtin_rotr8(value: uint8, shift: uint8): uint8
-                      {.importc: "_rotr8", header: "<intrin.h>".}
-    func builtin_rotr16(value: cushort, shift: uint8): cushort
-                       {.importc: "_rotr16", header: "<intrin.h>".}
-    func builtin_rotr32(value: cuint, shift: cint): cuint
-                       {.importc: "_rotr", header: "<stdlib.h>".}
+    func builtin_rotr8(
+      value: uint8, shift: uint8
+    ): uint8 {.importc: "_rotr8", header: "<intrin.h>".}
+    func builtin_rotr16(
+      value: cushort, shift: uint8
+    ): cushort {.importc: "_rotr16", header: "<intrin.h>".}
+    func builtin_rotr32(
+      value: cuint, shift: cint
+    ): cuint {.importc: "_rotr", header: "<stdlib.h>".}
     when defined(amd64):
-      func builtin_rotr64(value: culonglong, shift: cint): culonglong
-                         {.importc: "_rotr64", header: "<stdlib.h>".}
+      func builtin_rotr64(
+        value: culonglong, shift: cint
+      ): culonglong {.importc: "_rotr64", header: "<stdlib.h>".}
   elif defined(icl):
     # Tested on Intel(R) C++ Intel(R) 64 Compiler Classic Version 2021.1.2 Build
     # 20201208_000000 x64 and x86. Not tested in previous versions.
-    func builtin_rotl8(value: uint8, shift: cint): uint8
-                      {.importc: "__rolb", header: "<immintrin.h>".}
-    func builtin_rotl16(value: cushort, shift: cint): cushort
-                       {.importc: "__rolw", header: "<immintrin.h>".}
-    func builtin_rotl32(value: cuint, shift: cint): cuint
-                       {.importc: "__rold", header: "<immintrin.h>".}
+    func builtin_rotl8(
+      value: uint8, shift: cint
+    ): uint8 {.importc: "__rolb", header: "<immintrin.h>".}
+    func builtin_rotl16(
+      value: cushort, shift: cint
+    ): cushort {.importc: "__rolw", header: "<immintrin.h>".}
+    func builtin_rotl32(
+      value: cuint, shift: cint
+    ): cuint {.importc: "__rold", header: "<immintrin.h>".}
     when defined(amd64):
-      func builtin_rotl64(value: culonglong, shift: cint): culonglong
-                         {.importc: "__rolq", header: "<immintrin.h>".}
+      func builtin_rotl64(
+        value: culonglong, shift: cint
+      ): culonglong {.importc: "__rolq", header: "<immintrin.h>".}
 
-    func builtin_rotr8(value: uint8, shift: cint): uint8
-                      {.importc: "__rorb", header: "<immintrin.h>".}
-    func builtin_rotr16(value: cushort, shift: cint): cushort
-                       {.importc: "__rorw", header: "<immintrin.h>".}
-    func builtin_rotr32(value: cuint, shift: cint): cuint
-                       {.importc: "__rord", header: "<immintrin.h>".}
+    func builtin_rotr8(
+      value: uint8, shift: cint
+    ): uint8 {.importc: "__rorb", header: "<immintrin.h>".}
+    func builtin_rotr16(
+      value: cushort, shift: cint
+    ): cushort {.importc: "__rorw", header: "<immintrin.h>".}
+    func builtin_rotr32(
+      value: cuint, shift: cint
+    ): cuint {.importc: "__rord", header: "<immintrin.h>".}
     when defined(amd64):
-      func builtin_rotr64(value: culonglong, shift: cint): culonglong
-                         {.importc: "__rorq", header: "<immintrin.h>".}
+      func builtin_rotr64(
+        value: culonglong, shift: cint
+      ): culonglong {.importc: "__rorq", header: "<immintrin.h>".}
 
 func rotl[T: SomeUnsignedInt](value: T, rot: int32): T {.inline.} =
   ## Left-rotate bits in a `value`.
@@ -782,16 +846,18 @@ func shiftTypeTo(size: static int, shift: int): auto {.inline.} =
     elif size == 8:
       culonglong(shift)
 
-func rotateLeftBits*[T: SomeUnsignedInt](value: T, shift: range[0..(sizeof(T) * 8)]): T {.inline.} =
+func rotateLeftBits*[T: SomeUnsignedInt](
+    value: T, shift: range[0 .. (sizeof(T) * 8)]
+): T {.inline.} =
   ## Left-rotate bits in a `value`.
   runnableExamples:
     doAssert rotateLeftBits(0b0110_1001'u8, 4) == 0b1001_0110'u8
-    doAssert rotateLeftBits(0b00111100_11000011'u16, 8) ==
-      0b11000011_00111100'u16
+    doAssert rotateLeftBits(0b00111100_11000011'u16, 8) == 0b11000011_00111100'u16
     doAssert rotateLeftBits(0b0000111111110000_1111000000001111'u32, 16) ==
       0b1111000000001111_0000111111110000'u32
-    doAssert rotateLeftBits(0b00000000111111111111111100000000_11111111000000000000000011111111'u64, 32) ==
-      0b11111111000000000000000011111111_00000000111111111111111100000000'u64
+    doAssert rotateLeftBits(
+      0b00000000111111111111111100000000_11111111000000000000000011111111'u64, 32
+    ) == 0b11111111000000000000000011111111_00000000111111111111111100000000'u64
   when nimvm:
     rotl(value, shift.int32)
   else:
@@ -810,16 +876,18 @@ func rotateLeftBits*[T: SomeUnsignedInt](value: T, shift: range[0..(sizeof(T) * 
     else:
       rotl(value, shift.int32)
 
-func rotateRightBits*[T: SomeUnsignedInt](value: T, shift: range[0..(sizeof(T) * 8)]): T {.inline.} =
+func rotateRightBits*[T: SomeUnsignedInt](
+    value: T, shift: range[0 .. (sizeof(T) * 8)]
+): T {.inline.} =
   ## Right-rotate bits in a `value`.
   runnableExamples:
     doAssert rotateRightBits(0b0110_1001'u8, 4) == 0b1001_0110'u8
-    doAssert rotateRightBits(0b00111100_11000011'u16, 8) ==
-      0b11000011_00111100'u16
+    doAssert rotateRightBits(0b00111100_11000011'u16, 8) == 0b11000011_00111100'u16
     doAssert rotateRightBits(0b0000111111110000_1111000000001111'u32, 16) ==
       0b1111000000001111_0000111111110000'u32
-    doAssert rotateRightBits(0b00000000111111111111111100000000_11111111000000000000000011111111'u64, 32) ==
-      0b11111111000000000000000011111111_00000000111111111111111100000000'u64
+    doAssert rotateRightBits(
+      0b00000000111111111111111100000000_11111111000000000000000011111111'u64, 32
+    ) == 0b11111111000000000000000011111111_00000000111111111111111100000000'u64
   when nimvm:
     rotr(value, shift.int32)
   else:
@@ -838,11 +906,11 @@ func rotateRightBits*[T: SomeUnsignedInt](value: T, shift: range[0..(sizeof(T) *
     else:
       rotr(value, shift.int32)
 
-func repeatBits[T: SomeUnsignedInt](x: SomeUnsignedInt; retType: type[T]): T  =
+func repeatBits[T: SomeUnsignedInt](x: SomeUnsignedInt, retType: type[T]): T =
   result = x
   var i = 1
   while i != (sizeof(T) div sizeof(x)):
-    result = (result shl (sizeof(x)*8*i)) or result
+    result = (result shl (sizeof(x) * 8 * i)) or result
     i *= 2
 
 func reverseBits*[T: SomeUnsignedInt](x: T): T =
@@ -853,27 +921,21 @@ func reverseBits*[T: SomeUnsignedInt](x: T): T =
     doAssert reverseBits(0xddbb'u16) == 0xddbb'u16
     doAssert reverseBits(0xdeadbeef'u32) == 0xf77db57b'u32
 
-  template repeat(x: SomeUnsignedInt): T = repeatBits(x, T)
+  template repeat(x: SomeUnsignedInt): T =
+    repeatBits(x, T)
 
   result = x
-  result =
-    ((repeat(0x55u8) and result) shl 1) or
-    ((repeat(0xaau8) and result) shr 1)
-  result =
-    ((repeat(0x33u8) and result) shl 2) or
-    ((repeat(0xccu8) and result) shr 2)
+  result = ((repeat(0x55u8) and result) shl 1) or ((repeat(0xaau8) and result) shr 1)
+  result = ((repeat(0x33u8) and result) shl 2) or ((repeat(0xccu8) and result) shr 2)
   when sizeof(T) == 1:
     result = (result shl 4) or (result shr 4)
   when sizeof(T) >= 2:
-    result =
-      ((repeat(0x0fu8) and result) shl 4) or
-      ((repeat(0xf0u8) and result) shr 4)
+    result = ((repeat(0x0fu8) and result) shl 4) or ((repeat(0xf0u8) and result) shr 4)
   when sizeof(T) == 2:
     result = (result shl 8) or (result shr 8)
   when sizeof(T) >= 4:
     result =
-      ((repeat(0x00ffu16) and result) shl 8) or
-      ((repeat(0xff00u16) and result) shr 8)
+      ((repeat(0x00ffu16) and result) shl 8) or ((repeat(0xff00u16) and result) shr 8)
   when sizeof(T) == 4:
     result = (result shl 16) or (result shr 16)
   when sizeof(T) == 8:

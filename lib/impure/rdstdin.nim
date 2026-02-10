@@ -18,24 +18,27 @@ runnableExamples("-r:off"):
   var line: string
   while true:
     let ok = readLineFromStdin("How are you? ", line)
-    if not ok: break # ctrl-C or ctrl-D will cause a break
-    if line.len > 0: echo line
+    if not ok:
+      break # ctrl-C or ctrl-D will cause a break
+    if line.len > 0:
+      echo line
   echo "exiting"
-
 
 when defined(windows):
   when defined(nimPreviewSlimSystem):
     import std/syncio
 
-  proc readLineFromStdin*(prompt: string): string {.
-                          tags: [ReadIOEffect, WriteIOEffect].} =
+  proc readLineFromStdin*(
+      prompt: string
+  ): string {.tags: [ReadIOEffect, WriteIOEffect].} =
     ## Reads a line from stdin.
     stdout.write(prompt)
     stdout.flushFile()
     result = readLine(stdin)
 
-  proc readLineFromStdin*(prompt: string, line: var string): bool {.
-                          tags: [ReadIOEffect, WriteIOEffect].} =
+  proc readLineFromStdin*(
+      prompt: string, line: var string
+  ): bool {.tags: [ReadIOEffect, WriteIOEffect].} =
     ## Reads a `line` from stdin. `line` must not be
     ## `nil`! May throw an IO exception.
     ## A line of text may be delimited by `CR`, `LF` or
@@ -46,19 +49,22 @@ when defined(windows):
     result = readLine(stdin, line)
 
 elif defined(genode):
-  proc readLineFromStdin*(prompt: string): string {.
-                          tags: [ReadIOEffect, WriteIOEffect].} =
+  proc readLineFromStdin*(
+      prompt: string
+  ): string {.tags: [ReadIOEffect, WriteIOEffect].} =
     stdin.readLine()
 
-  proc readLineFromStdin*(prompt: string, line: var string): bool {.
-                          tags: [ReadIOEffect, WriteIOEffect].} =
+  proc readLineFromStdin*(
+      prompt: string, line: var string
+  ): bool {.tags: [ReadIOEffect, WriteIOEffect].} =
     stdin.readLine(line)
 
 else:
   import std/linenoise
 
-  proc readLineFromStdin*(prompt: string, line: var string): bool {.
-                          tags: [ReadIOEffect, WriteIOEffect].} =
+  proc readLineFromStdin*(
+      prompt: string, line: var string
+  ): bool {.tags: [ReadIOEffect, WriteIOEffect].} =
     var buffer = linenoise.readLine(prompt)
     if isNil(buffer):
       line.setLen(0)

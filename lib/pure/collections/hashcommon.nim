@@ -13,10 +13,9 @@
 when defined(nimPreviewSlimSystem):
   import std/assertions
 
-import std / outparams
+import std/outparams
 
-const
-  growthFactor = 2
+const growthFactor = 2
 
 # hcode for real keys cannot be zero.  hcode==0 signifies an empty slot.  These
 # two procs retain clarity of that encoding without the space cost of an enum.

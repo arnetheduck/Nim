@@ -28,7 +28,9 @@ proc readOutput(p: Process): (string, int) =
     result[0].setLen(result[0].len - "\n".len)
   result[1] = p.waitForExit
 
-proc opGorge*(cmd, input, cache: string, info: TLineInfo; conf: ConfigRef): (string, int) =
+proc opGorge*(
+    cmd, input, cache: string, info: TLineInfo, conf: ConfigRef
+): (string, int) =
   let workingDir = parentDir(toFullPath(conf, info))
   result = ("", 0)
   if cache.len > 0:
@@ -41,8 +43,7 @@ proc opGorge*(cmd, input, cache: string, info: TLineInfo; conf: ConfigRef): (str
       return
     var readSuccessful = false
     try:
-      var p = startProcess(cmd, workingDir,
-                           options={poEvalCommand, poStdErrToStdOut})
+      var p = startProcess(cmd, workingDir, options = {poEvalCommand, poStdErrToStdOut})
       if input.len != 0:
         p.inputStream.write(input)
         p.inputStream.close()
@@ -60,8 +61,7 @@ proc opGorge*(cmd, input, cache: string, info: TLineInfo; conf: ConfigRef): (str
           result = ("Error running startProcess: " & getCurrentExceptionMsg(), -1)
   else:
     try:
-      var p = startProcess(cmd, workingDir,
-                           options={poEvalCommand, poStdErrToStdOut})
+      var p = startProcess(cmd, workingDir, options = {poEvalCommand, poStdErrToStdOut})
       if input.len != 0:
         p.inputStream.write(input)
         p.inputStream.close()

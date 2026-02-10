@@ -29,21 +29,22 @@ const
   logOrc = defined(nimArcIds)
 
 type
-  TraceProc = proc (p, env: pointer) {.nimcall, benign, raises: [].}
-  DisposeProc = proc (p: pointer) {.nimcall, benign, raises: [].}
+  TraceProc = proc(p, env: pointer) {.nimcall, benign, raises: [].}
+  DisposeProc = proc(p: pointer) {.nimcall, benign, raises: [].}
 
-template color(c): untyped = c.rc and colorMask
+template color(c): untyped =
+  c.rc and colorMask
+
 template setColor(c, col) =
   when col == colBlack:
     c.rc = c.rc and not colorMask
   else:
     c.rc = c.rc and not colorMask or col
 
-const
-  optimizedOrc = false # not defined(nimOldOrc)
+const optimizedOrc = false # not defined(nimOldOrc)
 # XXX Still incorrect, see tests/arc/tdestroy_in_loopcond
 
-proc nimIncRefCyclic(p: pointer; cyclic: bool) {.compilerRtl, inl.} =
+proc nimIncRefCyclic(p: pointer, cyclic: bool) {.compilerRtl, inl.} =
   let h = head(p)
   h.rc = h.rc +% rcIncrement
   when optimizedOrc:
@@ -62,21 +63,21 @@ proc unsureAsgnRef(dest: ptr pointer, src: pointer) {.inline.} =
   # as we cannot destroy the object reliably if it's an object of unknown
   # compile-time type.
   dest[] = src
-  if src != nil: nimIncRefCyclic(src, true)
+  if src != nil:
+    nimIncRefCyclic(src, true)
 
-const
-  useJumpStack = false # for thavlak the jump stack doesn't improve the performance at all
+const useJumpStack = false
+  # for thavlak the jump stack doesn't improve the performance at all
 
-type
-  GcEnv = object
-    traceStack: CellSeq[ptr pointer]
-    when useJumpStack:
-      jumpStack: CellSeq[ptr pointer]   # Lins' jump stack in order to speed up traversals
-    toFree: CellSeq[Cell]
-    freed, touched, edges, rcSum: int
-    keepThreshold: bool
+type GcEnv = object
+  traceStack: CellSeq[ptr pointer]
+  when useJumpStack:
+    jumpStack: CellSeq[ptr pointer] # Lins' jump stack in order to speed up traversals
+  toFree: CellSeq[Cell]
+  freed, touched, edges, rcSum: int
+  keepThreshold: bool
 
-proc trace(s: Cell; desc: PNimTypeV2; j: var GcEnv) {.inline.} =
+proc trace(s: Cell, desc: PNimTypeV2, j: var GcEnv) {.inline.} =
   if desc.traceImpl != nil:
     var p = s +! sizeof(RefHeader)
     cast[TraceProc](desc.traceImpl)(p, addr(j))
@@ -84,20 +85,38 @@ proc trace(s: Cell; desc: PNimTypeV2; j: var GcEnv) {.inline.} =
 include threadids
 
 when logOrc or orcLeakDetector:
-  proc writeCell(msg: cstring; s: Cell; desc: PNimTypeV2) =
+  proc writeCell(msg: cstring, s: Cell, desc: PNimTypeV2) =
     when orcLeakDetector:
-      cfprintf(cstderr, "%s %s file: %s:%ld; color: %ld; thread: %ld\n",
-        msg, desc.name, s.filename, s.line, s.color, getThreadId())
+      cfprintf(
+        cstderr,
+        "%s %s file: %s:%ld; color: %ld; thread: %ld\n",
+        msg,
+        desc.name,
+        s.filename,
+        s.line,
+        s.color,
+        getThreadId(),
+      )
     else:
-      cfprintf(cstderr, "%s %s %ld root index: %ld; RC: %ld; color: %ld; thread: %ld\n",
-        msg, desc.name, s.refId, s.rootIdx, s.rc shr rcShift, s.color, getThreadId())
+      cfprintf(
+        cstderr,
+        "%s %s %ld root index: %ld; RC: %ld; color: %ld; thread: %ld\n",
+        msg,
+        desc.name,
+        s.refId,
+        s.rootIdx,
+        s.rc shr rcShift,
+        s.color,
+        getThreadId(),
+      )
 
-proc free(s: Cell; desc: PNimTypeV2) {.inline.} =
+proc free(s: Cell, desc: PNimTypeV2) {.inline.} =
   when traceCollector:
     cprintf("[From ] %p rc %ld color %ld\n", s, s.rc shr rcShift, s.color)
   let p = s +! sizeof(RefHeader)
 
-  when logOrc: writeCell("free", s, desc)
+  when logOrc:
+    writeCell("free", s, desc)
 
   if desc.destructor != nil:
     cast[DestructorProc](desc.destructor)(p)
@@ -125,23 +144,21 @@ template orcAssert(cond, msg) =
 when logOrc:
   proc strstr(s, sub: cstring): cstring {.header: "<string.h>", importc.}
 
-proc nimTraceRef(q: pointer; desc: PNimTypeV2; env: pointer) {.compilerRtl, inl.} =
+proc nimTraceRef(q: pointer, desc: PNimTypeV2, env: pointer) {.compilerRtl, inl.} =
   let p = cast[ptr pointer](q)
   if p[] != nil:
-
     orcAssert strstr(desc.name, "TType") == nil, "following a TType but it's acyclic!"
 
     var j = cast[ptr GcEnv](env)
     j.traceStack.add(p, desc)
 
-proc nimTraceRefDyn(q: pointer; env: pointer) {.compilerRtl, inl.} =
+proc nimTraceRefDyn(q: pointer, env: pointer) {.compilerRtl, inl.} =
   let p = cast[ptr pointer](q)
   if p[] != nil:
     var j = cast[ptr GcEnv](env)
     j.traceStack.add(p, cast[ptr PNimTypeV2](p[])[])
 
-var
-  roots {.threadvar.}: CellSeq[Cell]
+var roots {.threadvar.}: CellSeq[Cell]
 
 proc unregisterCycle(s: Cell) =
   # swap with the last element. O(1)
@@ -158,7 +175,7 @@ proc unregisterCycle(s: Cell) =
   roots.len = last
   s.rootIdx = 0
 
-proc scanBlack(s: Cell; desc: PNimTypeV2; j: var GcEnv) =
+proc scanBlack(s: Cell, desc: PNimTypeV2, j: var GcEnv) =
   #[
   proc scanBlack(s: Cell) =
     setColor(s, colBlack)
@@ -170,7 +187,8 @@ proc scanBlack(s: Cell; desc: PNimTypeV2; j: var GcEnv) =
   s.setColor colBlack
   let until = j.traceStack.len
   trace(s, desc, j)
-  when logOrc: writeCell("root still alive", s, desc)
+  when logOrc:
+    writeCell("root still alive", s, desc)
   while j.traceStack.len > until:
     let (entry, desc) = j.traceStack.pop()
     let t = head entry[]
@@ -178,9 +196,10 @@ proc scanBlack(s: Cell; desc: PNimTypeV2; j: var GcEnv) =
     if t.color != colBlack:
       t.setColor colBlack
       trace(t, desc, j)
-      when logOrc: writeCell("child still alive", t, desc)
+      when logOrc:
+        writeCell("child still alive", t, desc)
 
-proc markGray(s: Cell; desc: PNimTypeV2; j: var GcEnv) =
+proc markGray(s: Cell, desc: PNimTypeV2, j: var GcEnv) =
   #[
   proc markGray(s: Cell) =
     if s.color != colGray:
@@ -206,7 +225,13 @@ proc markGray(s: Cell; desc: PNimTypeV2; j: var GcEnv) =
         if (t.rc shr rcShift) >= 0 and (t.rc and jumpStackFlag) == 0:
           t.rc = t.rc or jumpStackFlag
           when traceCollector:
-            cprintf("[Now in jumpstack] %p %ld color %ld in jumpstack %ld\n", t, t.rc shr rcShift, t.color, t.rc and jumpStackFlag)
+            cprintf(
+              "[Now in jumpstack] %p %ld color %ld in jumpstack %ld\n",
+              t,
+              t.rc shr rcShift,
+              t.color,
+              t.rc and jumpStackFlag,
+            )
           j.jumpStack.add(entry, desc)
       if t.color != colGray:
         t.setColor colGray
@@ -215,7 +240,7 @@ proc markGray(s: Cell; desc: PNimTypeV2; j: var GcEnv) =
         j.rcSum = j.rcSum +% (t.rc shr rcShift) +% 2
         trace(t, desc, j)
 
-proc scan(s: Cell; desc: PNimTypeV2; j: var GcEnv) =
+proc scan(s: Cell, desc: PNimTypeV2, j: var GcEnv) =
   #[
   proc scan(s: Cell) =
     if s.color == colGray:
@@ -278,11 +303,18 @@ proc scan(s: Cell; desc: PNimTypeV2; j: var GcEnv) =
             trace(t, desc, j)
 
 when false:
-  proc writeCell(msg: cstring; s: Cell) =
-    cfprintf(cstderr, "%s %p root index: %ld; RC: %ld; color: %ld\n",
-      msg, s, s.rootIdx, s.rc shr rcShift, s.color)
+  proc writeCell(msg: cstring, s: Cell) =
+    cfprintf(
+      cstderr,
+      "%s %p root index: %ld; RC: %ld; color: %ld\n",
+      msg,
+      s,
+      s.rootIdx,
+      s.rc shr rcShift,
+      s.color,
+    )
 
-proc collectColor(s: Cell; desc: PNimTypeV2; col: int; j: var GcEnv) =
+proc collectColor(s: Cell, desc: PNimTypeV2, col: int, j: var GcEnv) =
   #[
     was: 'collectWhite'.
 
@@ -308,15 +340,15 @@ proc collectColor(s: Cell; desc: PNimTypeV2; col: int; j: var GcEnv) =
         t.setColor(colBlack)
         trace(t, desc, j)
 
-const
-  defaultThreshold = when defined(nimFixedOrc): 10_000 else: 128
+const defaultThreshold = when defined(nimFixedOrc): 10_000 else: 128
 
 when defined(nimStressOrc):
-  const rootsThreshold = 10 # broken with -d:nimStressOrc: 10 and for havlak iterations 1..8
+  const rootsThreshold = 10
+    # broken with -d:nimStressOrc: 10 and for havlak iterations 1..8
 else:
   var rootsThreshold {.threadvar.}: int
 
-proc collectCyclesBacon(j: var GcEnv; lowMark: int) =
+proc collectCyclesBacon(j: var GcEnv, lowMark: int) =
   # pretty direct translation from
   # https://researcher.watson.ibm.com/researcher/files/us-bacon/Bacon01Concurrent.pdf
   # Fig. 2. Synchronous Cycle Collection
@@ -380,15 +412,21 @@ when defined(nimOrcStats):
 
 proc partialCollect(lowMark: int) =
   when false:
-    if roots.len < 10 + lowMark: return
+    if roots.len < 10 + lowMark:
+      return
   when logOrc:
     cfprintf(cstderr, "[partialCollect] begin\n")
   var j: GcEnv
   init j.traceStack
   collectCyclesBacon(j, lowMark)
   when logOrc:
-    cfprintf(cstderr, "[partialCollect] end; freed %ld touched: %ld work: %ld\n", j.freed, j.touched,
-      roots.len - lowMark)
+    cfprintf(
+      cstderr,
+      "[partialCollect] end; freed %ld touched: %ld work: %ld\n",
+      j.freed,
+      j.touched,
+      roots.len - lowMark,
+    )
   roots.len = lowMark
   deinit j.traceStack
   when defined(nimOrcStats):
@@ -433,22 +471,31 @@ proc collectCycles() =
       rootsThreshold = (if rootsThreshold <= 0: defaultThreshold else: rootsThreshold)
       rootsThreshold = rootsThreshold div 2 +% rootsThreshold
   when logOrc:
-    cfprintf(cstderr, "[collectCycles] end; freed %ld new threshold %ld touched: %ld mem: %ld rcSum: %ld edges: %ld\n", j.freed, rootsThreshold, j.touched,
-      getOccupiedMem(), j.rcSum, j.edges)
+    cfprintf(
+      cstderr,
+      "[collectCycles] end; freed %ld new threshold %ld touched: %ld mem: %ld rcSum: %ld edges: %ld\n",
+      j.freed,
+      rootsThreshold,
+      j.touched,
+      getOccupiedMem(),
+      j.rcSum,
+      j.edges,
+    )
   when defined(nimOrcStats):
     inc freedCyclicObjects, j.freed
 
 when defined(nimOrcStats):
-  type
-    OrcStats* = object ## Statistics of the cycle collector subsystem.
-      freedCyclicObjects*: int ## Number of freed cyclic objects.
+  type OrcStats* = object ## Statistics of the cycle collector subsystem.
+    freedCyclicObjects*: int ## Number of freed cyclic objects.
+
   proc GC_orcStats*(): OrcStats =
     ## Returns the statistics of the cycle collector subsystem.
     result = OrcStats(freedCyclicObjects: freedCyclicObjects)
 
-proc registerCycle(s: Cell; desc: PNimTypeV2) =
+proc registerCycle(s: Cell, desc: PNimTypeV2) =
   s.rootIdx = roots.len +% 1
-  if roots.d == nil: init(roots)
+  if roots.d == nil:
+    init(roots)
   add(roots, s, desc)
 
   if roots.len -% defaultThreshold >= rootsThreshold:
@@ -458,7 +505,7 @@ proc registerCycle(s: Cell; desc: PNimTypeV2) =
 
   orcAssert strstr(desc.name, "TType") == nil, "added a TType as a root!"
 
-proc GC_runOrc* =
+proc GC_runOrc*() =
   ## Forces a cycle collection pass.
   collectCycles()
   orcAssert roots.len == 0, "roots not empty!"
@@ -475,12 +522,13 @@ proc GC_disableOrc*() =
   when not defined(nimStressOrc):
     rootsThreshold = high(int)
 
-proc GC_prepareOrc*(): int {.inline.} = roots.len
+proc GC_prepareOrc*(): int {.inline.} =
+  roots.len
 
 proc GC_partialCollect*(limit: int) =
   partialCollect(limit)
 
-proc GC_fullCollect* =
+proc GC_fullCollect*() =
   ## Forces a full garbage collection pass. With `--mm:orc` triggers the cycle
   ## collector. This is an alias for `GC_runOrc`.
   collectCycles()
@@ -493,17 +541,17 @@ proc GC_disableMarkAndSweep*() =
   ## For `--mm:orc` an alias for `GC_disableOrc`.
   GC_disableOrc()
 
-const
-  acyclicFlag = 1 # see also cggtypes.nim, proc genTypeInfoV2Impl
+const acyclicFlag = 1 # see also cggtypes.nim, proc genTypeInfoV2Impl
 
 when optimizedOrc:
-  template markedAsCyclic(s: Cell; desc: PNimTypeV2): bool =
+  template markedAsCyclic(s: Cell, desc: PNimTypeV2): bool =
     (desc.flags and acyclicFlag) == 0 and (s.rc and maybeCycle) != 0
+
 else:
-  template markedAsCyclic(s: Cell; desc: PNimTypeV2): bool =
+  template markedAsCyclic(s: Cell, desc: PNimTypeV2): bool =
     (desc.flags and acyclicFlag) == 0
 
-proc rememberCycle(isDestroyAction: bool; s: Cell; desc: PNimTypeV2) {.noinline.} =
+proc rememberCycle(isDestroyAction: bool, s: Cell, desc: PNimTypeV2) {.noinline.} =
   if isDestroyAction:
     if s.rootIdx > 0:
       unregisterCycle(s)
@@ -540,7 +588,9 @@ proc nimDecRefIsLastDyn(p: pointer): bool {.compilerRtl, inl.} =
       if cell.rootIdx > 0:
         unregisterCycle(cell)
 
-proc nimDecRefIsLastCyclicStatic(p: pointer; desc: PNimTypeV2): bool {.compilerRtl, inl.} =
+proc nimDecRefIsLastCyclicStatic(
+    p: pointer, desc: PNimTypeV2
+): bool {.compilerRtl, inl.} =
   result = false
   if p != nil:
     var cell = head(p)

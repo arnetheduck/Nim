@@ -21,27 +21,36 @@ TODO:
 check errno_t vs cint
 ]#
 
-when not defined(windows): discard
+when not defined(windows):
+  discard
 else:
   when defined(nimPreviewSlimSystem):
     import std/widestrs
 
-  type wchar_t  {.importc: "wchar_t".} = int16
+  type wchar_t {.importc: "wchar_t".} = int16
 
-  proc setEnvironmentVariableW*(lpName, lpValue: WideCString): int32 {.
-    stdcall, dynlib: "kernel32", importc: "SetEnvironmentVariableW", sideEffect.}
-    # same as winlean.setEnvironmentVariableA
+  proc setEnvironmentVariableW*(
+    lpName, lpValue: WideCString
+  ): int32 {.
+    stdcall, dynlib: "kernel32", importc: "SetEnvironmentVariableW", sideEffect
+  .} # same as winlean.setEnvironmentVariableA
 
   proc c_getenv(varname: cstring): cstring {.importc: "getenv", header: "<stdlib.h>".}
-  proc c_wputenv(envstring: ptr wchar_t): cint {.importc: "_wputenv", header: "<stdlib.h>".}
-  proc c_wgetenv(varname: ptr wchar_t): ptr wchar_t {.importc: "_wgetenv", header: "<stdlib.h>".}
+  proc c_wputenv(
+    envstring: ptr wchar_t
+  ): cint {.importc: "_wputenv", header: "<stdlib.h>".}
+
+  proc c_wgetenv(
+    varname: ptr wchar_t
+  ): ptr wchar_t {.importc: "_wgetenv", header: "<stdlib.h>".}
 
   var errno {.importc, header: "<errno.h>".}: cint
   var genviron {.importc: "_environ".}: ptr ptr char
     # xxx `ptr UncheckedArray[WideCString]` did not work
 
-  proc wcstombs(wcstr: ptr char, mbstr: ptr wchar_t, count: csize_t): csize_t {.importc, header: "<stdlib.h>".}
-    # xxx cint vs errno_t?
+  proc wcstombs(
+    wcstr: ptr char, mbstr: ptr wchar_t, count: csize_t
+  ): csize_t {.importc, header: "<stdlib.h>".} # xxx cint vs errno_t?
 
   proc setEnvImpl*(name: string, value: string, overwrite: cint): cint =
     const EINVAL = cint(22)
@@ -83,7 +92,6 @@ else:
     even though it's never actually used in most programs.
     ]#
     if genviron != nil:
-
       # wcstombs returns `high(csize_t)` if any characters cannot be represented
       # in the current codepage. Skip updating MBCS environment in this case.
       # For some reason, second `wcstombs` can find non-convertible characters
@@ -93,7 +101,8 @@ else:
         let requiredSize = requiredSizeS.int
         var buf = newSeq[char](requiredSize + 1)
         let buf2 = buf[0].addr
-        if wcstombs(buf2, cast[ptr wchar_t](wideName), csize_t(requiredSize + 1)) != high(csize_t):
+        if wcstombs(buf2, cast[ptr wchar_t](wideName), csize_t(requiredSize + 1)) !=
+            high(csize_t):
           var ptrToEnv = c_getenv(cast[cstring](buf2))
           ptrToEnv[0] = '\0'
           ptrToEnv = c_getenv(cast[cstring](buf2))

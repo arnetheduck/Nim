@@ -11,15 +11,13 @@
 ## - elide 'wasMoved(x); destroy(x)' pairs
 ## - recognize "all paths lead to 'wasMoved(x)'"
 
-import
-  ast, renderer, idents
+import ast, renderer, idents
 
 from trees import exprStructuralEquivalent
 
 import std/[strutils, intsets]
 
-const
-  nfMarkForDeletion = nfNone # faster than a lookup table
+const nfMarkForDeletion = nfNone # faster than a lookup table
 
 type
   BasicBlock = object
@@ -34,23 +32,31 @@ type
     somethingTodo: bool
     inFinally: int
 
-proc invalidateWasMoved(c: var BasicBlock; x: PNode)
+proc invalidateWasMoved(c: var BasicBlock, x: PNode)
 
-proc nestedBlock(parent: var BasicBlock; kind: TNodeKind): BasicBlock =
-  BasicBlock(wasMovedLocs: @[], kind: kind, hasReturn: false, hasBreak: false,
-    label: nil, parent: addr(parent))
+proc nestedBlock(parent: var BasicBlock, kind: TNodeKind): BasicBlock =
+  BasicBlock(
+    wasMovedLocs: @[],
+    kind: kind,
+    hasReturn: false,
+    hasBreak: false,
+    label: nil,
+    parent: addr(parent),
+  )
 
-proc breakStmt(b: var BasicBlock; n: PNode) =
+proc breakStmt(b: var BasicBlock, n: PNode) =
   var it = addr(b)
   while it != nil:
     it.wasMovedLocs.setLen 0
     it.hasBreak = true
 
     if n.kind == nkSym:
-      if it.label == n.sym: break
+      if it.label == n.sym:
+        break
     else:
       # unnamed break leaves the block is nkWhileStmt or the like:
-      if it.kind in {nkWhileStmt, nkBlockStmt, nkBlockExpr}: break
+      if it.kind in {nkWhileStmt, nkBlockStmt, nkBlockExpr}:
+        break
 
     it = it.parent
 
@@ -61,7 +67,7 @@ proc returnStmt(b: var BasicBlock) =
     it.wasMovedLocs.setLen 0
     it = it.parent
 
-proc mergeBasicBlockInfo(parent: var BasicBlock; this: BasicBlock) {.inline.} =
+proc mergeBasicBlockInfo(parent: var BasicBlock, this: BasicBlock) {.inline.} =
   if this.hasReturn:
     parent.wasMovedLocs.setLen 0
     parent.hasReturn = true
@@ -70,15 +76,16 @@ proc mergeBasicBlockInfo(parent: var BasicBlock; this: BasicBlock) {.inline.} =
     for i in this.symToDel:
       invalidateWasMoved(parent, i)
 
-proc wasMovedTarget(matches: var IntSet; branch: seq[PNode]; moveTarget: PNode): bool =
+proc wasMovedTarget(matches: var IntSet, branch: seq[PNode], moveTarget: PNode): bool =
   result = false
-  for i in 0..<branch.len:
-    if exprStructuralEquivalent(branch[i][1].skipHiddenAddr, moveTarget,
-                                strictSymEquality = true):
+  for i in 0 ..< branch.len:
+    if exprStructuralEquivalent(
+      branch[i][1].skipHiddenAddr, moveTarget, strictSymEquality = true
+    ):
       result = true
       matches.incl i
 
-proc intersect(summary: var seq[PNode]; branch: seq[PNode]) =
+proc intersect(summary: var seq[PNode], branch: seq[PNode]) =
   # keep all 'wasMoved(x)' calls in summary that are also in 'branch':
   var i = 0
   var matches = initIntSet()
@@ -90,21 +97,22 @@ proc intersect(summary: var seq[PNode]; branch: seq[PNode]) =
   for m in matches:
     summary.add branch[m]
 
-
-proc invalidateWasMoved(c: var BasicBlock; x: PNode) =
+proc invalidateWasMoved(c: var BasicBlock, x: PNode) =
   var i = 0
   while i < c.wasMovedLocs.len:
-    if exprStructuralEquivalent(c.wasMovedLocs[i][1].skipHiddenAddr, x,
-                                strictSymEquality = true):
+    if exprStructuralEquivalent(
+      c.wasMovedLocs[i][1].skipHiddenAddr, x, strictSymEquality = true
+    ):
       c.wasMovedLocs.del i
     else:
       inc i
 
-proc wasMovedDestroyPair(c: var Con; b: var BasicBlock; d: PNode) =
+proc wasMovedDestroyPair(c: var Con, b: var BasicBlock, d: PNode) =
   var i = 0
   while i < b.wasMovedLocs.len:
-    if exprStructuralEquivalent(b.wasMovedLocs[i][1].skipHiddenAddr, d[1].skipHiddenAddr,
-                                strictSymEquality = true):
+    if exprStructuralEquivalent(
+      b.wasMovedLocs[i][1].skipHiddenAddr, d[1].skipHiddenAddr, strictSymEquality = true
+    ):
       b.wasMovedLocs[i].flags.incl nfMarkForDeletion
       c.somethingTodo = true
       d.flags.incl nfMarkForDeletion
@@ -112,7 +120,7 @@ proc wasMovedDestroyPair(c: var Con; b: var BasicBlock; d: PNode) =
     else:
       inc i
 
-proc analyse(c: var Con; b: var BasicBlock; n: PNode) =
+proc analyse(c: var Con, b: var BasicBlock, n: PNode) =
   case n.kind
   of nkCallKinds:
     var special = false
@@ -148,28 +156,43 @@ proc analyse(c: var Con; b: var BasicBlock; n: PNode) =
             `=destroy`(b)
 
         ]#
-        for i in countdown(n.len-1, 0):
+        for i in countdown(n.len - 1, 0):
           analyse(c, b, n[i])
-      if canRaise(n[0]): returnStmt(b)
-
+      if canRaise(n[0]):
+        returnStmt(b)
   of nkSym:
     # any usage of the location before destruction implies we
     # cannot elide the 'wasMoved(x)':
     b.invalidateWasMoved n
     b.symToDel.add n
-
-  of nkNone..pred(nkSym), succ(nkSym)..nkNilLit, nkTypeSection, nkProcDef, nkConverterDef,
-      nkMethodDef, nkIteratorDef, nkMacroDef, nkTemplateDef, nkLambda, nkDo,
-      nkFuncDef, nkConstSection, nkConstDef, nkIncludeStmt, nkImportStmt,
-      nkExportStmt, nkPragma, nkCommentStmt, nkBreakState,
-      nkTypeOfExpr, nkMixinStmt, nkBindStmt:
+  of nkNone .. pred(nkSym),
+      succ(nkSym) .. nkNilLit,
+      nkTypeSection,
+      nkProcDef,
+      nkConverterDef,
+      nkMethodDef,
+      nkIteratorDef,
+      nkMacroDef,
+      nkTemplateDef,
+      nkLambda,
+      nkDo,
+      nkFuncDef,
+      nkConstSection,
+      nkConstDef,
+      nkIncludeStmt,
+      nkImportStmt,
+      nkExportStmt,
+      nkPragma,
+      nkCommentStmt,
+      nkBreakState,
+      nkTypeOfExpr,
+      nkMixinStmt,
+      nkBindStmt:
     discard "do not follow the construct"
-
   of nkAsgn, nkFastAsgn, nkSinkAsgn:
     # reverse order, see remark for `=sink`:
     analyse(c, b, n[1])
     analyse(c, b, n[0])
-
   of nkIfStmt, nkIfExpr:
     let isExhaustive = n[^1].kind in {nkElse, nkElseExpr}
     var wasMovedSet: seq[PNode] = @[]
@@ -184,13 +207,12 @@ proc analyse(c: var Con; b: var BasicBlock; n: PNode) =
           wasMovedSet = move(branch.wasMovedLocs)
         else:
           wasMovedSet.intersect(branch.wasMovedLocs)
-    for i in 0..<wasMovedSet.len:
+    for i in 0 ..< wasMovedSet.len:
       b.wasMovedLocs.add wasMovedSet[i]
-
   of nkCaseStmt:
-    let isExhaustive = skipTypes(n[0].typ,
-      abstractVarRange-{tyTypeDesc}).kind notin {tyFloat..tyFloat128, tyString, tyCstring} or
-      n[^1].kind == nkElse
+    let isExhaustive =
+      skipTypes(n[0].typ, abstractVarRange - {tyTypeDesc}).kind notin
+      {tyFloat .. tyFloat128, tyString, tyCstring} or n[^1].kind == nkElse
 
     analyse(c, b, n[0])
 
@@ -206,45 +228,41 @@ proc analyse(c: var Con; b: var BasicBlock; n: PNode) =
           wasMovedSet = move(branch.wasMovedLocs)
         else:
           wasMovedSet.intersect(branch.wasMovedLocs)
-    for i in 0..<wasMovedSet.len:
+    for i in 0 ..< wasMovedSet.len:
       b.wasMovedLocs.add wasMovedSet[i]
-
   of nkTryStmt:
     for i in 0 ..< n.len:
       var tryBody = nestedBlock(b, nkTryStmt)
 
       analyse(c, tryBody, n[i])
       mergeBasicBlockInfo(b, tryBody)
-
   of nkWhileStmt:
     analyse(c, b, n[0])
     var loopBody = nestedBlock(b, nkWhileStmt)
     analyse(c, loopBody, n[1])
     mergeBasicBlockInfo(b, loopBody)
-
   of nkBlockStmt, nkBlockExpr:
     var blockBody = nestedBlock(b, n.kind)
     if n[0].kind == nkSym:
       blockBody.label = n[0].sym
     analyse(c, blockBody, n[1])
     mergeBasicBlockInfo(b, blockBody)
-
   of nkBreakStmt:
     breakStmt(b, n[0])
-
   of nkReturnStmt, nkRaiseStmt:
-    for child in n: analyse(c, b, child)
+    for child in n:
+      analyse(c, b, child)
     returnStmt(b)
-
   of nkFinally:
     inc c.inFinally
-    for child in n: analyse(c, b, child)
+    for child in n:
+      analyse(c, b, child)
     dec c.inFinally
-
   else:
-    for child in n: analyse(c, b, child)
+    for child in n:
+      analyse(c, b, child)
 
-proc opt(c: Con; n, parent: PNode; parentPos: int) =
+proc opt(c: Con, n, parent: PNode, parentPos: int) =
   template recurse() =
     let x = shallowCopy(n)
     for i in 0 ..< n.len:
@@ -257,17 +275,31 @@ proc opt(c: Con; n, parent: PNode; parentPos: int) =
       parent[parentPos] = newNodeI(nkEmpty, n.info)
     else:
       recurse()
-
-  of nkNone..nkNilLit, nkTypeSection, nkProcDef, nkConverterDef,
-      nkMethodDef, nkIteratorDef, nkMacroDef, nkTemplateDef, nkLambda, nkDo,
-      nkFuncDef, nkConstSection, nkConstDef, nkIncludeStmt, nkImportStmt,
-      nkExportStmt, nkPragma, nkCommentStmt, nkBreakState, nkTypeOfExpr,
-      nkMixinStmt, nkBindStmt:
+  of nkNone .. nkNilLit,
+      nkTypeSection,
+      nkProcDef,
+      nkConverterDef,
+      nkMethodDef,
+      nkIteratorDef,
+      nkMacroDef,
+      nkTemplateDef,
+      nkLambda,
+      nkDo,
+      nkFuncDef,
+      nkConstSection,
+      nkConstDef,
+      nkIncludeStmt,
+      nkImportStmt,
+      nkExportStmt,
+      nkPragma,
+      nkCommentStmt,
+      nkBreakState,
+      nkTypeOfExpr,
+      nkMixinStmt,
+      nkBindStmt:
     parent[parentPos] = n
-
   else:
     recurse()
-
 
 proc optimize*(n: PNode): PNode =
   # optimize away simple 'wasMoved(x); destroy(x)' pairs.

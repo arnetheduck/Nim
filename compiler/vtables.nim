@@ -1,14 +1,13 @@
 import ast, modulegraphs, magicsys, lineinfos, options, cgmeth, types
 import std/[algorithm, tables, intsets, assertions]
 
-
-
-proc genVTableDispatcher(g: ModuleGraph; methods: seq[PSym]; index: int): PSym =
-#[
+proc genVTableDispatcher(g: ModuleGraph, methods: seq[PSym], index: int): PSym =
+  var
+    #[
 proc dispatch(x: Base, params: ...) =
   cast[proc bar(x: Base, params: ...)](x.vTable[index])(x, params)
 ]#
-  var base = methods[0].ast[dispatcherPos].sym
+    base = methods[0].ast[dispatcherPos].sym
   result = base
   var paramLen = base.typ.signatureLen
   var body = newNodeI(nkStmtList, base.info)
@@ -27,20 +26,16 @@ proc dispatch(x: Base, params: ...) =
       if nTyp.kind == tyVar and nTyp.skipTypes({tyVar}).kind != tyObject:
         dispatchObject = newTree(nkDerefExpr, dispatchObject)
 
-  var getVTableCall = newTree(nkCall,
-    newSymNode(nimGetVTableSym),
-    dispatchObject,
-    newIntNode(nkIntLit, index)
+  var getVTableCall = newTree(
+    nkCall, newSymNode(nimGetVTableSym), dispatchObject, newIntNode(nkIntLit, index)
   )
   getVTableCall.typ() = getSysType(g, unknownLineInfo, tyPointer)
   var vTableCall = newNodeIT(nkCall, base.info, base.typ.returnType)
-  var castNode = newTree(nkCast,
-        newNodeIT(nkType, base.info, base.typ),
-        getVTableCall)
+  var castNode = newTree(nkCast, newNodeIT(nkType, base.info, base.typ), getVTableCall)
 
   castNode.typ() = base.typ
   vTableCall.add castNode
-  for col in 1..<paramLen:
+  for col in 1 ..< paramLen:
     let param = base.typ.n[col].sym
     vTableCall.add newSymNode(param)
 
@@ -62,8 +57,11 @@ proc dispatch(x: Base, params: ...) =
     checkSelf.add newSymNode(isNil)
     checkSelf.add newSymNode(base.typ.n[1].sym)
     ifBranch.add checkSelf
-    ifBranch.add newTree(nkCall,
-        newSymNode(getCompilerProc(g, "chckNilDisp")), newSymNode(base.typ.n[1].sym))
+    ifBranch.add newTree(
+      nkCall,
+      newSymNode(getCompilerProc(g, "chckNilDisp")),
+      newSymNode(base.typ.n[1].sym),
+    )
     let elseBranch = newTree(nkElifBranch, ret)
     disp.add ifBranch
     disp.add elseBranch
@@ -85,22 +83,25 @@ proc collectVTableDispatchers*(g: ModuleGraph) =
   var itemTable = initTable[ItemId, seq[LazySym]]()
   var rootTypeSeq = newSeq[PType]()
   var rootItemIdCount = initCountTable[ItemId]()
-  for bucket in 0..<g.methods.len:
+  for bucket in 0 ..< g.methods.len:
     var relevantCols = initIntSet()
-    if relevantCol(g.methods[bucket].methods, 1): incl(relevantCols, 1)
+    if relevantCol(g.methods[bucket].methods, 1):
+      incl(relevantCols, 1)
     sortBucket(g.methods[bucket].methods, relevantCols)
     let base = g.methods[bucket].methods[^1]
-    let baseType = base.typ.firstParamType.skipTypes(skipPtrs-{tyTypeDesc})
-    if baseType.itemId in g.objectTree and not containGenerics(baseType, g.objectTree[baseType.itemId]):
+    let baseType = base.typ.firstParamType.skipTypes(skipPtrs - {tyTypeDesc})
+    if baseType.itemId in g.objectTree and
+        not containGenerics(baseType, g.objectTree[baseType.itemId]):
       let methodIndexLen = g.bucketTable[baseType.itemId]
       if baseType.itemId notin itemTable: # once is enough
         rootTypeSeq.add baseType
         itemTable[baseType.itemId] = newSeq[LazySym](methodIndexLen)
 
-        sort(g.objectTree[baseType.itemId], cmp = proc (x, y: tuple[depth: int, value: PType]): int =
-          if x.depth >= y.depth: 1
-          else: -1
-          )
+        sort(
+          g.objectTree[baseType.itemId],
+          cmp = proc(x, y: tuple[depth: int, value: PType]): int =
+            if x.depth >= y.depth: 1 else: -1,
+        )
 
         for item in g.objectTree[baseType.itemId]:
           if item.value.itemId notin itemTable:
@@ -112,33 +113,38 @@ proc collectVTableDispatchers*(g: ModuleGraph) =
       else:
         mIndex = rootItemIdCount[baseType.itemId]
         rootItemIdCount.inc(baseType.itemId)
-      for idx in 0..<g.methods[bucket].methods.len:
+      for idx in 0 ..< g.methods[bucket].methods.len:
         let obj = g.methods[bucket].methods[idx].typ.firstParamType.skipTypes(skipPtrs)
         itemTable[obj.itemId][mIndex] = LazySym(sym: g.methods[bucket].methods[idx])
       g.addDispatchers genVTableDispatcher(g, g.methods[bucket].methods, mIndex)
     else: # if the base object doesn't have this method
-      g.addDispatchers genIfDispatcher(g, g.methods[bucket].methods, relevantCols, g.idgen)
+      g.addDispatchers genIfDispatcher(
+        g, g.methods[bucket].methods, relevantCols, g.idgen
+      )
 
 proc sortVTableDispatchers*(g: ModuleGraph) =
   var itemTable = initTable[ItemId, seq[LazySym]]()
   var rootTypeSeq = newSeq[ItemId]()
   var rootItemIdCount = initCountTable[ItemId]()
-  for bucket in 0..<g.methods.len:
+  for bucket in 0 ..< g.methods.len:
     var relevantCols = initIntSet()
-    if relevantCol(g.methods[bucket].methods, 1): incl(relevantCols, 1)
+    if relevantCol(g.methods[bucket].methods, 1):
+      incl(relevantCols, 1)
     sortBucket(g.methods[bucket].methods, relevantCols)
     let base = g.methods[bucket].methods[^1]
-    let baseType = base.typ.firstParamType.skipTypes(skipPtrs-{tyTypeDesc})
-    if baseType.itemId in g.objectTree and not containGenerics(baseType, g.objectTree[baseType.itemId]):
+    let baseType = base.typ.firstParamType.skipTypes(skipPtrs - {tyTypeDesc})
+    if baseType.itemId in g.objectTree and
+        not containGenerics(baseType, g.objectTree[baseType.itemId]):
       let methodIndexLen = g.bucketTable[baseType.itemId]
       if baseType.itemId notin itemTable: # once is enough
         rootTypeSeq.add baseType.itemId
         itemTable[baseType.itemId] = newSeq[LazySym](methodIndexLen)
 
-        sort(g.objectTree[baseType.itemId], cmp = proc (x, y: tuple[depth: int, value: PType]): int =
-          if x.depth >= y.depth: 1
-          else: -1
-          )
+        sort(
+          g.objectTree[baseType.itemId],
+          cmp = proc(x, y: tuple[depth: int, value: PType]): int =
+            if x.depth >= y.depth: 1 else: -1,
+        )
 
         for item in g.objectTree[baseType.itemId]:
           if item.value.itemId notin itemTable:
@@ -150,7 +156,7 @@ proc sortVTableDispatchers*(g: ModuleGraph) =
       else:
         mIndex = rootItemIdCount[baseType.itemId]
         rootItemIdCount.inc(baseType.itemId)
-      for idx in 0..<g.methods[bucket].methods.len:
+      for idx in 0 ..< g.methods[bucket].methods.len:
         let obj = g.methods[bucket].methods[idx].typ.firstParamType.skipTypes(skipPtrs)
         itemTable[obj.itemId][mIndex] = LazySym(sym: g.methods[bucket].methods[idx])
 
@@ -159,7 +165,7 @@ proc sortVTableDispatchers*(g: ModuleGraph) =
     for item in g.objectTree[baseType]:
       let typ = item.value.skipTypes(skipPtrs)
       let idx = typ.itemId
-      for mIndex in 0..<itemTable[idx].len:
+      for mIndex in 0 ..< itemTable[idx].len:
         if itemTable[idx][mIndex].sym == nil:
           let parentIndex = typ.baseClass.skipTypes(skipPtrs).itemId
           itemTable[idx][mIndex] = itemTable[parentIndex][mIndex]

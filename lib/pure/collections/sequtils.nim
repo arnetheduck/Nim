@@ -44,10 +44,10 @@ runnableExamples:
   # Creating a sequence from 1 to 10, multiplying each member by 2,
   # keeping only the members which are not divisible by 6.
   let
-    foo = toSeq(1..10).map(x => x * 2).filter(x => x mod 6 != 0)
-    bar = toSeq(1..10).mapIt(it * 2).filterIt(it mod 6 != 0)
+    foo = toSeq(1 .. 10).map(x => x * 2).filter(x => x mod 6 != 0)
+    bar = toSeq(1 .. 10).mapIt(it * 2).filterIt(it mod 6 != 0)
     baz = collect:
-      for i in 1..10:
+      for i in 1 .. 10:
         let j = 2 * i
         if j mod 6 != 0:
           j
@@ -59,7 +59,6 @@ runnableExamples:
   doAssert foo.any(x => x > 17)
   doAssert not bar.allIt(it < 20)
   doAssert foo.foldl(a + b) == 74 # sum of all members
-
 
 runnableExamples:
   from std/strutils import join
@@ -79,7 +78,6 @@ runnableExamples:
 ## * `json module<json.html>`_ for a structure which allows
 ##   heterogeneous members
 
-
 import std/private/since
 
 import std/macros
@@ -88,14 +86,12 @@ from std/typetraits import supportsCopyMem
 when defined(nimPreviewSlimSystem):
   import std/assertions
 
-
 when defined(nimHasEffectsOf):
   {.experimental: "strictEffects".}
 else:
   {.pragma: effectsOf.}
 
-macro evalOnceAs(expAlias, exp: untyped,
-                 letAssigneable: static[bool]): untyped =
+macro evalOnceAs(expAlias, exp: untyped, letAssigneable: static[bool]): untyped =
   ## Injects `expAlias` in caller scope, to avoid bugs involving multiple
   ## substitution in macro arguments such as
   ## https://github.com/nim-lang/Nim/issues/7187.
@@ -113,8 +109,13 @@ macro evalOnceAs(expAlias, exp: untyped,
     result.add(newLetStmt(val, exp))
 
   result.add(
-    newProc(name = genSym(nskTemplate, $expAlias), params = [getType(untyped)],
-      body = val, procType = nnkTemplateDef))
+    newProc(
+      name = genSym(nskTemplate, $expAlias),
+      params = [getType(untyped)],
+      body = val,
+      procType = nnkTemplateDef,
+    )
+  )
 
 template unCheckedInc(x) =
   {.push overflowChecks: off.}
@@ -138,7 +139,8 @@ func concat*[T](seqs: varargs[seq[T]]): seq[T] =
     assert total == @[1, 2, 3, 4, 5, 6, 7]
 
   var L = 0
-  for seqitm in items(seqs): inc(L, len(seqitm))
+  for seqitm in items(seqs):
+    inc(L, len(seqitm))
   newSeq(result, L)
   var i = 0
   for s in items(seqs):
@@ -155,8 +157,9 @@ func addUnique*[T](s: var seq[T], x: sink T) =
     a.addUnique(4)
     assert a == @[1, 2, 3, 4]
 
-  for i in 0..high(s):
-    if s[i] == x: return
+  for i in 0 .. high(s):
+    if s[i] == x:
+      return
   when declared(ensureMove):
     s.add ensureMove(x)
   else:
@@ -200,8 +203,7 @@ proc repeat*[T](x: T, n: Natural): seq[T] =
   ## `n` must be a non-negative number (zero or more).
   ##
   runnableExamples:
-    let
-      total = repeat(5, 3)
+    let total = repeat(5, 3)
     assert total == @[5, 5, 5]
 
   result = newSeq[T](n)
@@ -228,25 +230,28 @@ func deduplicate*[T](s: openArray[T], isSorted: bool = false): seq[T] =
     if isSorted:
       var prev = s[0]
       result.add(prev)
-      for i in 1..s.high:
+      for i in 1 .. s.high:
         if s[i] != prev:
           prev = s[i]
           result.add(prev)
     else:
       for itm in items(s):
-        if not result.contains(itm): result.add(itm)
+        if not result.contains(itm):
+          result.add(itm)
 
 proc min*[T](x: openArray[T], cmp: proc(a, b: T): int): T {.effectsOf: cmp.} =
   ## The minimum value of `x`.
   result = x[0]
-  for i in 1..high(x):
-    if cmp(x[i], result) < 0: result = x[i]
+  for i in 1 .. high(x):
+    if cmp(x[i], result) < 0:
+      result = x[i]
 
 proc max*[T](x: openArray[T], cmp: proc(a, b: T): int): T {.effectsOf: cmp.} =
   ## The maximum value of `x`.
   result = x[0]
-  for i in 1..high(x):
-    if cmp(result, x[i]) < 0: result = x[i]
+  for i in 1 .. high(x):
+    if cmp(result, x[i]) < 0:
+      result = x[i]
 
 func minIndex*[T](s: openArray[T]): int {.since: (1, 1).} =
   ## Returns the index of the minimum value of `s`.
@@ -262,22 +267,27 @@ func minIndex*[T](s: openArray[T]): int {.since: (1, 1).} =
     assert minIndex(c) == 1
     assert minIndex(d) == 2
 
-  for i in 1..high(s):
-    if s[i] < s[result]: result = i
+  for i in 1 .. high(s):
+    if s[i] < s[result]:
+      result = i
 
 func minIndex*[T](s: openArray[T], cmp: proc(a, b: T): int): int {.effectsOf: cmp.} =
   ## Returns the index of the minimum value of `s`.
   runnableExamples:
     import std/sugar
 
-    let s1 = @["foo","bar", "hello"]
-    let s2 = @[2..4, 1..3, 6..10]
-    assert minIndex(s1, proc (a, b: string): int = a.len - b.len) == 0
+    let s1 = @["foo", "bar", "hello"]
+    let s2 = @[2 .. 4, 1 .. 3, 6 .. 10]
+    assert minIndex(
+      s1,
+      proc(a, b: string): int =
+        a.len - b.len,
+    ) == 0
     assert minIndex(s2, (a, b) => a.a - b.a) == 1
 
-  for i in 1..high(s):
-    if cmp(s[i], s[result]) < 0: result = i
-
+  for i in 1 .. high(s):
+    if cmp(s[i], s[result]) < 0:
+      result = i
 
 func maxIndex*[T](s: openArray[T]): int {.since: (1, 1).} =
   ## Returns the index of the maximum value of `s`.
@@ -293,38 +303,47 @@ func maxIndex*[T](s: openArray[T]): int {.since: (1, 1).} =
     assert maxIndex(c) == 2
     assert maxIndex(d) == 0
 
-  for i in 1..high(s):
-    if s[i] > s[result]: result = i
+  for i in 1 .. high(s):
+    if s[i] > s[result]:
+      result = i
 
 func maxIndex*[T](s: openArray[T], cmp: proc(a, b: T): int): int {.effectsOf: cmp.} =
   ## Returns the index of the maximum value of `s`.
   runnableExamples:
     import std/sugar
 
-    let s1 = @["foo","bar", "hello"]
-    let s2 = @[2..4, 1..3, 6..10]
-    assert maxIndex(s1, proc (a, b: string): int = a.len - b.len) == 2
+    let s1 = @["foo", "bar", "hello"]
+    let s2 = @[2 .. 4, 1 .. 3, 6 .. 10]
+    assert maxIndex(
+      s1,
+      proc(a, b: string): int =
+        a.len - b.len,
+    ) == 2
     assert maxIndex(s2, (a, b) => a.a - b.a) == 2
 
-  for i in 1..high(s):
-    if cmp(s[result], s[i]) < 0: result = i
+  for i in 1 .. high(s):
+    if cmp(s[result], s[i]) < 0:
+      result = i
 
 func minmax*[T](x: openArray[T]): (T, T) =
   ## The minimum and maximum values of `x`. `T` needs to have a `<` operator.
   var l = x[0]
   var h = x[0]
-  for i in 1..high(x):
-    if x[i] < l: l = x[i]
-    elif h < x[i]: h = x[i]
+  for i in 1 .. high(x):
+    if x[i] < l:
+      l = x[i]
+    elif h < x[i]:
+      h = x[i]
   result = (l, h)
 
 func minmax*[T](x: openArray[T], cmp: proc(a, b: T): int): (T, T) {.effectsOf: cmp.} =
   ## The minimum and maximum values of `x`.
   result = (x[0], x[0])
-  for i in 1..high(x):
-    if cmp(x[i], result[0]) < 0: result[0] = x[i]
-    elif cmp(result[1], x[i]) < 0: result[1] = x[i]
-
+  for i in 1 .. high(x):
+    if cmp(x[i], result[0]) < 0:
+      result[0] = x[i]
+    elif cmp(result[1], x[i]) < 0:
+      result[1] = x[i]
 
 template findIt*(s, predicate: untyped): int =
   ## Iterates through a container and returns the index of the first item that
@@ -370,13 +389,11 @@ template zipImpl(s1, s2, retType: untyped): untyped =
       assert zip1[2][0] == 3
       assert zip2[1][1] == "two"
       when (NimMajor, NimMinor) <= (1, 0):
-        let
-          zip3 = zip(long, letters)
+        let zip3 = zip(long, letters)
         assert zip3 == @[(a: 6, b: 'a'), (5, 'b'), (4, 'c'), (3, 'd')]
         assert zip3[0].b == 'a'
       else:
-        let
-          zip3: seq[tuple[num: int, letter: char]] = zip(long, letters)
+        let zip3: seq[tuple[num: int, letter: char]] = zip(long, letters)
         assert zip3 == @[(6, 'a'), (5, 'b'), (4, 'c'), (3, 'd')]
         assert zip3[0].letter == 'a'
 
@@ -400,7 +417,7 @@ proc unzip*[S, T](s: openArray[(S, T)]): (seq[S], seq[T]) {.since: (1, 1).} =
     assert zipped.unzip() == (unzipped1, unzipped2)
     assert zip(unzipped1, unzipped2).unzip() == (unzipped1, unzipped2)
   result = (newSeq[S](s.len), newSeq[T](s.len))
-  for i in 0..<s.len:
+  for i in 0 ..< s.len:
     result[0][i] = s[i][0]
     result[1][i] = s[i][1]
 
@@ -442,7 +459,8 @@ func distribute*[T](s: seq[T], num: Positive, spread = true): seq[seq[T]] =
 
   if extra == 0 or spread == false:
     # Use an algorithm which overcounts the stride and minimizes reading limits.
-    if extra > 0: unCheckedInc(stride)
+    if extra > 0:
+      unCheckedInc(stride)
     for i in 0 ..< num:
       result[i] = newSeq[T]()
       for g in first ..< min(s.len, first + stride):
@@ -460,8 +478,9 @@ func distribute*[T](s: seq[T], num: Positive, spread = true): seq[seq[T]] =
         result[i].add(s[g])
       first = last
 
-proc map*[T, S](s: openArray[T], op: proc (x: T): S {.closure.}):
-                                                            seq[S] {.inline, effectsOf: op.} =
+proc map*[T, S](
+    s: openArray[T], op: proc(x: T): S {.closure.}
+): seq[S] {.inline, effectsOf: op.} =
   ## Returns a new sequence with the results of the `op` proc applied to every
   ## item in the container `s`.
   ##
@@ -479,15 +498,20 @@ proc map*[T, S](s: openArray[T], op: proc (x: T): S {.closure.}):
   runnableExamples:
     let
       a = @[1, 2, 3, 4]
-      b = map(a, proc(x: int): string = $x)
+      b = map(
+        a,
+        proc(x: int): string =
+          $x,
+      )
     assert b == @["1", "2", "3", "4"]
 
   newSeq(result, s.len)
   for i in 0 ..< s.len:
     result[i] = op(s[i])
 
-proc apply*[T](s: var openArray[T], op: proc (x: var T) {.closure.})
-                                                              {.inline, effectsOf: op.} =
+proc apply*[T](
+    s: var openArray[T], op: proc(x: var T) {.closure.}
+) {.inline, effectsOf: op.} =
   ## Applies `op` to every item in `s`, modifying it directly.
   ##
   ## Note that the container `s` must be declared as a `var`,
@@ -500,13 +524,19 @@ proc apply*[T](s: var openArray[T], op: proc (x: var T) {.closure.})
   ##
   runnableExamples:
     var a = @["1", "2", "3", "4"]
-    apply(a, proc(x: var string) = x &= "42")
+    apply(
+      a,
+      proc(x: var string) =
+        x &= "42",
+    )
     assert a == @["142", "242", "342", "442"]
 
-  for i in 0 ..< s.len: op(s[i])
+  for i in 0 ..< s.len:
+    op(s[i])
 
-proc apply*[T](s: var openArray[T], op: proc (x: T): T {.closure.})
-                                                              {.inline, effectsOf: op.} =
+proc apply*[T](
+    s: var openArray[T], op: proc(x: T): T {.closure.}
+) {.inline, effectsOf: op.} =
   ## Applies `op` to every item in `s` modifying it directly.
   ##
   ## Note that the container `s` must be declared as a `var`
@@ -520,21 +550,36 @@ proc apply*[T](s: var openArray[T], op: proc (x: T): T {.closure.})
   ##
   runnableExamples:
     var a = @["1", "2", "3", "4"]
-    apply(a, proc(x: string): string = x & "42")
+    apply(
+      a,
+      proc(x: string): string =
+        x & "42",
+    )
     assert a == @["142", "242", "342", "442"]
 
-  for i in 0 ..< s.len: s[i] = op(s[i])
+  for i in 0 ..< s.len:
+    s[i] = op(s[i])
 
-proc apply*[T](s: openArray[T], op: proc (x: T) {.closure.}) {.inline, since: (1, 3), effectsOf: op.} =
+proc apply*[T](
+    s: openArray[T], op: proc(x: T) {.closure.}
+) {.inline, since: (1, 3), effectsOf: op.} =
   ## Same as `apply` but for a proc that does not return anything
   ## and does not mutate `s` directly.
   runnableExamples:
     var message: string
-    apply([0, 1, 2, 3, 4], proc(item: int) = message.addInt item)
+    apply(
+      [0, 1, 2, 3, 4],
+      proc(item: int) =
+        message.addInt item
+      ,
+    )
     assert message == "01234"
-  for i in 0 ..< s.len: op(s[i])
+  for i in 0 ..< s.len:
+    op(s[i])
 
-iterator filter*[T](s: openArray[T], pred: proc(x: T): bool {.closure.}): T {.effectsOf: pred.} =
+iterator filter*[T](
+    s: openArray[T], pred: proc(x: T): bool {.closure.}
+): T {.effectsOf: pred.} =
   ## Iterates through a container `s` and yields every item that fulfills the
   ## predicate `pred` (a function that returns a `bool`).
   ##
@@ -549,7 +594,11 @@ iterator filter*[T](s: openArray[T], pred: proc(x: T): bool {.closure.}): T {.ef
   runnableExamples:
     let numbers = @[1, 4, 5, 8, 9, 7, 4]
     var evens = newSeq[int]()
-    for n in filter(numbers, proc (x: int): bool = x mod 2 == 0):
+    for n in filter(
+      numbers,
+      proc(x: int): bool =
+        x mod 2 == 0,
+    ):
       evens.add(n)
     assert evens == @[4, 8, 4]
 
@@ -557,8 +606,9 @@ iterator filter*[T](s: openArray[T], pred: proc(x: T): bool {.closure.}): T {.ef
     if pred(s[i]):
       yield s[i]
 
-proc filter*[T](s: openArray[T], pred: proc(x: T): bool {.closure.}): seq[T]
-                                                                  {.inline, effectsOf: pred.} =
+proc filter*[T](
+    s: openArray[T], pred: proc(x: T): bool {.closure.}
+): seq[T] {.inline, effectsOf: pred.} =
   ## Returns a new sequence with all the items of `s` that fulfill the
   ## predicate `pred` (a function that returns a `bool`).
   ##
@@ -574,8 +624,16 @@ proc filter*[T](s: openArray[T], pred: proc(x: T): bool {.closure.}): seq[T]
   runnableExamples:
     let
       colors = @["red", "yellow", "black"]
-      f1 = filter(colors, proc(x: string): bool = x.len < 6)
-      f2 = filter(colors, proc(x: string): bool = x.contains('y'))
+      f1 = filter(
+        colors,
+        proc(x: string): bool =
+          x.len < 6,
+      )
+      f2 = filter(
+        colors,
+        proc(x: string): bool =
+          x.contains('y'),
+      )
     assert f1 == @["red", "black"]
     assert f2 == @["yellow"]
 
@@ -584,8 +642,9 @@ proc filter*[T](s: openArray[T], pred: proc(x: T): bool {.closure.}): seq[T]
     if pred(s[i]):
       result.add(s[i])
 
-proc keepIf*[T](s: var seq[T], pred: proc(x: T): bool {.closure.})
-                                                                {.inline, effectsOf: pred.} =
+proc keepIf*[T](
+    s: var seq[T], pred: proc(x: T): bool {.closure.}
+) {.inline, effectsOf: pred.} =
   ## Keeps the items in the passed sequence `s` if they fulfill the
   ## predicate `pred` (a function that returns a `bool`).
   ##
@@ -600,7 +659,11 @@ proc keepIf*[T](s: var seq[T], pred: proc(x: T): bool {.closure.})
   ##
   runnableExamples:
     var floats = @[13.0, 12.5, 5.8, 2.0, 6.1, 9.9, 10.1]
-    keepIf(floats, proc(x: float): bool = x > 10)
+    keepIf(
+      floats,
+      proc(x: float): bool =
+        x > 10,
+    )
     assert floats == @[13.0, 12.5, 10.1]
 
   var pos = 0
@@ -614,26 +677,27 @@ proc keepIf*[T](s: var seq[T], pred: proc(x: T): bool {.closure.})
       unCheckedInc(pos)
   setLen(s, pos)
 
-func delete*[T](s: var seq[T]; slice: Slice[int]) =
+func delete*[T](s: var seq[T], slice: Slice[int]) =
   ## Deletes the items `s[slice]`, raising `IndexDefect` if the slice contains
   ## elements out of range.
   ##
   ## This operation moves all elements after `s[slice]` in linear time.
   runnableExamples:
     var a = @[10, 11, 12, 13, 14]
-    doAssertRaises(IndexDefect): a.delete(4..5)
+    doAssertRaises(IndexDefect):
+      a.delete(4 .. 5)
     assert a == @[10, 11, 12, 13, 14]
-    a.delete(4..4)
+    a.delete(4 .. 4)
     assert a == @[10, 11, 12, 13]
-    a.delete(1..2)
+    a.delete(1 .. 2)
     assert a == @[10, 13]
-    a.delete(1..<1) # empty slice
+    a.delete(1 ..< 1) # empty slice
     assert a == @[10, 13]
   when compileOption("boundChecks"):
     if not (slice.a < s.len and slice.a >= 0 and slice.b < s.len):
       raise newException(IndexDefect, $(slice: slice, len: s.len))
   if slice.b >= slice.a:
-    template defaultImpl =
+    template defaultImpl() =
       var i = slice.a
       var j = slice.b + 1
       var newLen = s.len - j + i
@@ -645,7 +709,9 @@ func delete*[T](s: var seq[T]; slice: Slice[int]) =
         unCheckedInc(i)
         unCheckedInc(j)
       setLen(s, newLen)
-    when nimvm: defaultImpl()
+
+    when nimvm:
+      defaultImpl()
     else:
       when defined(js):
         let n = slice.b - slice.a + 1
@@ -654,7 +720,9 @@ func delete*[T](s: var seq[T]; slice: Slice[int]) =
       else:
         defaultImpl()
 
-func delete*[T](s: var seq[T]; first, last: Natural) {.deprecated: "use `delete(s, first..last)`".} =
+func delete*[T](
+    s: var seq[T], first, last: Natural
+) {.deprecated: "use `delete(s, first..last)`".} =
   ## Deletes the items of a sequence `s` at positions `first..last`
   ## (including both ends of the range).
   ## This modifies `s` itself, it does not return a copy.
@@ -694,7 +762,8 @@ func insert*[T](dest: var seq[T], src: openArray[T], pos = 0) =
 
   var j = len(dest) - 1
   var i = j + len(src)
-  if i == j: return
+  if i == j:
+    return
   dest.setLen(i + 1)
 
   # Move items after `pos` to the end of the sequence.
@@ -710,7 +779,6 @@ func insert*[T](dest: var seq[T], src: openArray[T], pos = 0) =
   for item in src:
     dest[j] = item
     unCheckedInc(j)
-
 
 template filterIt*(s, pred: untyped): untyped =
   ## Returns a new sequence with all the items of `s` that fulfill the
@@ -739,7 +807,8 @@ template filterIt*(s, pred: untyped): untyped =
 
   var result = newSeq[typeof(s[0])]()
   for it {.inject.} in items(s):
-    if pred: result.add(it)
+    if pred:
+      result.add(it)
   move result
 
 template keepItIf*(varSeq: seq, pred: untyped) =
@@ -781,16 +850,21 @@ since (1, 1):
     runnableExamples:
       let numbers = @[-3, -2, -1, 0, 1, 2, 3, 4, 5, 6]
       iterator iota(n: int): int =
-        for i in 0..<n: yield i
+        for i in 0 ..< n:
+          yield i
+
       assert numbers.countIt(it < 0) == 3
       assert countIt(iota(10), it < 2) == 2
 
     var result = 0
     for it {.inject.} in s:
-      if pred: result += 1
+      if pred:
+        result += 1
     result
 
-proc all*[T](s: openArray[T], pred: proc(x: T): bool {.closure.}): bool {.effectsOf: pred.} =
+proc all*[T](
+    s: openArray[T], pred: proc(x: T): bool {.closure.}
+): bool {.effectsOf: pred.} =
   ## Iterates through a container and checks if every item fulfills the
   ## predicate.
   ##
@@ -800,8 +874,16 @@ proc all*[T](s: openArray[T], pred: proc(x: T): bool {.closure.}): bool {.effect
   ##
   runnableExamples:
     let numbers = @[1, 4, 5, 8, 9, 7, 4]
-    assert all(numbers, proc (x: int): bool = x < 10) == true
-    assert all(numbers, proc (x: int): bool = x < 9) == false
+    assert all(
+      numbers,
+      proc(x: int): bool =
+        x < 10,
+    ) == true
+    assert all(
+      numbers,
+      proc(x: int): bool =
+        x < 9,
+    ) == false
 
   for i in s:
     if not pred(i):
@@ -832,7 +914,9 @@ template allIt*(s, pred: untyped): bool =
       break
   result
 
-proc any*[T](s: openArray[T], pred: proc(x: T): bool {.closure.}): bool {.effectsOf: pred.} =
+proc any*[T](
+    s: openArray[T], pred: proc(x: T): bool {.closure.}
+): bool {.effectsOf: pred.} =
   ## Iterates through a container and checks if at least one item
   ## fulfills the predicate.
   ##
@@ -842,8 +926,16 @@ proc any*[T](s: openArray[T], pred: proc(x: T): bool {.closure.}): bool {.effect
   ##
   runnableExamples:
     let numbers = @[1, 4, 5, 8, 9, 7, 4]
-    assert any(numbers, proc (x: int): bool = x > 8) == true
-    assert any(numbers, proc (x: int): bool = x > 9) == false
+    assert any(
+      numbers,
+      proc(x: int): bool =
+        x > 8,
+    ) == true
+    assert any(
+      numbers,
+      proc(x: int): bool =
+        x > 9,
+    ) == false
 
   for i in s:
     if pred(i):
@@ -882,7 +974,7 @@ template toSeq1(s: not iterator): untyped =
         i += 1
       result
   else:
-    var result: seq[OutType]# = @[]
+    var result: seq[OutType] # = @[]
     for it in s:
       result.add(it)
     result
@@ -899,7 +991,7 @@ template toSeq2(iter: iterator): untyped =
     result
   else:
     type OutType = typeof(iter2())
-    var result: seq[OutType]# = @[]
+    var result: seq[OutType] # = @[]
     when compiles(iter2()):
       evalOnceAs(iter4, iter, false)
       let iter3 = iter4()
@@ -916,7 +1008,7 @@ template toSeq*(iter: untyped): untyped =
   ##
   runnableExamples:
     let
-      myRange = 1..5
+      myRange = 1 .. 5
       mySet: set[int8] = {5'i8, 3, 1}
     assert typeof(myRange) is HSlice[system.int, system.int]
     assert typeof(mySet) is set[int8]
@@ -976,7 +1068,6 @@ template foldl*(sequence, operation: untyped): untyped =
       concatenation = foldl(words, a & b)
       procs = @["proc", "Is", "Also", "Fine"]
 
-
     func foo(acc, cur: string): string =
       result = acc & cur
 
@@ -990,7 +1081,7 @@ template foldl*(sequence, operation: untyped): untyped =
   assert s.len > 0, "Can't fold empty sequences"
   var result: typeof(s[0])
   result = s[0]
-  for i in 1..<s.len:
+  for i in 1 ..< s.len:
     let
       a {.inject.} = result
       b {.inject.} = s[i]
@@ -1090,16 +1181,20 @@ template mapIt*(s: typed, op: untyped): untyped =
       strings = nums.mapIt($(4 * it))
     assert strings == @["4", "8", "12", "16"]
 
-  type OutType = typeof((
-    block:
-      var it{.inject.}: typeof(items(s), typeOfIter);
-      op), typeOfProc)
+  type OutType = typeof(
+    (
+      block:
+        var it {.inject.}: typeof(items(s), typeOfIter)
+        op
+    ),
+    typeOfProc,
+  )
+
   when OutType is not (proc):
     # Here, we avoid to create closures in loops.
     # This avoids https://github.com/nim-lang/Nim/issues/12625
     when compiles(s.len):
       block: # using a block avoids https://github.com/nim-lang/Nim/issues/8580
-
         # BUG: `evalOnceAs(s2, s, false)` would lead to C compile errors
         # (`error: use of undeclared identifier`) instead of Nim compile errors
         evalOnceAs(s2, s, compiles((let _ = s)))
@@ -1111,7 +1206,7 @@ template mapIt*(s: typed, op: untyped): untyped =
           i += 1
         result
     else:
-      var result: seq[OutType]# = @[]
+      var result: seq[OutType] # = @[]
       # use `items` to avoid https://github.com/nim-lang/Nim/issues/12639
       for it {.inject.} in items(s):
         result.add(op)
@@ -1126,9 +1221,9 @@ template mapIt*(s: typed, op: untyped): untyped =
     # In this case, `mapIt` is just syntax sugar for `map`.
     type InType = typeof(items(s), typeOfIter)
     # Use a help proc `f` to create closures for each element in `s`
-    let f = proc (x: InType): OutType =
-              let it {.inject.} = x
-              op
+    let f = proc(x: InType): OutType =
+      let it {.inject.} = x
+      op
     map(s, f)
 
 template applyIt*(varSeq, op: untyped) =
@@ -1150,7 +1245,6 @@ template applyIt*(varSeq, op: untyped) =
   for i in low(varSeq) .. high(varSeq):
     let it {.inject.} = varSeq[i]
     varSeq[i] = op
-
 
 template newSeqWith*(len: int, init: untyped): untyped =
   ## Creates a new `seq` of length `len`, calling `init` to initialize
@@ -1179,8 +1273,9 @@ template newSeqWith*(len: int, init: untyped): untyped =
     result[i] = init
   move(result) # refs bug #7295
 
-func mapLitsImpl(constructor: NimNode; op: NimNode; nested: bool;
-                 filter = nnkLiterals): NimNode =
+func mapLitsImpl(
+    constructor: NimNode, op: NimNode, nested: bool, filter = nnkLiterals
+): NimNode =
   if constructor.kind in filter:
     result = newNimNode(nnkCall, lineInfoFrom = constructor)
     result.add op
@@ -1193,8 +1288,7 @@ func mapLitsImpl(constructor: NimNode; op: NimNode; nested: bool;
       else:
         result.add v
 
-macro mapLiterals*(constructor, op: untyped;
-                   nested = true): untyped =
+macro mapLiterals*(constructor, op: untyped, nested = true): untyped =
   ## Applies `op` to each of the **atomic** literals like `3`
   ## or `"abc"` in the specified `constructor` AST. This can
   ## be used to map every array element to some target type:
@@ -1207,19 +1301,19 @@ macro mapLiterals*(constructor, op: untyped;
   ## is considered:
   runnableExamples:
     let a = mapLiterals((1.2, (2.3, 3.4), 4.8), int)
-    let b = mapLiterals((1.2, (2.3, 3.4), 4.8), int, nested=false)
+    let b = mapLiterals((1.2, (2.3, 3.4), 4.8), int, nested = false)
     assert a == (1, (2, 3), 4)
     assert b == (1, (2.3, 3.4), 4)
 
     let c = mapLiterals((1, (2, 3), 4, (5, 6)), `$`)
-    let d = mapLiterals((1, (2, 3), 4, (5, 6)), `$`, nested=false)
+    let d = mapLiterals((1, (2, 3), 4, (5, 6)), `$`, nested = false)
     assert c == ("1", ("2", "3"), "4", ("5", "6"))
     assert d == ("1", (2, 3), "4", (5, 6))
   ## There are no constraints for the `constructor` AST, it
   ## works for nested tuples of arrays of sets etc.
   result = mapLitsImpl(constructor, op, nested.boolVal)
 
-iterator items*[T](xs: iterator: T): T =
+iterator items*[T](xs: iterator (): T): T =
   ## Iterates over each element yielded by a closure iterator. This may
   ## not seem particularly useful on its own, but this allows closure
   ## iterators to be used by the mapIt, filterIt, allIt, anyIt, etc.

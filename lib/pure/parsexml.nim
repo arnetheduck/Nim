@@ -146,8 +146,7 @@ an HTML document contains.
 
 ]##
 
-import
-  std/[strutils, lexbase, streams, unicode]
+import std/[strutils, lexbase, streams, unicode]
 
 when defined(nimPreviewSlimSystem):
   import std/[assertions, syncio]
@@ -158,41 +157,45 @@ when defined(nimPreviewSlimSystem):
 
 type
   XmlEventKind* = enum ## enumeration of all events that may occur when parsing
-    xmlError,          ## an error occurred during parsing
-    xmlEof,            ## end of file reached
-    xmlCharData,       ## character data
-    xmlWhitespace,     ## whitespace has been parsed
-    xmlComment,        ## a comment has been parsed
-    xmlPI,             ## processing instruction (``<?name something ?>``)
-    xmlElementStart,   ## ``<elem>``
-    xmlElementEnd,     ## ``</elem>``
-    xmlElementOpen,    ## ``<elem
-    xmlAttribute,      ## ``key = "value"`` pair
-    xmlElementClose,   ## ``>``
-    xmlCData,          ## ``<![CDATA[`` ... data ... ``]]>``
-    xmlEntity,         ## &entity;
-    xmlSpecial         ## ``<! ... data ... >``
+    xmlError ## an error occurred during parsing
+    xmlEof ## end of file reached
+    xmlCharData ## character data
+    xmlWhitespace ## whitespace has been parsed
+    xmlComment ## a comment has been parsed
+    xmlPI ## processing instruction (``<?name something ?>``)
+    xmlElementStart ## ``<elem>``
+    xmlElementEnd ## ``</elem>``
+    xmlElementOpen ## ``<elem
+    xmlAttribute ## ``key = "value"`` pair
+    xmlElementClose ## ``>``
+    xmlCData ## ``<![CDATA[`` ... data ... ``]]>``
+    xmlEntity ## &entity;
+    xmlSpecial ## ``<! ... data ... >``
 
-  XmlErrorKind* = enum        ## enumeration that lists all errors that can occur
-    errNone,                  ## no error
-    errEndOfCDataExpected,    ## ``]]>`` expected
-    errNameExpected,          ## name expected
-    errSemicolonExpected,     ## ``;`` expected
-    errQmGtExpected,          ## ``?>`` expected
-    errGtExpected,            ## ``>`` expected
-    errEqExpected,            ## ``=`` expected
-    errQuoteExpected,         ## ``"`` or ``'`` expected
-    errEndOfCommentExpected   ## ``-->`` expected
+  XmlErrorKind* = enum ## enumeration that lists all errors that can occur
+    errNone ## no error
+    errEndOfCDataExpected ## ``]]>`` expected
+    errNameExpected ## name expected
+    errSemicolonExpected ## ``;`` expected
+    errQmGtExpected ## ``?>`` expected
+    errGtExpected ## ``>`` expected
+    errEqExpected ## ``=`` expected
+    errQuoteExpected ## ``"`` or ``'`` expected
+    errEndOfCommentExpected ## ``-->`` expected
     errAttributeValueExpected ## non-empty attribute value expected
 
   ParserState = enum
-    stateStart, stateNormal, stateAttr, stateEmptyElementTag, stateError
+    stateStart
+    stateNormal
+    stateAttr
+    stateEmptyElementTag
+    stateError
 
   XmlParseOption* = enum ## options for the XML parser
-    reportWhitespace,    ## report whitespace
-    reportComments       ## report comments
+    reportWhitespace ## report whitespace
+    reportComments ## report comments
     allowUnquotedAttribs ## allow unquoted attribute values (for HTML)
-    allowEmptyAttribs    ## allow empty attributes (without explicit value)
+    allowEmptyAttribs ## allow empty attributes (without explicit value)
 
   XmlParser* = object of BaseLexer ## the parser object.
     a, b, c: string
@@ -203,22 +206,18 @@ type
     filename: string
     options: set[XmlParseOption]
 
-const
-  errorMessages: array[XmlErrorKind, string] = [
-    "no error",
-    "']]>' expected",
-    "name expected",
-    "';' expected",
-    "'?>' expected",
-    "'>' expected",
-    "'=' expected",
-    "'\"' or \"'\" expected",
-    "'-->' expected",
-    "attribute value expected"
-  ]
+const errorMessages: array[XmlErrorKind, string] = [
+  "no error", "']]>' expected", "name expected", "';' expected", "'?>' expected",
+  "'>' expected", "'=' expected", "'\"' or \"'\" expected", "'-->' expected",
+  "attribute value expected",
+]
 
-proc open*(my: var XmlParser, input: Stream, filename: string,
-           options: set[XmlParseOption] = {}) =
+proc open*(
+    my: var XmlParser,
+    input: Stream,
+    filename: string,
+    options: set[XmlParseOption] = {},
+) =
   ## initializes the parser with an input stream. `Filename` is only used
   ## for nice error messages. The parser's behaviour can be controlled by
   ## the `options` parameter: If `options` contains ``reportWhitespace``
@@ -249,8 +248,7 @@ template charData*(my: XmlParser): string =
   ## Raises an assertion in debug mode if ``my.kind`` is not one
   ## of those events. In release mode, this will not trigger an error
   ## but the value returned will not be valid.
-  assert(my.kind in {xmlCharData, xmlWhitespace, xmlComment, xmlCData,
-                     xmlSpecial})
+  assert(my.kind in {xmlCharData, xmlWhitespace, xmlComment, xmlCData, xmlSpecial})
   my.a
 
 template elementName*(my: XmlParser): string =
@@ -327,20 +325,21 @@ proc getFilename*(my: XmlParser): string {.inline.} =
 proc errorMsg*(my: XmlParser): string =
   ## returns a helpful error message for the event ``xmlError``
   assert(my.kind == xmlError)
-  result = "$1($2, $3) Error: $4" % [
-    my.filename, $getLine(my), $getColumn(my), errorMessages[my.err]]
+  result =
+    "$1($2, $3) Error: $4" %
+    [my.filename, $getLine(my), $getColumn(my), errorMessages[my.err]]
 
 proc errorMsgExpected*(my: XmlParser, tag: string): string =
   ## returns an error message "<tag> expected" in the same format as the
   ## other error messages
-  result = "$1($2, $3) Error: $4" % [
-    my.filename, $getLine(my), $getColumn(my), "<$1> expected" % tag]
+  result =
+    "$1($2, $3) Error: $4" %
+    [my.filename, $getLine(my), $getColumn(my), "<$1> expected" % tag]
 
 proc errorMsg*(my: XmlParser, msg: string): string =
   ## returns an error message with text `msg` in the same format as the
   ## other error messages
-  result = "$1($2, $3) Error: $4" % [
-    my.filename, $getLine(my), $getColumn(my), msg]
+  result = "$1($2, $3) Error: $4" % [my.filename, $getLine(my), $getColumn(my), msg]
 
 proc markError(my: var XmlParser, kind: XmlErrorKind) {.inline.} =
   my.err = kind
@@ -351,7 +350,7 @@ proc parseCDATA(my: var XmlParser) =
   while true:
     case my.buf[pos]
     of ']':
-      if my.buf[pos+1] == ']' and my.buf[pos+2] == '>':
+      if my.buf[pos + 1] == ']' and my.buf[pos + 2] == '>':
         inc(pos, 3)
         break
       add(my.a, ']')
@@ -379,25 +378,30 @@ proc parseComment(my: var XmlParser) =
   while true:
     case my.buf[pos]
     of '-':
-      if my.buf[pos+1] == '-' and my.buf[pos+2] == '>':
+      if my.buf[pos + 1] == '-' and my.buf[pos + 2] == '>':
         inc(pos, 3)
         break
-      if my.options.contains(reportComments): add(my.a, '-')
+      if my.options.contains(reportComments):
+        add(my.a, '-')
       inc(pos)
     of '\0':
       markError(my, errEndOfCommentExpected)
       break
     of '\c':
       pos = lexbase.handleCR(my, pos)
-      if my.options.contains(reportComments): add(my.a, '\L')
+      if my.options.contains(reportComments):
+        add(my.a, '\L')
     of '\L':
       pos = lexbase.handleLF(my, pos)
-      if my.options.contains(reportComments): add(my.a, '\L')
+      if my.options.contains(reportComments):
+        add(my.a, '\L')
     of '/':
       pos = lexbase.handleRefillChar(my, pos)
-      if my.options.contains(reportComments): add(my.a, '/')
+      if my.options.contains(reportComments):
+        add(my.a, '/')
     else:
-      if my.options.contains(reportComments): add(my.a, my.buf[pos])
+      if my.options.contains(reportComments):
+        add(my.a, my.buf[pos])
       inc(pos)
   my.bufpos = pos
   my.kind = xmlComment
@@ -407,22 +411,25 @@ proc parseWhitespace(my: var XmlParser, skip = false) =
   while true:
     case my.buf[pos]
     of ' ', '\t':
-      if not skip: add(my.a, my.buf[pos])
+      if not skip:
+        add(my.a, my.buf[pos])
       inc(pos)
     of '\c':
       # the specification says that CR-LF, CR are to be transformed to LF
       pos = lexbase.handleCR(my, pos)
-      if not skip: add(my.a, '\L')
+      if not skip:
+        add(my.a, '\L')
     of '\L':
       pos = lexbase.handleLF(my, pos)
-      if not skip: add(my.a, '\L')
+      if not skip:
+        add(my.a, '\L')
     else:
       break
   my.bufpos = pos
 
 const
-  NameStartChar = {'A'..'Z', 'a'..'z', '_', ':', '\128'..'\255'}
-  NameChar = {'A'..'Z', 'a'..'z', '0'..'9', '.', '-', '_', ':', '\128'..'\255'}
+  NameStartChar = {'A' .. 'Z', 'a' .. 'z', '_', ':', '\128' .. '\255'}
+  NameChar = {'A' .. 'Z', 'a' .. 'z', '0' .. '9', '.', '-', '_', ':', '\128' .. '\255'}
 
 proc parseName(my: var XmlParser, dest: var string) =
   var pos = my.bufpos
@@ -430,13 +437,14 @@ proc parseName(my: var XmlParser, dest: var string) =
     while true:
       add(dest, my.buf[pos])
       inc(pos)
-      if my.buf[pos] notin NameChar: break
+      if my.buf[pos] notin NameChar:
+        break
     my.bufpos = pos
   else:
     markError(my, errNameExpected)
 
 proc parseEntity(my: var XmlParser, dest: var string) =
-  var pos = my.bufpos+1
+  var pos = my.bufpos + 1
   my.kind = xmlCharData
   if my.buf[pos] == '#':
     var r: int = 0
@@ -445,32 +453,36 @@ proc parseEntity(my: var XmlParser, dest: var string) =
       inc(pos)
       while true:
         case my.buf[pos]
-        of '0'..'9': r = (r shl 4) or (ord(my.buf[pos]) - ord('0'))
-        of 'a'..'f': r = (r shl 4) or (ord(my.buf[pos]) - ord('a') + 10)
-        of 'A'..'F': r = (r shl 4) or (ord(my.buf[pos]) - ord('A') + 10)
-        else: break
+        of '0' .. '9':
+          r = (r shl 4) or (ord(my.buf[pos]) - ord('0'))
+        of 'a' .. 'f':
+          r = (r shl 4) or (ord(my.buf[pos]) - ord('a') + 10)
+        of 'A' .. 'F':
+          r = (r shl 4) or (ord(my.buf[pos]) - ord('A') + 10)
+        else:
+          break
         inc(pos)
     else:
-      while my.buf[pos] in {'0'..'9'}:
+      while my.buf[pos] in {'0' .. '9'}:
         r = r * 10 + (ord(my.buf[pos]) - ord('0'))
         inc(pos)
     add(dest, toUTF8(Rune(r)))
-  elif my.buf[pos] == 'l' and my.buf[pos+1] == 't' and my.buf[pos+2] == ';':
+  elif my.buf[pos] == 'l' and my.buf[pos + 1] == 't' and my.buf[pos + 2] == ';':
     add(dest, '<')
     inc(pos, 2)
-  elif my.buf[pos] == 'g' and my.buf[pos+1] == 't' and my.buf[pos+2] == ';':
+  elif my.buf[pos] == 'g' and my.buf[pos + 1] == 't' and my.buf[pos + 2] == ';':
     add(dest, '>')
     inc(pos, 2)
-  elif my.buf[pos] == 'a' and my.buf[pos+1] == 'm' and my.buf[pos+2] == 'p' and
-      my.buf[pos+3] == ';':
+  elif my.buf[pos] == 'a' and my.buf[pos + 1] == 'm' and my.buf[pos + 2] == 'p' and
+      my.buf[pos + 3] == ';':
     add(dest, '&')
     inc(pos, 3)
-  elif my.buf[pos] == 'a' and my.buf[pos+1] == 'p' and my.buf[pos+2] == 'o' and
-      my.buf[pos+3] == 's' and my.buf[pos+4] == ';':
+  elif my.buf[pos] == 'a' and my.buf[pos + 1] == 'p' and my.buf[pos + 2] == 'o' and
+      my.buf[pos + 3] == 's' and my.buf[pos + 4] == ';':
     add(dest, '\'')
     inc(pos, 4)
-  elif my.buf[pos] == 'q' and my.buf[pos+1] == 'u' and my.buf[pos+2] == 'o' and
-      my.buf[pos+3] == 't' and my.buf[pos+4] == ';':
+  elif my.buf[pos] == 'q' and my.buf[pos + 1] == 'u' and my.buf[pos + 2] == 'o' and
+      my.buf[pos + 3] == 't' and my.buf[pos + 4] == ';':
     add(dest, '"')
     inc(pos, 4)
   else:
@@ -501,7 +513,7 @@ proc parsePI(my: var XmlParser) =
       markError(my, errQmGtExpected)
       break
     of '?':
-      if my.buf[pos+1] == '>':
+      if my.buf[pos + 1] == '>':
         inc(pos, 2)
         break
       add(my.b, '?')
@@ -588,7 +600,7 @@ proc parseTag(my: var XmlParser) =
       markError(my, errGtExpected)
 
 proc parseEndTag(my: var XmlParser) =
-  my.bufpos = lexbase.handleRefillChar(my, my.bufpos+1)
+  my.bufpos = lexbase.handleRefillChar(my, my.bufpos + 1)
   #inc(my.bufpos, 2)
   parseName(my, my.a)
   parseWhitespace(my, skip = true)
@@ -660,8 +672,8 @@ proc parseAttribute(my: var XmlParser) =
           add(my.b, my.buf[pos])
           inc(pos)
   elif allowUnquotedAttribs in my.options:
-    const disallowedChars = {'"', '\'', '`', '=', '<', '>', ' ',
-                             '\0', '\t', '\L', '\F', '\f'}
+    const disallowedChars =
+      {'"', '\'', '`', '=', '<', '>', ' ', '\0', '\t', '\L', '\F', '\f'}
     let startPos = pos
     while (let c = my.buf[pos]; c notin disallowedChars):
       if c == '&':
@@ -690,7 +702,8 @@ proc parseCharData(my: var XmlParser) =
   var pos = my.bufpos
   while true:
     case my.buf[pos]
-    of '\0', '<', '&': break
+    of '\0', '<', '&':
+      break
     of '\c':
       # the specification says that CR-LF, CR are to be transformed to LF
       pos = lexbase.handleCR(my, pos)
@@ -713,16 +726,15 @@ proc rawGetTok(my: var XmlParser) =
   var pos = my.bufpos
   case my.buf[pos]
   of '<':
-    case my.buf[pos+1]
+    case my.buf[pos + 1]
     of '/':
       parseEndTag(my)
     of '!':
-      if my.buf[pos+2] == '[' and my.buf[pos+3] == 'C' and
-          my.buf[pos+4] == 'D' and my.buf[pos+5] == 'A' and
-          my.buf[pos+6] == 'T' and my.buf[pos+7] == 'A' and
-          my.buf[pos+8] == '[':
+      if my.buf[pos + 2] == '[' and my.buf[pos + 3] == 'C' and my.buf[pos + 4] == 'D' and
+          my.buf[pos + 5] == 'A' and my.buf[pos + 6] == 'T' and my.buf[pos + 7] == 'A' and
+          my.buf[pos + 8] == '[':
         parseCDATA(my)
-      elif my.buf[pos+2] == '-' and my.buf[pos+3] == '-':
+      elif my.buf[pos + 2] == '-' and my.buf[pos + 3] == '-':
         parseComment(my)
       else:
         parseSpecial(my)
@@ -747,12 +759,14 @@ proc getTok(my: var XmlParser) =
     rawGetTok(my)
     case my.kind
     of xmlComment:
-      if my.options.contains(reportComments): break
-    of xmlWhitespace:
-      if my.options.contains(reportWhitespace) or lastKind in {xmlCharData,
-          xmlComment, xmlEntity}:
+      if my.options.contains(reportComments):
         break
-    else: break
+    of xmlWhitespace:
+      if my.options.contains(reportWhitespace) or
+          lastKind in {xmlCharData, xmlComment, xmlEntity}:
+        break
+    else:
+      break
 
 proc next*(my: var XmlParser) =
   ## retrieves the first/next event. This controls the parser.
@@ -794,27 +808,36 @@ proc next*(my: var XmlParser) =
 when not defined(testing) and isMainModule:
   import std/os
   var s = newFileStream(paramStr(1), fmRead)
-  if s == nil: quit("cannot open the file" & paramStr(1))
+  if s == nil:
+    quit("cannot open the file" & paramStr(1))
   var x: XmlParser
   open(x, s, paramStr(1))
   while true:
     next(x)
     case x.kind
-    of xmlError: echo(x.errorMsg())
-    of xmlEof: break
-    of xmlCharData: echo(x.charData)
-    of xmlWhitespace: echo("|$1|" % x.charData)
-    of xmlComment: echo("<!-- $1 -->" % x.charData)
-    of xmlPI: echo("<? $1 ## $2 ?>" % [x.piName, x.piRest])
-    of xmlElementStart: echo("<$1>" % x.elementName)
-    of xmlElementEnd: echo("</$1>" % x.elementName)
-
-    of xmlElementOpen: echo("<$1" % x.elementName)
+    of xmlError:
+      echo(x.errorMsg())
+    of xmlEof:
+      break
+    of xmlCharData:
+      echo(x.charData)
+    of xmlWhitespace:
+      echo("|$1|" % x.charData)
+    of xmlComment:
+      echo("<!-- $1 -->" % x.charData)
+    of xmlPI:
+      echo("<? $1 ## $2 ?>" % [x.piName, x.piRest])
+    of xmlElementStart:
+      echo("<$1>" % x.elementName)
+    of xmlElementEnd:
+      echo("</$1>" % x.elementName)
+    of xmlElementOpen:
+      echo("<$1" % x.elementName)
     of xmlAttribute:
       echo("Key: " & x.attrKey)
       echo("Value: " & x.attrValue)
-
-    of xmlElementClose: echo(">")
+    of xmlElementClose:
+      echo(">")
     of xmlCData:
       echo("<![CDATA[$1]]>" % x.charData)
     of xmlEntity:

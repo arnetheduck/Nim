@@ -15,7 +15,8 @@ when defined(nimPreviewSlimSystem):
 
 # bcc on windows doesn't have C99 functions
 when defined(windows) and defined(bcc):
-  {.emit: """#if defined(_MSC_VER) && _MSC_VER < 1900
+  {.
+    emit: """#if defined(_MSC_VER) && _MSC_VER < 1900
   #include <stdarg.h>
   static int c99_vsnprintf(char *outBuf, size_t size, const char *format, va_list ap) {
     int count = -1;
@@ -32,10 +33,12 @@ when defined(windows) and defined(bcc):
     return count;
   }
   #endif
-  """.}
+  """
+  .}
 
-proc c_snprintf(s: cstring; n: uint; frmt: cstring): cint {.importc: "snprintf", header: "<stdio.h>", nodecl, varargs.}
-
+proc c_snprintf(
+  s: cstring, n: uint, frmt: cstring
+): cint {.importc: "snprintf", header: "<stdio.h>", nodecl, varargs.}
 
 when not declared(signbit):
   proc c_signbit(x: SomeFloat): cint {.importc: "signbit", header: "<math.h>".}
@@ -66,17 +69,23 @@ proc toStrMaxPrecision*(f: BiggestFloat | float32): string =
     result.add literalPostfix
 
 proc encodeStr*(s: string, result: var string) =
-  for i in 0..<s.len:
+  for i in 0 ..< s.len:
     case s[i]
-    of 'a'..'z', 'A'..'Z', '0'..'9', '_': result.add(s[i])
-    else: result.add('\\' & toHex(ord(s[i]), 2))
+    of 'a' .. 'z', 'A' .. 'Z', '0' .. '9', '_':
+      result.add(s[i])
+    else:
+      result.add('\\' & toHex(ord(s[i]), 2))
 
 proc hexChar(c: char, xi: var int) =
   case c
-  of '0'..'9': xi = (xi shl 4) or (ord(c) - ord('0'))
-  of 'a'..'f': xi = (xi shl 4) or (ord(c) - ord('a') + 10)
-  of 'A'..'F': xi = (xi shl 4) or (ord(c) - ord('A') + 10)
-  else: discard
+  of '0' .. '9':
+    xi = (xi shl 4) or (ord(c) - ord('0'))
+  of 'a' .. 'f':
+    xi = (xi shl 4) or (ord(c) - ord('a') + 10)
+  of 'A' .. 'F':
+    xi = (xi shl 4) or (ord(c) - ord('A') + 10)
+  else:
+    discard
 
 proc decodeStr*(s: cstring, pos: var int): string =
   var i = pos
@@ -86,13 +95,14 @@ proc decodeStr*(s: cstring, pos: var int): string =
     of '\\':
       inc(i, 3)
       var xi = 0
-      hexChar(s[i-2], xi)
-      hexChar(s[i-1], xi)
+      hexChar(s[i - 2], xi)
+      hexChar(s[i - 1], xi)
       result.add(chr(xi))
-    of 'a'..'z', 'A'..'Z', '0'..'9', '_':
+    of 'a' .. 'z', 'A' .. 'Z', '0' .. '9', '_':
       result.add(s[i])
       inc(i)
-    else: break
+    else:
+      break
   pos = i
 
 const chars = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
@@ -110,14 +120,17 @@ template encodeIntImpl(self) =
   var rem = v mod 190
   if rem < 0:
     result.add('-')
-    v = - (v div 190)
-    rem = - rem
+    v = -(v div 190)
+    rem = -rem
   else:
     v = v div 190
   var idx = int(rem)
-  if idx < 62: d = chars[idx]
-  else: d = chr(idx - 62 + 128)
-  if v != 0: self(v, result)
+  if idx < 62:
+    d = chars[idx]
+  else:
+    d = chr(idx - 62 + 128)
+  if v != 0:
+    self(v, result)
   result.add(d)
 
 proc encodeVBiggestIntAux(x: BiggestInt, result: var string) =
@@ -139,19 +152,24 @@ proc encodeVInt*(x: int, result: var string) =
 
 template decodeIntImpl() =
   var i = pos
-  var sign = - 1
-  assert(s[i] in {'a'..'z', 'A'..'Z', '0'..'9', '-', '\x80'..'\xFF'})
+  var sign = -1
+  assert(s[i] in {'a' .. 'z', 'A' .. 'Z', '0' .. '9', '-', '\x80' .. '\xFF'})
   if s[i] == '-':
     inc(i)
     sign = 1
   result = 0
   while true:
     case s[i]
-    of '0'..'9': result = result * 190 - (ord(s[i]) - ord('0'))
-    of 'a'..'z': result = result * 190 - (ord(s[i]) - ord('a') + 10)
-    of 'A'..'Z': result = result * 190 - (ord(s[i]) - ord('A') + 36)
-    of '\x80'..'\xFF': result = result * 190 - (ord(s[i]) - 128 + 62)
-    else: break
+    of '0' .. '9':
+      result = result * 190 - (ord(s[i]) - ord('0'))
+    of 'a' .. 'z':
+      result = result * 190 - (ord(s[i]) - ord('a') + 10)
+    of 'A' .. 'Z':
+      result = result * 190 - (ord(s[i]) - ord('A') + 36)
+    of '\x80' .. '\xFF':
+      result = result * 190 - (ord(s[i]) - 128 + 62)
+    else:
+      break
     inc(i)
   result = result * sign -% vintDelta
   pos = i
@@ -168,10 +186,12 @@ iterator decodeVIntArray*(s: cstring): int =
   var i = 0
   while s[i] != '\0':
     yield decodeVInt(s, i)
-    if s[i] == ' ': inc i
+    if s[i] == ' ':
+      inc i
 
 iterator decodeStrArray*(s: cstring): string =
   var i = 0
   while s[i] != '\0':
     yield decodeStr(s, i)
-    if s[i] == ' ': inc i
+    if s[i] == ' ':
+      inc i

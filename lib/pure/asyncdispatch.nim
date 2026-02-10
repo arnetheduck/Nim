@@ -241,14 +241,11 @@ export asyncstreams
 
 # TODO: Check if yielded future is nil and throw a more meaningful exception
 
-type
-  PDispatcherBase = ref object of RootRef
-    timers*: HeapQueue[tuple[finishAt: MonoTime, fut: Future[void]]]
-    callbacks*: Deque[proc () {.gcsafe.}]
+type PDispatcherBase = ref object of RootRef
+  timers*: HeapQueue[tuple[finishAt: MonoTime, fut: Future[void]]]
+  callbacks*: Deque[proc() {.gcsafe.}]
 
-proc processTimers(
-  p: PDispatcherBase, didSomeWork: var bool
-): Option[int] {.inline.} =
+proc processTimers(p: PDispatcherBase, didSomeWork: var bool): Option[int] {.inline.} =
   # Pop the timers in the order in which they will expire (smaller `finishAt`).
   var count = p.timers.len
   let t = getMonoTime()
@@ -258,19 +255,20 @@ proc processTimers(
     didSomeWork = true
 
   # Return the number of milliseconds in which the next timer will expire.
-  if p.timers.len == 0: return
+  if p.timers.len == 0:
+    return
 
   let millisecs = (p.timers[0].finishAt - getMonoTime()).inMilliseconds
   return some(millisecs.int + 1)
 
-proc processPendingCallbacks(p: PDispatcherBase; didSomeWork: var bool) =
+proc processPendingCallbacks(p: PDispatcherBase, didSomeWork: var bool) =
   while p.callbacks.len > 0:
     var cb = p.callbacks.popFirst()
     cb()
     didSomeWork = true
 
 proc adjustTimeout(
-  p: PDispatcherBase, pollTimeout: int, nextTimer: Option[int]
+    p: PDispatcherBase, pollTimeout: int, nextTimer: Option[int]
 ): int {.inline.} =
   if p.callbacks.len != 0:
     return 0
@@ -283,11 +281,11 @@ proc adjustTimeout(
 
 proc runOnce(timeout: int): bool {.gcsafe.}
 
-proc callSoon*(cbproc: proc () {.gcsafe.}) {.gcsafe.}
+proc callSoon*(cbproc: proc() {.gcsafe.}) {.gcsafe.}
   ## Schedule `cbproc` to be called as soon as possible.
   ## The callback is called when control returns to the event loop.
 
-proc initCallSoonProc =
+proc initCallSoonProc() =
   if asyncfutures.getCallSoonProc().isNil:
     asyncfutures.setCallSoonProc(callSoon)
 
@@ -307,16 +305,21 @@ when defined(windows) or defined(nimdoc):
     CompletionKey = ULONG_PTR
 
     CompletionData* = object
-      fd*: AsyncFD       # TODO: Rename this.
-      cb*: owned(proc (fd: AsyncFD, bytesTransferred: DWORD,
-                errcode: OSErrorCode) {.closure, gcsafe.})
-      cell*: ForeignCell # we need this `cell` to protect our `cb` environment,
-                         # when using RegisterWaitForSingleObject, because
-                         # waiting is done in different thread.
+      fd*: AsyncFD # TODO: Rename this.
+      cb*: owned(
+        proc(fd: AsyncFD, bytesTransferred: DWORD, errcode: OSErrorCode) {.
+          closure, gcsafe
+        .}
+      )
+      cell*: ForeignCell
+        # we need this `cell` to protect our `cb` environment,
+        # when using RegisterWaitForSingleObject, because
+        # waiting is done in different thread.
 
     PDispatcher* = ref object of PDispatcherBase
       ioPort: Handle
-      handles*: HashSet[AsyncFD] # Export handles so that an external library can register them.
+      handles*: HashSet[AsyncFD]
+        # Export handles so that an external library can register them.
 
     CustomObj = object of OVERLAPPED
       data*: CompletionData
@@ -330,15 +333,17 @@ when defined(windows) or defined(nimdoc):
       handleFd: AsyncFD
       waitFd: Handle
       ovl: owned CustomRef
+
     PostCallbackDataPtr = ptr PostCallbackData
 
     AsyncEventImpl = object
       hEvent: Handle
       hWaiter: Handle
       pcd: PostCallbackDataPtr
+
     AsyncEvent* = ptr AsyncEventImpl
 
-    Callback* = proc (fd: AsyncFD): bool {.closure, gcsafe.}
+    Callback* = proc(fd: AsyncFD): bool {.closure, gcsafe.}
 
   proc hash(x: AsyncFD): Hash {.borrow.}
   proc `==`*(x: AsyncFD, y: AsyncFD): bool {.borrow.}
@@ -349,9 +354,9 @@ when defined(windows) or defined(nimdoc):
     result.ioPort = createIoCompletionPort(INVALID_HANDLE_VALUE, 0, 0, 1)
     result.handles = initHashSet[AsyncFD]()
     result.timers.clear()
-    result.callbacks = initDeque[proc () {.closure, gcsafe.}](64)
+    result.callbacks = initDeque[proc() {.closure, gcsafe.}](64)
 
-  var gDisp{.threadvar.}: owned PDispatcher ## Global dispatcher
+  var gDisp {.threadvar.}: owned PDispatcher ## Global dispatcher
 
   proc setGlobalDispatcher*(disp: sink PDispatcher) =
     if not gDisp.isNil:
@@ -373,8 +378,7 @@ when defined(windows) or defined(nimdoc):
     ## Registers `fd` with the dispatcher.
     let p = getGlobalDispatcher()
 
-    if createIoCompletionPort(fd.Handle, p.ioPort,
-                              cast[CompletionKey](fd), 1) == 0:
+    if createIoCompletionPort(fd.Handle, p.ioPort, cast[CompletionKey](fd), 1) == 0:
       raiseOSError(osLastError())
     p.handles.incl(fd)
 
@@ -383,9 +387,11 @@ when defined(windows) or defined(nimdoc):
     ## Raises ValueError if `fd` has not been registered.
     let p = getGlobalDispatcher()
     if fd notin p.handles:
-      raise newException(ValueError,
+      raise newException(
+        ValueError,
         "Operation performed on a socket which has not been registered with" &
-        " the dispatcher yet.")
+          " the dispatcher yet.",
+      )
 
   proc hasPendingOperations*(): bool =
     ## Returns `true` if the global dispatcher has pending operations.
@@ -395,22 +401,23 @@ when defined(windows) or defined(nimdoc):
   proc runOnce(timeout: int): bool =
     let p = getGlobalDispatcher()
     if p.handles.len == 0 and p.timers.len == 0 and p.callbacks.len == 0:
-      raise newException(ValueError,
-        "No handles or timers registered in dispatcher.")
+      raise newException(ValueError, "No handles or timers registered in dispatcher.")
 
     result = false
     let nextTimer = processTimers(p, result)
     let at = adjustTimeout(p, timeout, nextTimer)
-    var llTimeout =
-      if at == -1: winlean.INFINITE
-      else: at.int32
+    var llTimeout = if at == -1: winlean.INFINITE else: at.int32
 
     var lpNumberOfBytesTransferred: DWORD
     var lpCompletionKey: ULONG_PTR
     var customOverlapped: CustomRef
-    let res = getQueuedCompletionStatus(p.ioPort,
-        addr lpNumberOfBytesTransferred, addr lpCompletionKey,
-        cast[ptr POVERLAPPED](addr customOverlapped), llTimeout).bool
+    let res = getQueuedCompletionStatus(
+      p.ioPort,
+      addr lpNumberOfBytesTransferred,
+      addr lpCompletionKey,
+      cast[ptr POVERLAPPED](addr customOverlapped),
+      llTimeout,
+    ).bool
     result = true
     # For 'gcDestructors' the destructor of 'customOverlapped' will
     # be called at the end and we are the only owner here. This means
@@ -423,8 +430,9 @@ when defined(windows) or defined(nimdoc):
       # This is useful for ensuring the reliability of the overlapped struct.
       assert customOverlapped.data.fd == lpCompletionKey.AsyncFD
 
-      customOverlapped.data.cb(customOverlapped.data.fd,
-          lpNumberOfBytesTransferred, OSErrorCode(-1))
+      customOverlapped.data.cb(
+        customOverlapped.data.fd, lpNumberOfBytesTransferred, OSErrorCode(-1)
+      )
 
       # If cell.data != nil, then system.protect(rawEnv(cb)) was called,
       # so we need to dispose our `cb` environment, because it is not needed
@@ -438,8 +446,9 @@ when defined(windows) or defined(nimdoc):
       let errCode = osLastError()
       if customOverlapped != nil:
         assert customOverlapped.data.fd == lpCompletionKey.AsyncFD
-        customOverlapped.data.cb(customOverlapped.data.fd,
-            lpNumberOfBytesTransferred, errCode)
+        customOverlapped.data.cb(
+          customOverlapped.data.fd, lpNumberOfBytesTransferred, errCode
+        )
         if customOverlapped.data.cell.data != nil:
           system.dispose(customOverlapped.data.cell)
         when not defined(gcDestructors):
@@ -448,13 +457,13 @@ when defined(windows) or defined(nimdoc):
         if errCode.int32 == WAIT_TIMEOUT:
           # Timed out
           result = false
-        else: raiseOSError(errCode)
+        else:
+          raiseOSError(errCode)
 
     # Timer processing.
     discard processTimers(p, result)
     # Callback queue processing
     processPendingCallbacks(p, result)
-
 
   var acceptEx: WSAPROC_ACCEPTEX
   var connectEx: WSAPROC_CONNECTEX
@@ -464,9 +473,18 @@ when defined(windows) or defined(nimdoc):
     # Ref: https://github.com/powdahound/twisted/blob/master/twisted/internet/iocpreactor/iocpsupport/winsock_pointers.c
     var bytesRet: DWORD
     fun = nil
-    result = WSAIoctl(s, SIO_GET_EXTENSION_FUNCTION_POINTER, addr guid,
-                      sizeof(GUID).DWORD, addr fun, sizeof(pointer).DWORD,
-                      addr bytesRet, nil, nil) == 0
+    result =
+      WSAIoctl(
+        s,
+        SIO_GET_EXTENSION_FUNCTION_POINTER,
+        addr guid,
+        sizeof(GUID).DWORD,
+        addr fun,
+        sizeof(pointer).DWORD,
+        addr bytesRet,
+        nil,
+        nil,
+      ) == 0
 
   proc initAll() =
     let dummySock = createNativeSocket()
@@ -491,15 +509,15 @@ when defined(windows) or defined(nimdoc):
     # Windows holds a ref for us with RC == 0 (single owner).
     # This is passed back to us in the IO completion port.
 
-  proc recv*(socket: AsyncFD, size: int,
-             flags = {SocketFlag.SafeDisconn}): owned(Future[string]) =
+  proc recv*(
+      socket: AsyncFD, size: int, flags = {SocketFlag.SafeDisconn}
+  ): owned(Future[string]) =
     ## Reads **up to** `size` bytes from `socket`. Returned future will
     ## complete once all the data requested is read, a part of the data has been
     ## read, or the socket has disconnected in which case the future will
     ## complete with a value of `""`.
     ##
     ## .. warning:: The `Peek` socket flag is not supported on Windows.
-
 
     # Things to note:
     #   * When WSARecv completes immediately then `bytesReceived` is very
@@ -518,8 +536,9 @@ when defined(windows) or defined(nimdoc):
     var bytesReceived: DWORD
     var flagsio = flags.toOSFlags().DWORD
     var ol = newCustom()
-    ol.data = CompletionData(fd: socket, cb:
-      proc (fd: AsyncFD, bytesCount: DWORD, errcode: OSErrorCode) =
+    ol.data = CompletionData(
+      fd: socket,
+      cb: proc(fd: AsyncFD, bytesCount: DWORD, errcode: OSErrorCode) =
         if not retFuture.finished:
           if errcode == OSErrorCode(-1):
             if bytesCount == 0 and dataBuf.buf[0] == '\0':
@@ -537,10 +556,18 @@ when defined(windows) or defined(nimdoc):
         if dataBuf.buf != nil:
           dealloc dataBuf.buf
           dataBuf.buf = nil
+      ,
     )
 
-    let ret = WSARecv(socket.SocketHandle, addr dataBuf, 1, addr bytesReceived,
-                      addr flagsio, cast[POVERLAPPED](ol), nil)
+    let ret = WSARecv(
+      socket.SocketHandle,
+      addr dataBuf,
+      1,
+      addr bytesReceived,
+      addr flagsio,
+      cast[POVERLAPPED](ol),
+      nil,
+    )
     if ret == -1:
       let err = osLastError()
       if err.int32 != ERROR_IO_PENDING:
@@ -564,8 +591,9 @@ when defined(windows) or defined(nimdoc):
           retFuture.complete("")
     return retFuture
 
-  proc recvInto*(socket: AsyncFD, buf: pointer, size: int,
-                 flags = {SocketFlag.SafeDisconn}): owned(Future[int]) =
+  proc recvInto*(
+      socket: AsyncFD, buf: pointer, size: int, flags = {SocketFlag.SafeDisconn}
+  ): owned(Future[int]) =
     ## Reads **up to** `size` bytes from `socket` into `buf`, which must
     ## at least be of that size. Returned future will complete once all the
     ## data requested is read, a part of the data has been read, or the socket
@@ -573,7 +601,6 @@ when defined(windows) or defined(nimdoc):
     ## `0`.
     ##
     ## .. warning:: The `Peek` socket flag is not supported on Windows.
-
 
     # Things to note:
     #   * When WSARecv completes immediately then `bytesReceived` is very
@@ -594,8 +621,9 @@ when defined(windows) or defined(nimdoc):
     var bytesReceived: DWORD
     var flagsio = flags.toOSFlags().DWORD
     var ol = newCustom()
-    ol.data = CompletionData(fd: socket, cb:
-      proc (fd: AsyncFD, bytesCount: DWORD, errcode: OSErrorCode) =
+    ol.data = CompletionData(
+      fd: socket,
+      cb: proc(fd: AsyncFD, bytesCount: DWORD, errcode: OSErrorCode) =
         if not retFuture.finished:
           if errcode == OSErrorCode(-1):
             retFuture.complete(bytesCount)
@@ -606,10 +634,18 @@ when defined(windows) or defined(nimdoc):
               retFuture.fail(newOSError(errcode))
         if dataBuf.buf != nil:
           dataBuf.buf = nil
+      ,
     )
 
-    let ret = WSARecv(socket.SocketHandle, addr dataBuf, 1, addr bytesReceived,
-                      addr flagsio, cast[POVERLAPPED](ol), nil)
+    let ret = WSARecv(
+      socket.SocketHandle,
+      addr dataBuf,
+      1,
+      addr bytesReceived,
+      addr flagsio,
+      cast[POVERLAPPED](ol),
+      nil,
+    )
     if ret == -1:
       let err = osLastError()
       if err.int32 != ERROR_IO_PENDING:
@@ -630,8 +666,9 @@ when defined(windows) or defined(nimdoc):
           retFuture.complete(bytesReceived)
     return retFuture
 
-  proc send*(socket: AsyncFD, buf: pointer, size: int,
-             flags = {SocketFlag.SafeDisconn}): owned(Future[void]) =
+  proc send*(
+      socket: AsyncFD, buf: pointer, size: int, flags = {SocketFlag.SafeDisconn}
+  ): owned(Future[void]) =
     ## Sends `size` bytes from `buf` to `socket`. The returned future
     ## will complete once all data has been sent.
     ##
@@ -646,8 +683,9 @@ when defined(windows) or defined(nimdoc):
 
     var bytesReceived, lowFlags: DWORD
     var ol = newCustom()
-    ol.data = CompletionData(fd: socket, cb:
-      proc (fd: AsyncFD, bytesCount: DWORD, errcode: OSErrorCode) =
+    ol.data = CompletionData(
+      fd: socket,
+      cb: proc(fd: AsyncFD, bytesCount: DWORD, errcode: OSErrorCode) =
         if not retFuture.finished:
           if errcode == OSErrorCode(-1):
             retFuture.complete()
@@ -656,10 +694,18 @@ when defined(windows) or defined(nimdoc):
               retFuture.complete()
             else:
               retFuture.fail(newOSError(errcode))
+      ,
     )
 
-    let ret = WSASend(socket.SocketHandle, addr dataBuf, 1, addr bytesReceived,
-                      lowFlags, cast[POVERLAPPED](ol), nil)
+    let ret = WSASend(
+      socket.SocketHandle,
+      addr dataBuf,
+      1,
+      addr bytesReceived,
+      lowFlags,
+      cast[POVERLAPPED](ol),
+      nil,
+    )
     if ret == -1:
       let err = osLastError()
       if err.int32 != ERROR_IO_PENDING:
@@ -675,9 +721,14 @@ when defined(windows) or defined(nimdoc):
       # free `ol`.
     return retFuture
 
-  proc sendTo*(socket: AsyncFD, data: pointer, size: int, saddr: ptr SockAddr,
-               saddrLen: SockLen,
-               flags = {SocketFlag.SafeDisconn}): owned(Future[void]) =
+  proc sendTo*(
+      socket: AsyncFD,
+      data: pointer,
+      size: int,
+      saddr: ptr SockAddr,
+      saddrLen: SockLen,
+      flags = {SocketFlag.SafeDisconn},
+  ): owned(Future[void]) =
     ## Sends `data` to specified destination `saddr`, using
     ## socket `socket`. The returned future will complete once all data
     ## has been sent.
@@ -696,18 +747,28 @@ when defined(windows) or defined(nimdoc):
     copyMem(addr(staddr[0]), saddr, saddrLen)
 
     var ol = newCustom()
-    ol.data = CompletionData(fd: socket, cb:
-      proc (fd: AsyncFD, bytesCount: DWORD, errcode: OSErrorCode) =
+    ol.data = CompletionData(
+      fd: socket,
+      cb: proc(fd: AsyncFD, bytesCount: DWORD, errcode: OSErrorCode) =
         if not retFuture.finished:
           if errcode == OSErrorCode(-1):
             retFuture.complete()
           else:
             retFuture.fail(newOSError(errcode))
+      ,
     )
 
-    let ret = WSASendTo(socket.SocketHandle, addr dataBuf, 1, addr bytesSent,
-                        lowFlags, cast[ptr SockAddr](addr(staddr[0])),
-                        stalen, cast[POVERLAPPED](ol), nil)
+    let ret = WSASendTo(
+      socket.SocketHandle,
+      addr dataBuf,
+      1,
+      addr bytesSent,
+      lowFlags,
+      cast[ptr SockAddr](addr(staddr[0])),
+      stalen,
+      cast[POVERLAPPED](ol),
+      nil,
+    )
     if ret == -1:
       let err = osLastError()
       if err.int32 != ERROR_IO_PENDING:
@@ -720,9 +781,14 @@ when defined(windows) or defined(nimdoc):
       # free `ol`.
     return retFuture
 
-  proc recvFromInto*(socket: AsyncFD, data: pointer, size: int,
-                     saddr: ptr SockAddr, saddrLen: ptr SockLen,
-                     flags = {SocketFlag.SafeDisconn}): owned(Future[int]) =
+  proc recvFromInto*(
+      socket: AsyncFD,
+      data: pointer,
+      size: int,
+      saddr: ptr SockAddr,
+      saddrLen: ptr SockLen,
+      flags = {SocketFlag.SafeDisconn},
+  ): owned(Future[int]) =
     ## Receives a datagram data from `socket` into `buf`, which must
     ## be at least of size `size`, address of datagram's sender will be
     ## stored into `saddr` and `saddrLen`. Returned future will complete
@@ -737,8 +803,9 @@ when defined(windows) or defined(nimdoc):
     var lowFlags = 0.DWORD
 
     var ol = newCustom()
-    ol.data = CompletionData(fd: socket, cb:
-      proc (fd: AsyncFD, bytesCount: DWORD, errcode: OSErrorCode) =
+    ol.data = CompletionData(
+      fd: socket,
+      cb: proc(fd: AsyncFD, bytesCount: DWORD, errcode: OSErrorCode) =
         if not retFuture.finished:
           if errcode == OSErrorCode(-1):
             assert bytesCount <= size
@@ -747,12 +814,20 @@ when defined(windows) or defined(nimdoc):
             # datagram sockets don't have disconnection,
             # so we can just raise an exception
             retFuture.fail(newOSError(errcode))
+      ,
     )
 
-    let res = WSARecvFrom(socket.SocketHandle, addr dataBuf, 1,
-                          addr bytesReceived, addr lowFlags,
-                          saddr, cast[ptr cint](saddrLen),
-                          cast[POVERLAPPED](ol), nil)
+    let res = WSARecvFrom(
+      socket.SocketHandle,
+      addr dataBuf,
+      1,
+      addr bytesReceived,
+      addr lowFlags,
+      saddr,
+      cast[ptr cint](saddrLen),
+      cast[POVERLAPPED](ol),
+      nil,
+    )
     if res == -1:
       let err = osLastError()
       if err.int32 != ERROR_IO_PENDING:
@@ -768,9 +843,11 @@ when defined(windows) or defined(nimdoc):
           retFuture.complete(bytesReceived)
     return retFuture
 
-  proc acceptAddr*(socket: AsyncFD, flags = {SocketFlag.SafeDisconn},
-                   inheritable = defined(nimInheritHandles)):
-      owned(Future[tuple[address: string, client: AsyncFD]]) {.gcsafe.} =
+  proc acceptAddr*(
+      socket: AsyncFD,
+      flags = {SocketFlag.SafeDisconn},
+      inheritable = defined(nimInheritHandles),
+  ): owned(Future[tuple[address: string, client: AsyncFD]]) {.gcsafe.} =
     ## Accepts a new connection. Returns a future containing the client socket
     ## corresponding to that connection and the remote address of the client.
     ## The future will complete when the connection is successfully accepted.
@@ -789,7 +866,8 @@ when defined(windows) or defined(nimdoc):
     var retFuture = newFuture[tuple[address: string, client: AsyncFD]]("acceptAddr")
 
     var clientSock = createNativeSocket(inheritable = inheritable)
-    if clientSock == osInvalidSocket: raiseOSError(osLastError())
+    if clientSock == osInvalidSocket:
+      raiseOSError(osLastError())
 
     const lpOutputLen = 1024
     var lpOutputBuf = newString(lpOutputLen)
@@ -801,20 +879,23 @@ when defined(windows) or defined(nimdoc):
     template failAccept(errcode) =
       if flags.isDisconnectionError(errcode):
         var newAcceptFut = acceptAddr(socket, flags)
-        newAcceptFut.callback =
-          proc () =
-            if newAcceptFut.failed:
-              retFuture.fail(newAcceptFut.readError)
-            else:
-              retFuture.complete(newAcceptFut.read)
+        newAcceptFut.callback = proc() =
+          if newAcceptFut.failed:
+            retFuture.fail(newAcceptFut.readError)
+          else:
+            retFuture.complete(newAcceptFut.read)
       else:
         retFuture.fail(newOSError(errcode))
 
     template completeAccept() {.dirty.} =
       var listenSock = socket
-      let setoptRet = setsockopt(clientSock, SOL_SOCKET,
-          SO_UPDATE_ACCEPT_CONTEXT, addr listenSock,
-          sizeof(listenSock).SockLen)
+      let setoptRet = setsockopt(
+        clientSock,
+        SOL_SOCKET,
+        SO_UPDATE_ACCEPT_CONTEXT,
+        addr listenSock,
+        sizeof(listenSock).SockLen,
+      )
       if setoptRet != 0:
         let errcode = osLastError()
         discard clientSock.closesocket()
@@ -822,10 +903,16 @@ when defined(windows) or defined(nimdoc):
       else:
         var localSockaddr, remoteSockaddr: ptr SockAddr
         var localLen, remoteLen: int32
-        getAcceptExSockAddrs(addr lpOutputBuf[0], dwReceiveDataLength,
-                             dwLocalAddressLength, dwRemoteAddressLength,
-                             addr localSockaddr, addr localLen,
-                             addr remoteSockaddr, addr remoteLen)
+        getAcceptExSockAddrs(
+          addr lpOutputBuf[0],
+          dwReceiveDataLength,
+          dwLocalAddressLength,
+          dwRemoteAddressLength,
+          addr localSockaddr,
+          addr localLen,
+          addr remoteSockaddr,
+          addr remoteLen,
+        )
         try:
           let address = getAddrString(remoteSockaddr)
           register(clientSock.AsyncFD)
@@ -836,21 +923,28 @@ when defined(windows) or defined(nimdoc):
           retFuture.fail(getCurrentException())
 
     var ol = newCustom()
-    ol.data = CompletionData(fd: socket, cb:
-      proc (fd: AsyncFD, bytesCount: DWORD, errcode: OSErrorCode) {.gcsafe.} =
+    ol.data = CompletionData(
+      fd: socket,
+      cb: proc(fd: AsyncFD, bytesCount: DWORD, errcode: OSErrorCode) {.gcsafe.} =
         if not retFuture.finished:
           if errcode == OSErrorCode(-1):
             completeAccept()
           else:
             failAccept(errcode)
+      ,
     )
 
     # https://msdn.microsoft.com/en-us/library/windows/desktop/ms737524%28v=vs.85%29.aspx
-    let ret = acceptEx(socket.SocketHandle, clientSock, addr lpOutputBuf[0],
-                       dwReceiveDataLength,
-                       dwLocalAddressLength,
-                       dwRemoteAddressLength,
-                       addr dwBytesReceived, cast[POVERLAPPED](ol))
+    let ret = acceptEx(
+      socket.SocketHandle,
+      clientSock,
+      addr lpOutputBuf[0],
+      dwReceiveDataLength,
+      dwLocalAddressLength,
+      dwRemoteAddressLength,
+      addr dwBytesReceived,
+      cast[POVERLAPPED](ol),
+    )
 
     if not ret:
       let err = osLastError()
@@ -880,15 +974,15 @@ when defined(windows) or defined(nimdoc):
     return fd in disp.handles
 
   {.push stackTrace: off.}
-  proc waitableCallback(param: pointer,
-                        timerOrWaitFired: WINBOOL) {.stdcall.} =
+  proc waitableCallback(param: pointer, timerOrWaitFired: WINBOOL) {.stdcall.} =
     var p = cast[PostCallbackDataPtr](param)
-    discard postQueuedCompletionStatus(p.ioPort, timerOrWaitFired.DWORD,
-                                       ULONG_PTR(p.handleFd),
-                                       cast[pointer](p.ovl))
+    discard postQueuedCompletionStatus(
+      p.ioPort, timerOrWaitFired.DWORD, ULONG_PTR(p.handleFd), cast[pointer](p.ovl)
+    )
+
   {.pop.}
 
-  proc registerWaitableEvent(fd: AsyncFD, cb: Callback; mask: DWORD) =
+  proc registerWaitableEvent(fd: AsyncFD, cb: Callback, mask: DWORD) =
     let p = getGlobalDispatcher()
     var flags = (WT_EXECUTEINWAITTHREAD or WT_EXECUTEONLYONCE).DWORD
     var hEvent = wsaCreateEvent()
@@ -899,8 +993,9 @@ when defined(windows) or defined(nimdoc):
     pcd.handleFd = fd
     var ol = newCustom()
 
-    ol.data = CompletionData(fd: fd, cb:
-      proc(fd: AsyncFD, bytesCount: DWORD, errcode: OSErrorCode) {.gcsafe.} =
+    ol.data = CompletionData(
+      fd: fd,
+      cb: proc(fd: AsyncFD, bytesCount: DWORD, errcode: OSErrorCode) {.gcsafe.} =
         # we excluding our `fd` because cb(fd) can register own handler
         # for this `fd`
         p.handles.excl(fd)
@@ -932,9 +1027,14 @@ when defined(windows) or defined(nimdoc):
             # we need to include `fd` again
             p.handles.incl(fd)
             # and register WaitForSingleObject again
-            if not registerWaitForSingleObject(addr(pcd.waitFd), hEvent,
-                                    cast[WAITORTIMERCALLBACK](waitableCallback),
-                                       cast[pointer](pcd), INFINITE, flags):
+            if not registerWaitForSingleObject(
+              addr(pcd.waitFd),
+              hEvent,
+              cast[WAITORTIMERCALLBACK](waitableCallback),
+              cast[pointer](pcd),
+              INFINITE,
+              flags,
+            ):
               # pcd.ovl will be unrefed in poll()
               let err = osLastError()
               deallocShared(cast[pointer](pcd))
@@ -945,7 +1045,7 @@ when defined(windows) or defined(nimdoc):
               # because it will be unrefed and disposed in `poll()` after
               # callback finishes.
               GC_ref(pcd.ovl)
-              pcd.ovl.data.cell = system.protect(rawEnv(pcd.ovl.data.cb))
+              pcd.ovl.data.cell = system.protect(rawEnv(pcd.ovl.data.cb)),
     )
     # We need to protect our callback environment value, so GC will not free it
     # accidentally.
@@ -961,9 +1061,14 @@ when defined(windows) or defined(nimdoc):
       raiseOSError(err)
 
     pcd.ovl = ol
-    if not registerWaitForSingleObject(addr(pcd.waitFd), hEvent,
-                                    cast[WAITORTIMERCALLBACK](waitableCallback),
-                                       cast[pointer](pcd), INFINITE, flags):
+    if not registerWaitForSingleObject(
+      addr(pcd.waitFd),
+      hEvent,
+      cast[WAITORTIMERCALLBACK](waitableCallback),
+      cast[pointer](pcd),
+      INFINITE,
+      flags,
+    ):
       let err = osLastError()
       GC_unref(ol)
       deallocShared(cast[pointer](pcd))
@@ -1007,8 +1112,7 @@ when defined(windows) or defined(nimdoc):
     ## receiving notifications.
     registerWaitableEvent(fd, cb, FD_WRITE or FD_CONNECT or FD_CLOSE)
 
-  template registerWaitableHandle(p, hEvent, flags, pcd, timeout,
-                                  handleCallback) =
+  template registerWaitableHandle(p, hEvent, flags, pcd, timeout, handleCallback) =
     let handleFD = AsyncFD(hEvent)
     pcd.ioPort = p.ioPort
     pcd.handleFd = handleFD
@@ -1020,9 +1124,14 @@ when defined(windows) or defined(nimdoc):
     ol.data.cell = system.protect(rawEnv(ol.data.cb))
 
     pcd.ovl = ol
-    if not registerWaitForSingleObject(addr(pcd.waitFd), hEvent,
-                                    cast[WAITORTIMERCALLBACK](waitableCallback),
-                                    cast[pointer](pcd), timeout.DWORD, flags):
+    if not registerWaitForSingleObject(
+      addr(pcd.waitFd),
+      hEvent,
+      cast[WAITORTIMERCALLBACK](waitableCallback),
+      cast[pointer](pcd),
+      timeout.DWORD,
+      flags,
+    ):
       let err = osLastError()
       GC_unref(ol)
       deallocShared(cast[pointer](pcd))
@@ -1061,7 +1170,8 @@ when defined(windows) or defined(nimdoc):
 
     var pcd = cast[PostCallbackDataPtr](allocShared0(sizeof(PostCallbackData)))
     var flags = WT_EXECUTEINWAITTHREAD.DWORD
-    if oneshot: flags = flags or WT_EXECUTEONLYONCE
+    if oneshot:
+      flags = flags or WT_EXECUTEONLYONCE
 
     proc timercb(fd: AsyncFD, bytesCount: DWORD, errcode: OSErrorCode) =
       let res = cb(fd)
@@ -1100,10 +1210,8 @@ when defined(windows) or defined(nimdoc):
     ##
     ## New `AsyncEvent` object is not automatically registered with
     ## dispatcher like `AsyncSocket`.
-    var sa = SECURITY_ATTRIBUTES(
-      nLength: sizeof(SECURITY_ATTRIBUTES).cint,
-      bInheritHandle: 1
-    )
+    var sa =
+      SECURITY_ATTRIBUTES(nLength: sizeof(SECURITY_ATTRIBUTES).cint, bInheritHandle: 1)
     var event = createEvent(addr(sa), 0'i32, 0'i32, nil)
     if event == INVALID_HANDLE_VALUE:
       raiseOSError(osLastError())
@@ -1167,8 +1275,7 @@ when defined(windows) or defined(nimdoc):
   initAll()
 else:
   import std/selectors
-  from std/posix import EINTR, EAGAIN, EINPROGRESS, EWOULDBLOCK, MSG_PEEK,
-                    MSG_NOSIGNAL
+  from std/posix import EINTR, EAGAIN, EINPROGRESS, EWOULDBLOCK, MSG_PEEK, MSG_NOSIGNAL
   when declared(posix.accept4):
     from std/posix import accept4, SOCK_CLOEXEC
   when defined(genode):
@@ -1176,13 +1283,15 @@ else:
     import genode/signals
 
   const
-    InitCallbackListSize = 4         # initial size of callbacks sequence,
-                                     # associated with file/socket descriptor.
-    InitDelayedCallbackListSize = 64 # initial size of delayed callbacks
-                                     # queue.
+    InitCallbackListSize = 4
+      # initial size of callbacks sequence,
+      # associated with file/socket descriptor.
+    InitDelayedCallbackListSize = 64
+      # initial size of delayed callbacks
+      # queue.
   type
     AsyncFD* = distinct cint
-    Callback* = proc (fd: AsyncFD): bool {.closure, gcsafe.}
+    Callback* = proc(fd: AsyncFD): bool {.closure, gcsafe.}
 
     AsyncData = object
       readList: seq[Callback]
@@ -1201,20 +1310,21 @@ else:
   template newAsyncData(): AsyncData =
     AsyncData(
       readList: newSeqOfCap[Callback](InitCallbackListSize),
-      writeList: newSeqOfCap[Callback](InitCallbackListSize)
+      writeList: newSeqOfCap[Callback](InitCallbackListSize),
     )
 
   proc newDispatcher*(): owned(PDispatcher) =
     new result
     result.selector = newSelector[AsyncData]()
     result.timers.clear()
-    result.callbacks = initDeque[proc () {.closure, gcsafe.}](InitDelayedCallbackListSize)
+    result.callbacks =
+      initDeque[proc() {.closure, gcsafe.}](InitDelayedCallbackListSize)
     when defined(genode):
       let entrypoint = ep(cast[GenodeEnv](runtimeEnv))
       result.signalHandler = newSignalHandler(entrypoint):
         discard runOnce(0)
 
-  var gDisp{.threadvar.}: owned PDispatcher ## Global dispatcher
+  var gDisp {.threadvar.}: owned PDispatcher ## Global dispatcher
 
   when defined(nuttx):
     import std/exitprocs
@@ -1258,10 +1368,11 @@ else:
   proc addRead*(fd: AsyncFD, cb: Callback) =
     let p = getGlobalDispatcher()
     var newEvents = {Event.Read}
-    withData(p.selector, fd.SocketHandle, adata) do:
+    withData(p.selector, fd.SocketHandle, adata):
       adata.readList.add(cb)
       newEvents.incl(Event.Read)
-      if len(adata.writeList) != 0: newEvents.incl(Event.Write)
+      if len(adata.writeList) != 0:
+        newEvents.incl(Event.Write)
     do:
       raise newException(ValueError, "File descriptor not registered.")
     p.selector.updateHandle(fd.SocketHandle, newEvents)
@@ -1269,10 +1380,11 @@ else:
   proc addWrite*(fd: AsyncFD, cb: Callback) =
     let p = getGlobalDispatcher()
     var newEvents = {Event.Write}
-    withData(p.selector, fd.SocketHandle, adata) do:
+    withData(p.selector, fd.SocketHandle, adata):
       adata.writeList.add(cb)
       newEvents.incl(Event.Write)
-      if len(adata.readList) != 0: newEvents.incl(Event.Read)
+      if len(adata.readList) != 0:
+        newEvents.incl(Event.Read)
     do:
       raise newException(ValueError, "File descriptor not registered.")
     p.selector.updateHandle(fd.SocketHandle, newEvents)
@@ -1281,14 +1393,14 @@ else:
     let p = getGlobalDispatcher()
     not p.selector.isEmpty() or p.timers.len != 0 or p.callbacks.len != 0
 
-  proc prependSeq(dest: var seq[Callback]; src: sink seq[Callback]) =
+  proc prependSeq(dest: var seq[Callback], src: sink seq[Callback]) =
     var old = move dest
     dest = src
-    for i in 0..high(old):
+    for i in 0 .. high(old):
       dest.add(move old[i])
 
   proc processBasicCallbacks(
-    fd: AsyncFD, event: Event
+      fd: AsyncFD, event: Event
   ): tuple[readCbListCount, writeCbListCount: int] =
     # Process pending descriptor and AsyncEvent callbacks.
     #
@@ -1333,11 +1445,13 @@ else:
         # We do need to ensure they are called again though.
         eventsExtinguished = true
 
-    withData(selector, fd.int, fdData) do:
+    withData(selector, fd.int, fdData):
       # Descriptor is still present in the queue.
       case event
-      of Event.Read: prependSeq(fdData.readList, newList)
-      of Event.Write: prependSeq(fdData.writeList, newList)
+      of Event.Read:
+        prependSeq(fdData.readList, newList)
+      of Event.Write:
+        prependSeq(fdData.writeList, newList)
       else:
         assert false, "Cannot process callbacks for " & $event
 
@@ -1348,14 +1462,14 @@ else:
       result.readCbListCount = -1
       result.writeCbListCount = -1
 
-  proc processCustomCallbacks(p: PDispatcher; fd: AsyncFD) =
+  proc processCustomCallbacks(p: PDispatcher, fd: AsyncFD) =
     # Process pending custom event callbacks. Custom events are
     # {Event.Timer, Event.Signal, Event.Process, Event.Vnode}.
     # There can be only one callback registered with one descriptor,
     # so there is no need to iterate over list.
     var curList: seq[Callback] = @[]
 
-    withData(p.selector, fd.int, adata) do:
+    withData(p.selector, fd.int, adata):
       curList = move adata.readList
       adata.readList = newSeqOfCap[Callback](InitCallbackListSize)
 
@@ -1366,7 +1480,7 @@ else:
     if not cb(fd):
       newList.add(cb)
 
-    withData(p.selector, fd.int, adata) do:
+    withData(p.selector, fd.int, adata):
       # descriptor still present in queue.
       adata.readList = newList & adata.readList
       if len(adata.readList) == 0:
@@ -1398,42 +1512,37 @@ else:
     let p = getGlobalDispatcher()
     if p.selector.isEmpty() and p.timers.len == 0 and p.callbacks.len == 0:
       when defined(genode):
-        if timeout == 0: return
-      raise newException(ValueError,
-        "No handles or timers registered in dispatcher.")
+        if timeout == 0:
+          return
+      raise newException(ValueError, "No handles or timers registered in dispatcher.")
 
     result = false
     var keys: array[64, ReadyKey]
     let nextTimer = processTimers(p, result)
-    var count =
-      p.selector.selectInto(adjustTimeout(p, timeout, nextTimer), keys)
-    for i in 0..<count:
+    var count = p.selector.selectInto(adjustTimeout(p, timeout, nextTimer), keys)
+    for i in 0 ..< count:
       let fd = keys[i].fd.AsyncFD
       let events = keys[i].events
       var (readCbListCount, writeCbListCount) = (0, 0)
 
       if Event.Read in events or events == {Event.Error}:
-        (readCbListCount, writeCbListCount) =
-          processBasicCallbacks(fd, Event.Read)
+        (readCbListCount, writeCbListCount) = processBasicCallbacks(fd, Event.Read)
         result = true
 
       if Event.Write in events or events == {Event.Error}:
-        (readCbListCount, writeCbListCount) =
-          processBasicCallbacks(fd, Event.Write)
+        (readCbListCount, writeCbListCount) = processBasicCallbacks(fd, Event.Write)
         result = true
 
       var isCustomEvent = false
       if Event.User in events:
-        (readCbListCount, writeCbListCount) =
-          processBasicCallbacks(fd, Event.Read)
+        (readCbListCount, writeCbListCount) = processBasicCallbacks(fd, Event.Read)
         isCustomEvent = true
         if readCbListCount == 0:
           p.selector.unregister(fd.int)
         result = true
 
       when ioselSupportedPlatform:
-        const customSet = {Event.Timer, Event.Signal, Event.Process,
-                           Event.Vnode}
+        const customSet = {Event.Timer, Event.Signal, Event.Process, Event.Vnode}
         if (customSet * events) != {}:
           isCustomEvent = true
           processCustomCallbacks(p, fd)
@@ -1443,8 +1552,10 @@ else:
       # descriptor events with currently registered callbacks.
       if not isCustomEvent and (readCbListCount != -1 and writeCbListCount != -1):
         var newEvents: set[Event] = {}
-        if readCbListCount > 0: incl(newEvents, Event.Read)
-        if writeCbListCount > 0: incl(newEvents, Event.Write)
+        if readCbListCount > 0:
+          incl(newEvents, Event.Read)
+        if writeCbListCount > 0:
+          incl(newEvents, Event.Write)
         p.selector.updateHandle(SocketHandle(fd), newEvents)
 
     # Timer processing.
@@ -1452,20 +1563,21 @@ else:
     # Callback queue processing
     processPendingCallbacks(p, result)
 
-  proc recv*(socket: AsyncFD, size: int,
-             flags = {SocketFlag.SafeDisconn}): owned(Future[string]) =
+  proc recv*(
+      socket: AsyncFD, size: int, flags = {SocketFlag.SafeDisconn}
+  ): owned(Future[string]) =
     var retFuture = newFuture[string]("recv")
 
     var readBuffer = newString(size)
 
     proc cb(sock: AsyncFD): bool =
       result = true
-      let res = recv(sock.SocketHandle, addr readBuffer[0], size.cint,
-                     flags.toOSFlags())
+      let res =
+        recv(sock.SocketHandle, addr readBuffer[0], size.cint, flags.toOSFlags())
       if res < 0:
         let lastError = osLastError()
         if lastError.int32 != EINTR and lastError.int32 != EWOULDBLOCK and
-           lastError.int32 != EAGAIN:
+            lastError.int32 != EAGAIN:
           if flags.isDisconnectionError(lastError):
             retFuture.complete("")
           else:
@@ -1478,23 +1590,24 @@ else:
       else:
         readBuffer.setLen(res)
         retFuture.complete(readBuffer)
+
     # TODO: The following causes a massive slowdown.
     #if not cb(socket):
     addRead(socket, cb)
     return retFuture
 
-  proc recvInto*(socket: AsyncFD, buf: pointer, size: int,
-                 flags = {SocketFlag.SafeDisconn}): owned(Future[int]) =
+  proc recvInto*(
+      socket: AsyncFD, buf: pointer, size: int, flags = {SocketFlag.SafeDisconn}
+  ): owned(Future[int]) =
     var retFuture = newFuture[int]("recvInto")
 
     proc cb(sock: AsyncFD): bool =
       result = true
-      let res = recv(sock.SocketHandle, buf, size.cint,
-                     flags.toOSFlags())
+      let res = recv(sock.SocketHandle, buf, size.cint, flags.toOSFlags())
       if res < 0:
         let lastError = osLastError()
         if lastError.int32 != EINTR and lastError.int32 != EWOULDBLOCK and
-           lastError.int32 != EAGAIN:
+            lastError.int32 != EAGAIN:
           if flags.isDisconnectionError(lastError):
             retFuture.complete(0)
           else:
@@ -1503,28 +1616,28 @@ else:
           result = false # We still want this callback to be called.
       else:
         retFuture.complete(res)
+
     # TODO: The following causes a massive slowdown.
     #if not cb(socket):
     addRead(socket, cb)
     return retFuture
 
-  proc send*(socket: AsyncFD, buf: pointer, size: int,
-             flags = {SocketFlag.SafeDisconn}): owned(Future[void]) =
+  proc send*(
+      socket: AsyncFD, buf: pointer, size: int, flags = {SocketFlag.SafeDisconn}
+  ): owned(Future[void]) =
     var retFuture = newFuture[void]("send")
 
     var written = 0
 
     proc cb(sock: AsyncFD): bool =
       result = true
-      let netSize = size-written
+      let netSize = size - written
       var d = cast[cstring](buf)
-      let res = send(sock.SocketHandle, addr d[written], netSize.cint,
-                     MSG_NOSIGNAL)
+      let res = send(sock.SocketHandle, addr d[written], netSize.cint, MSG_NOSIGNAL)
       if res < 0:
         let lastError = osLastError()
-        if lastError.int32 != EINTR and
-           lastError.int32 != EWOULDBLOCK and
-           lastError.int32 != EAGAIN:
+        if lastError.int32 != EINTR and lastError.int32 != EWOULDBLOCK and
+            lastError.int32 != EAGAIN:
           if flags.isDisconnectionError(lastError):
             retFuture.complete()
           else:
@@ -1537,33 +1650,45 @@ else:
           result = false # We still have data to send.
         else:
           retFuture.complete()
+
     # TODO: The following causes crashes.
     #if not cb(socket):
     addWrite(socket, cb)
     return retFuture
 
-  proc sendTo*(socket: AsyncFD, data: pointer, size: int, saddr: ptr SockAddr,
-               saddrLen: SockLen,
-               flags = {SocketFlag.SafeDisconn}): owned(Future[void]) =
+  proc sendTo*(
+      socket: AsyncFD,
+      data: pointer,
+      size: int,
+      saddr: ptr SockAddr,
+      saddrLen: SockLen,
+      flags = {SocketFlag.SafeDisconn},
+  ): owned(Future[void]) =
     ## Sends `data` of size `size` in bytes to specified destination
     ## (`saddr` of size `saddrLen` in bytes, using socket `socket`.
     ## The returned future will complete once all data has been sent.
     var retFuture = newFuture[void]("sendTo")
 
     # we will preserve address in our stack
-    var staddr {.noinit.} : array[128, char] # SOCKADDR_STORAGE size is 128 bytes
+    var staddr {.noinit.}: array[128, char] # SOCKADDR_STORAGE size is 128 bytes
     var stalen = saddrLen
     zeroMem(addr(staddr[0]), 128)
     copyMem(addr(staddr[0]), saddr, saddrLen)
 
     proc cb(sock: AsyncFD): bool =
       result = true
-      let res = sendto(sock.SocketHandle, data, size, MSG_NOSIGNAL,
-                       cast[ptr SockAddr](addr(staddr[0])), stalen)
+      let res = sendto(
+        sock.SocketHandle,
+        data,
+        size,
+        MSG_NOSIGNAL,
+        cast[ptr SockAddr](addr(staddr[0])),
+        stalen,
+      )
       if res < 0:
         let lastError = osLastError()
         if lastError.int32 != EINTR and lastError.int32 != EWOULDBLOCK and
-           lastError.int32 != EAGAIN:
+            lastError.int32 != EAGAIN:
           retFuture.fail(newOSError(lastError))
         else:
           result = false # We still want this callback to be called.
@@ -1573,9 +1698,14 @@ else:
     addWrite(socket, cb)
     return retFuture
 
-  proc recvFromInto*(socket: AsyncFD, data: pointer, size: int,
-                     saddr: ptr SockAddr, saddrLen: ptr SockLen,
-                     flags = {SocketFlag.SafeDisconn}): owned(Future[int]) =
+  proc recvFromInto*(
+      socket: AsyncFD,
+      data: pointer,
+      size: int,
+      saddr: ptr SockAddr,
+      saddrLen: ptr SockLen,
+      flags = {SocketFlag.SafeDisconn},
+  ): owned(Future[int]) =
     ## Receives a datagram data from `socket` into `data`, which must
     ## be at least of size `size` in bytes, address of datagram's sender
     ## will be stored into `saddr` and `saddrLen`. Returned future will
@@ -1584,36 +1714,43 @@ else:
     var retFuture = newFuture[int]("recvFromInto")
     proc cb(sock: AsyncFD): bool =
       result = true
-      let res = recvfrom(sock.SocketHandle, data, size.cint, flags.toOSFlags(),
-                         saddr, saddrLen)
+      let res =
+        recvfrom(sock.SocketHandle, data, size.cint, flags.toOSFlags(), saddr, saddrLen)
       if res < 0:
         let lastError = osLastError()
         if lastError.int32 != EINTR and lastError.int32 != EWOULDBLOCK and
-           lastError.int32 != EAGAIN:
+            lastError.int32 != EAGAIN:
           retFuture.fail(newOSError(lastError))
         else:
           result = false
       else:
         retFuture.complete(res)
+
     addRead(socket, cb)
     return retFuture
 
-  proc acceptAddr*(socket: AsyncFD, flags = {SocketFlag.SafeDisconn},
-                   inheritable = defined(nimInheritHandles)):
-      owned(Future[tuple[address: string, client: AsyncFD]]) =
-    var retFuture = newFuture[tuple[address: string,
-        client: AsyncFD]]("acceptAddr")
+  proc acceptAddr*(
+      socket: AsyncFD,
+      flags = {SocketFlag.SafeDisconn},
+      inheritable = defined(nimInheritHandles),
+  ): owned(Future[tuple[address: string, client: AsyncFD]]) =
+    var retFuture = newFuture[tuple[address: string, client: AsyncFD]]("acceptAddr")
     proc cb(sock: AsyncFD): bool {.gcsafe.} =
       result = true
       var sockAddress: Sockaddr_storage = default(Sockaddr_storage)
       var addrLen = sizeof(sockAddress).SockLen
       var client =
         when declared(accept4):
-          accept4(sock.SocketHandle, cast[ptr SockAddr](addr(sockAddress)),
-                  addr(addrLen), if inheritable: 0 else: SOCK_CLOEXEC)
+          accept4(
+            sock.SocketHandle,
+            cast[ptr SockAddr](addr(sockAddress)),
+            addr(addrLen),
+            if inheritable: 0 else: SOCK_CLOEXEC,
+          )
         else:
-          accept(sock.SocketHandle, cast[ptr SockAddr](addr(sockAddress)),
-                 addr(addrLen))
+          accept(
+            sock.SocketHandle, cast[ptr SockAddr](addr(sockAddress)), addr(addrLen)
+          )
       when declared(setInheritable) and not declared(accept4):
         if client != osInvalidSocket and not setInheritable(client, inheritable):
           # Set failure first because close() itself can fail,
@@ -1641,11 +1778,11 @@ else:
           # getAddrString may raise
           client.close()
           retFuture.fail(getCurrentException())
+
     addRead(socket, cb)
     return retFuture
 
   when ioselSupportedPlatform:
-
     proc addTimer*(timeout: int, oneshot: bool, cb: Callback) =
       ## Start watching for timeout expiration, and then call the
       ## callback `cb`.
@@ -1711,8 +1848,9 @@ proc poll*(timeout = 500) =
   ## `epoll`:idx: or `kqueue`:idx: primitive only once.
   discard runOnce(timeout)
 
-template createAsyncNativeSocketImpl(domain, sockType, protocol: untyped,
-                                     inheritable = defined(nimInheritHandles)) =
+template createAsyncNativeSocketImpl(
+    domain, sockType, protocol: untyped, inheritable = defined(nimInheritHandles)
+) =
   let handle = createNativeSocket(domain, sockType, protocol, inheritable)
   if handle == osInvalidSocket:
     return osInvalidSocket.AsyncFD
@@ -1722,15 +1860,20 @@ template createAsyncNativeSocketImpl(domain, sockType, protocol: untyped,
   result = handle.AsyncFD
   register(result)
 
-proc createAsyncNativeSocket*(domain: cint, sockType: cint,
-                              protocol: cint,
-                              inheritable = defined(nimInheritHandles)): AsyncFD =
+proc createAsyncNativeSocket*(
+    domain: cint,
+    sockType: cint,
+    protocol: cint,
+    inheritable = defined(nimInheritHandles),
+): AsyncFD =
   createAsyncNativeSocketImpl(domain, sockType, protocol, inheritable)
 
-proc createAsyncNativeSocket*(domain: Domain = Domain.AF_INET,
-                              sockType: SockType = SOCK_STREAM,
-                              protocol: Protocol = IPPROTO_TCP,
-                              inheritable = defined(nimInheritHandles)): AsyncFD =
+proc createAsyncNativeSocket*(
+    domain: Domain = Domain.AF_INET,
+    sockType: SockType = SOCK_STREAM,
+    protocol: Protocol = IPPROTO_TCP,
+    inheritable = defined(nimInheritHandles),
+): AsyncFD =
   createAsyncNativeSocketImpl(domain, sockType, protocol, inheritable)
 
 when defined(windows) or defined(nimdoc):
@@ -1738,8 +1881,7 @@ when defined(windows) or defined(nimdoc):
     # Extracted into a separate proc, because connect() on Windows requires
     # the socket to be initially bound.
     template doBind(saddr) =
-      if bindAddr(handle, cast[ptr SockAddr](addr(saddr)),
-                  sizeof(saddr).SockLen) < 0'i32:
+      if bindAddr(handle, cast[ptr SockAddr](addr(saddr)), sizeof(saddr).SockLen) < 0'i32:
         raiseOSError(osLastError())
 
     if domain == Domain.AF_INET6:
@@ -1756,20 +1898,29 @@ when defined(windows) or defined(nimdoc):
     result = retFuture
 
     var ol = newCustom()
-    ol.data = CompletionData(fd: socket, cb:
-      proc (fd: AsyncFD, bytesCount: DWORD, errcode: OSErrorCode) =
+    ol.data = CompletionData(
+      fd: socket,
+      cb: proc(fd: AsyncFD, bytesCount: DWORD, errcode: OSErrorCode) =
         if not retFuture.finished:
           if errcode == OSErrorCode(-1):
             const SO_UPDATE_CONNECT_CONTEXT = 0x7010
-            socket.SocketHandle.setSockOptInt(SOL_SOCKET, SO_UPDATE_CONNECT_CONTEXT, 1) # 15022
+            socket.SocketHandle.setSockOptInt(SOL_SOCKET, SO_UPDATE_CONNECT_CONTEXT, 1)
+              # 15022
             retFuture.complete()
           else:
             retFuture.fail(newOSError(errcode))
+      ,
     )
 
-    let ret = connectEx(socket.SocketHandle, addrInfo.ai_addr,
-                        cint(addrInfo.ai_addrlen), nil, 0, nil,
-                        cast[POVERLAPPED](ol))
+    let ret = connectEx(
+      socket.SocketHandle,
+      addrInfo.ai_addr,
+      cint(addrInfo.ai_addrlen),
+      nil,
+      0,
+      nil,
+      cast[POVERLAPPED](ol),
+    )
     if ret:
       # Request to connect completed immediately.
       retFuture.complete()
@@ -1783,14 +1934,14 @@ when defined(windows) or defined(nimdoc):
         # and the future will be completed/failed there, too.
         GC_unref(ol)
         retFuture.fail(newOSError(lastError))
+
 else:
   proc doConnect(socket: AsyncFD, addrInfo: ptr AddrInfo): owned(Future[void]) =
     let retFuture = newFuture[void]("doConnect")
     result = retFuture
 
     proc cb(fd: AsyncFD): bool =
-      let ret = SocketHandle(fd).getSockOptInt(
-        cint(SOL_SOCKET), cint(SO_ERROR))
+      let ret = SocketHandle(fd).getSockOptInt(cint(SOL_SOCKET), cint(SO_ERROR))
       if ret == 0:
         # We have connected.
         retFuture.complete()
@@ -1802,9 +1953,8 @@ else:
         retFuture.fail(newOSError(OSErrorCode(ret)))
         return true
 
-    let ret = connect(socket.SocketHandle,
-                      addrInfo.ai_addr,
-                      addrInfo.ai_addrlen.SockLen)
+    let ret =
+      connect(socket.SocketHandle, addrInfo.ai_addr, addrInfo.ai_addrlen.SockLen)
     if ret == 0:
       # Request to connect completed immediately.
       retFuture.complete()
@@ -1815,8 +1965,9 @@ else:
       else:
         retFuture.fail(newOSError(lastError))
 
-template asyncAddrInfoLoop(addrInfo: ptr AddrInfo, fd: untyped,
-                           protocol: Protocol = IPPROTO_RAW) =
+template asyncAddrInfoLoop(
+    addrInfo: ptr AddrInfo, fd: untyped, protocol: Protocol = IPPROTO_RAW
+) =
   ## Iterates through the AddrInfo linked list asynchronously
   ## until the connection can be established.
   const shouldCreateFd = not declared(fd)
@@ -1824,8 +1975,8 @@ template asyncAddrInfoLoop(addrInfo: ptr AddrInfo, fd: untyped,
   when shouldCreateFd:
     let sockType = protocol.toSockType()
 
-    var fdPerDomain: array[low(Domain).ord..high(Domain).ord, AsyncFD]
-    for i in low(fdPerDomain)..high(fdPerDomain):
+    var fdPerDomain: array[low(Domain).ord .. high(Domain).ord, AsyncFD]
+    for i in low(fdPerDomain) .. high(fdPerDomain):
       fdPerDomain[i] = osInvalidSocket.AsyncFD
     template closeUnusedFds(domainToKeep = -1) {.dirty.} =
       for i, fd in fdPerDomain:
@@ -1858,8 +2009,7 @@ template asyncAddrInfoLoop(addrInfo: ptr AddrInfo, fd: untyped,
         if lastException != nil:
           retFuture.fail(lastException)
         else:
-          retFuture.fail(newException(
-            IOError, "Couldn't resolve address: " & address))
+          retFuture.fail(newException(IOError, "Couldn't resolve address: " & address))
         return
 
       when shouldCreateFd:
@@ -1887,8 +2037,9 @@ template asyncAddrInfoLoop(addrInfo: ptr AddrInfo, fd: untyped,
 
   tryNextAddrInfo(nil)
 
-proc dial*(address: string, port: Port,
-           protocol: Protocol = IPPROTO_TCP): owned(Future[AsyncFD]) =
+proc dial*(
+    address: string, port: Port, protocol: Protocol = IPPROTO_TCP
+): owned(Future[AsyncFD]) =
   ## Establishes connection to the specified `address`:`port` pair via the
   ## specified protocol. The procedure iterates through possible
   ## resolutions of the `address` until it succeeds, meaning that it
@@ -1902,8 +2053,9 @@ proc dial*(address: string, port: Port,
   let aiList = getAddrInfo(address, port, Domain.AF_UNSPEC, sockType, protocol)
   asyncAddrInfoLoop(aiList, noFD, protocol)
 
-proc connect*(socket: AsyncFD, address: string, port: Port,
-              domain = Domain.AF_INET): owned(Future[void]) =
+proc connect*(
+    socket: AsyncFD, address: string, port: Port, domain = Domain.AF_INET
+): owned(Future[void]) =
   let retFuture = newFuture[void]("connect")
   result = retFuture
 
@@ -1939,21 +2091,22 @@ proc withTimeout*[T](fut: Future[T], timeout: int): owned(Future[bool]) =
 
   var retFuture = newFuture[bool]("asyncdispatch.`withTimeout`")
   var timeoutFuture = sleepAsync(timeout)
-  fut.callback =
-    proc () =
-      if not retFuture.finished:
-        if fut.failed:
-          retFuture.fail(fut.error)
-        else:
-          retFuture.complete(true)
-  timeoutFuture.callback =
-    proc () =
-      if not retFuture.finished: retFuture.complete(false)
+  fut.callback = proc() =
+    if not retFuture.finished:
+      if fut.failed:
+        retFuture.fail(fut.error)
+      else:
+        retFuture.complete(true)
+  timeoutFuture.callback = proc() =
+    if not retFuture.finished:
+      retFuture.complete(false)
   return retFuture
 
-proc accept*(socket: AsyncFD,
-             flags = {SocketFlag.SafeDisconn},
-             inheritable = defined(nimInheritHandles)): owned(Future[AsyncFD]) =
+proc accept*(
+    socket: AsyncFD,
+    flags = {SocketFlag.SafeDisconn},
+    inheritable = defined(nimInheritHandles),
+): owned(Future[AsyncFD]) =
   ## Accepts a new connection. Returns a future containing the client socket
   ## corresponding to that connection.
   ##
@@ -1963,32 +2116,32 @@ proc accept*(socket: AsyncFD,
   ## The future will complete when the connection is successfully accepted.
   var retFut = newFuture[AsyncFD]("accept")
   var fut = acceptAddr(socket, flags, inheritable)
-  fut.callback =
-    proc (future: Future[tuple[address: string, client: AsyncFD]]) =
-      assert future.finished
-      if future.failed:
-        retFut.fail(future.error)
-      else:
-        retFut.complete(future.read.client)
+  fut.callback = proc(future: Future[tuple[address: string, client: AsyncFD]]) =
+    assert future.finished
+    if future.failed:
+      retFut.fail(future.error)
+    else:
+      retFut.complete(future.read.client)
   return retFut
 
 proc keepAlive(x: string) =
-  discard "mark 'x' as escaping so that it is put into a closure for us to keep the data alive"
+  discard
+    "mark 'x' as escaping so that it is put into a closure for us to keep the data alive"
 
-proc send*(socket: AsyncFD, data: string,
-           flags = {SocketFlag.SafeDisconn}): owned(Future[void]) =
+proc send*(
+    socket: AsyncFD, data: string, flags = {SocketFlag.SafeDisconn}
+): owned(Future[void]) =
   ## Sends `data` to `socket`. The returned future will complete once all
   ## data has been sent.
   var retFuture = newFuture[void]("send")
   if data.len > 0:
     let sendFut = socket.send(unsafeAddr data[0], data.len, flags)
-    sendFut.callback =
-      proc () =
-        keepAlive(data)
-        if sendFut.failed:
-          retFuture.fail(sendFut.error)
-        else:
-          retFuture.complete()
+    sendFut.callback = proc() =
+      keepAlive(data)
+      if sendFut.failed:
+        retFuture.fail(sendFut.error)
+      else:
+        retFuture.complete()
   else:
     retFuture.complete()
 
@@ -2009,7 +2162,7 @@ proc readAll*(future: FutureStream[string]): owned(Future[string]) {.async.} =
     else:
       break
 
-proc callSoon(cbproc: proc () {.gcsafe.}) =
+proc callSoon(cbproc: proc() {.gcsafe.}) =
   getGlobalDispatcher().callbacks.addLast(cbproc)
 
 proc runForever*() =
@@ -2036,7 +2189,8 @@ when defined(posix):
   import std/posix
 
 when defined(linux) or defined(windows) or defined(macosx) or defined(bsd) or
-       defined(solaris) or defined(zephyr) or defined(freertos) or defined(nuttx) or defined(haiku):
+    defined(solaris) or defined(zephyr) or defined(freertos) or defined(nuttx) or
+    defined(haiku):
   proc maxDescriptors*(): int {.raises: OSError.} =
     ## Returns the maximum number of active file descriptors for the current
     ## process. This involves a system call. For now `maxDescriptors` is
@@ -2063,4 +2217,5 @@ when defined(genode):
     ## but faster and with less overhead.
     let dis = getGlobalDispatcher()
     result = dis.callbacks.len > 0
-    if result: submit(dis.signalHandler.cap)
+    if result:
+      submit(dis.signalHandler.cap)

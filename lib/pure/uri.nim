@@ -18,7 +18,6 @@
 ##
 ## # Basic usage
 
-
 ## ## Combine URIs
 runnableExamples:
   let host = parseUri("https://nim-lang.org")
@@ -34,16 +33,15 @@ runnableExamples:
 
 ## ## Data URI Base64
 runnableExamples:
-  assert getDataUri("Hello World", "text/plain") == "data:text/plain;charset=utf-8;base64,SGVsbG8gV29ybGQ="
+  assert getDataUri("Hello World", "text/plain") ==
+    "data:text/plain;charset=utf-8;base64,SGVsbG8gV29ybGQ="
   assert getDataUri("Nim", "text/plain") == "data:text/plain;charset=utf-8;base64,Tmlt"
-
 
 import std/[strutils, parseutils, base64]
 import std/private/[since, decode_helpers]
 
 when defined(nimPreviewSlimSystem):
   import std/assertions
-
 
 type
   Url* = distinct string
@@ -55,7 +53,6 @@ type
     isIpv6*: bool
 
   UriParseError* = object of ValueError
-
 
 proc uriParseError*(msg: string) {.noreturn.} =
   ## Raises a `UriParseError` exception with message `msg`.
@@ -77,15 +74,19 @@ func encodeUrl*(s: string, usePlus = true): string =
   ## * `decodeUrl func<#decodeUrl,string>`_
   runnableExamples:
     assert encodeUrl("https://nim-lang.org") == "https%3A%2F%2Fnim-lang.org"
-    assert encodeUrl("https://nim-lang.org/this is a test") == "https%3A%2F%2Fnim-lang.org%2Fthis+is+a+test"
-    assert encodeUrl("https://nim-lang.org/this is a test", false) == "https%3A%2F%2Fnim-lang.org%2Fthis%20is%20a%20test"
+    assert encodeUrl("https://nim-lang.org/this is a test") ==
+      "https%3A%2F%2Fnim-lang.org%2Fthis+is+a+test"
+    assert encodeUrl("https://nim-lang.org/this is a test", false) ==
+      "https%3A%2F%2Fnim-lang.org%2Fthis%20is%20a%20test"
   result = newStringOfCap(s.len + s.len shr 2) # assume 12% non-alnum-chars
   let fromSpace = if usePlus: "+" else: "%20"
   for c in s:
     case c
     # https://tools.ietf.org/html/rfc3986#section-2.3
-    of 'a'..'z', 'A'..'Z', '0'..'9', '-', '.', '_', '~': add(result, c)
-    of ' ': add(result, fromSpace)
+    of 'a' .. 'z', 'A' .. 'Z', '0' .. '9', '-', '.', '_', '~':
+      add(result, c)
+    of ' ':
+      add(result, fromSpace)
     else:
       add(result, '%')
       add(result, toHex(ord(c), 2))
@@ -105,9 +106,10 @@ func decodeUrl*(s: string, decodePlus = true): string =
   ## * `encodeUrl func<#encodeUrl,string>`_
   runnableExamples:
     assert decodeUrl("https%3A%2F%2Fnim-lang.org") == "https://nim-lang.org"
-    assert decodeUrl("https%3A%2F%2Fnim-lang.org%2Fthis+is+a+test") == "https://nim-lang.org/this is a test"
-    assert decodeUrl("https%3A%2F%2Fnim-lang.org%2Fthis%20is%20a%20test",
-        false) == "https://nim-lang.org/this is a test"
+    assert decodeUrl("https%3A%2F%2Fnim-lang.org%2Fthis+is+a+test") ==
+      "https://nim-lang.org/this is a test"
+    assert decodeUrl("https%3A%2F%2Fnim-lang.org%2Fthis%20is%20a%20test", false) ==
+      "https://nim-lang.org/this is a test"
     assert decodeUrl("abc%xyz") == "abc%xyz"
 
   result = newString(s.len)
@@ -122,13 +124,15 @@ func decodeUrl*(s: string, decodePlus = true): string =
         result[j] = ' '
       else:
         result[j] = s[i]
-    else: result[j] = s[i]
+    else:
+      result[j] = s[i]
     inc(i)
     inc(j)
   setLen(result, j)
 
-func encodeQuery*(query: openArray[(string, string)], usePlus = true,
-    omitEq = true, sep = '&'): string =
+func encodeQuery*(
+    query: openArray[(string, string)], usePlus = true, omitEq = true, sep = '&'
+): string =
   ## Encodes a set of (key, value) parameters into a URL query string.
   ##
   ## Every (key, value) pair is URL-encoded and written as `key=value`. If the
@@ -142,14 +146,15 @@ func encodeQuery*(query: openArray[(string, string)], usePlus = true,
   ## **See also:**
   ## * `encodeUrl func<#encodeUrl,string>`_
   runnableExamples:
-    assert encodeQuery({: }) == ""
+    assert encodeQuery({:}) == ""
     assert encodeQuery({"a": "1", "b": "2"}) == "a=1&b=2"
     assert encodeQuery({"a": "1", "b": ""}) == "a=1&b"
     assert encodeQuery({"a": "1", "b": ""}, omitEq = false, sep = ';') == "a=1;b="
   result = ""
   for elem in query:
     # Encode the `key = value` pairs and separate them with 'sep'
-    if result.len > 0: result.add(sep)
+    if result.len > 0:
+      result.add(sep)
     let (key, val) = elem
     result.add(encodeUrl(key, usePlus))
     # Omit the '=' if the value string is empty
@@ -166,19 +171,25 @@ iterator decodeQuery*(data: string, sep = '&'): tuple[key, value: string] =
     import std/sequtils
     assert toSeq(decodeQuery("foo=1&bar=2=3")) == @[("foo", "1"), ("bar", "2=3")]
     assert toSeq(decodeQuery("foo=1;bar=2=3", ';')) == @[("foo", "1"), ("bar", "2=3")]
-    assert toSeq(decodeQuery("&a&=b&=&&")) == @[("", ""), ("a", ""), ("", "b"), ("", ""), ("", "")]
+    assert toSeq(decodeQuery("&a&=b&=&&")) ==
+      @[("", ""), ("a", ""), ("", "b"), ("", ""), ("", "")]
 
   proc parseData(data: string, i: int, field: var string, sep: char): int =
     result = i
     while result < data.len:
       let c = data[result]
       case c
-      of '%': add(field, decodePercent(data, result))
-      of '+': add(field, ' ')
-      of '&': break
+      of '%':
+        add(field, decodePercent(data, result))
+      of '+':
+        add(field, ' ')
+      of '&':
+        break
       else:
-        if c == sep: break
-        else: add(field, data[result])
+        if c == sep:
+          break
+        else:
+          add(field, data[result])
       inc(result)
 
   var i = 0
@@ -259,8 +270,17 @@ func initUri*(isIpv6 = false): Uri =
     uri2.hostname = "2001:0db8:85a3:0000:0000:8a2e:0370:7334"
     uri2.port = "8080"
     assert $uri2 == "tcp://[2001:0db8:85a3:0000:0000:8a2e:0370:7334]:8080"
-  result = Uri(scheme: "", username: "", password: "", hostname: "", port: "",
-                path: "", query: "", anchor: "", isIpv6: isIpv6)
+  result = Uri(
+    scheme: "",
+    username: "",
+    password: "",
+    hostname: "",
+    port: "",
+    path: "",
+    query: "",
+    anchor: "",
+    isIpv6: isIpv6,
+  )
 
 func resetUri(uri: var Uri) =
   for f in uri.fields:
@@ -305,7 +325,7 @@ func parseUri*(uri: string, result: var Uri) =
     i.inc # Skip ':'
 
   # Authority
-  if i+1 < uri.len and uri[i] == '/' and uri[i+1] == '/':
+  if i + 1 < uri.len and uri[i] == '/' and uri[i + 1] == '/':
     i.inc(2) # Skip //
     var authority = ""
     i.inc parseUntil(uri, authority, {'/', '?', '#'}, i)
@@ -339,7 +359,8 @@ func removeDotSegments(path: string): string =
   # xxx adapt or reuse `pathnorm.normalizePath(path, '/')` to make this more reliable, but
   # taking into account url specificities such as not collapsing leading `//` in scheme
   # `https://`. see `turi` for failing tests.
-  if path.len == 0: return ""
+  if path.len == 0:
+    return ""
   var collection: seq[string] = @[]
   let endsWithSlash = path.endsWith '/'
   var i = 0
@@ -350,12 +371,12 @@ func removeDotSegments(path: string): string =
       collection.add(currentSegment)
       currentSegment = ""
     of '.':
-      if i+2 < path.len and path[i+1] == '.' and path[i+2] == '/':
+      if i + 2 < path.len and path[i + 1] == '.' and path[i + 2] == '/':
         if collection.len > 0:
           discard collection.pop()
           i.inc 3
           continue
-      elif i + 1 < path.len and path[i+1] == '/':
+      elif i + 1 < path.len and path[i + 1] == '/':
         i.inc 2
         continue
       currentSegment.add path[i]
@@ -366,7 +387,8 @@ func removeDotSegments(path: string): string =
     collection.add currentSegment
 
   result = collection.join("/")
-  if endsWithSlash: result.add '/'
+  if endsWithSlash:
+    result.add '/'
 
 func merge(base, reference: Uri): string =
   # http://tools.ietf.org/html/rfc3986#section-5.2.3
@@ -436,8 +458,9 @@ func combine*(uris: varargs[Uri]): Uri =
   ## **See also:**
   ## * `/ func <#/,Uri,string>`_ for building URIs
   runnableExamples:
-    let foo = combine(parseUri("https://nim-lang.org/"), parseUri("docs/"),
-        parseUri("manual.html"))
+    let foo = combine(
+      parseUri("https://nim-lang.org/"), parseUri("docs/"), parseUri("manual.html")
+    )
     assert foo.hostname == "nim-lang.org"
     assert foo.path == "/docs/manual.html"
   result = uris[0]
@@ -475,9 +498,9 @@ func `/`*(x: Uri, path: string): Uri =
     result.path.add(path)
     return
 
-  if result.path.len > 0 and result.path[result.path.len-1] == '/':
+  if result.path.len > 0 and result.path[result.path.len - 1] == '/':
     if path.len > 0 and path[0] == '/':
-      result.path.add(path[1 .. path.len-1])
+      result.path.add(path[1 .. path.len - 1])
     else:
       result.path.add(path)
   else:
@@ -509,7 +532,8 @@ func `$`*(u: Uri): string =
   # Prepare a string that fits all the parts and all punctuation chars.
   # 12 is the max len required by all possible punctuation chars.
   result = newStringOfCap(
-    schemeLen + usernameLen + passwordLen + hostnameLen + portLen + pathLen + queryLen + anchorLen + 12
+    schemeLen + usernameLen + passwordLen + hostnameLen + portLen + pathLen + queryLen +
+      anchorLen + 12
   )
   # Insert to result.
   if schemeLen > 0:
@@ -552,7 +576,6 @@ func `$`*(u: Uri): string =
     result.add '#'
     result.add u.anchor
 
-
 proc getDataUri*(data, mime: string, encoding = "utf-8"): string {.since: (1, 3).} =
   ## Convenience proc for `base64.encode` returns a standard Base64 Data URI (RFC-2397)
   ##
@@ -560,7 +583,10 @@ proc getDataUri*(data, mime: string, encoding = "utf-8"): string {.since: (1, 3)
   ## * `mimetypes <mimetypes.html>`_ for `mime` argument
   ## * https://tools.ietf.org/html/rfc2397
   ## * https://en.wikipedia.org/wiki/Data_URI_scheme
-  runnableExamples: static: assert getDataUri("Nim", "text/plain") == "data:text/plain;charset=utf-8;base64,Tmlt"
+  runnableExamples:
+    static:
+      assert getDataUri("Nim", "text/plain") ==
+        "data:text/plain;charset=utf-8;base64,Tmlt"
   assert encoding.len > 0 and mime.len > 0 # Must *not* be URL-Safe, see RFC-2397
   let base64encoded: string = base64.encode(data)
   # ("data:".len + ";charset=".len + ";base64,".len) == 22

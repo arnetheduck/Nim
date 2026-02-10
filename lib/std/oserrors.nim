@@ -7,11 +7,9 @@
 #    distribution, for details about the copyright.
 #
 
-
 ## The `std/oserrors` module implements OS error reporting.
 
-type
-  OSErrorCode* = distinct int32 ## Specifies an OS Error Code.
+type OSErrorCode* = distinct int32 ## Specifies an OS Error Code.
 
 when not defined(nimscript):
   when defined(windows):
@@ -21,8 +19,7 @@ when not defined(nimscript):
   else:
     var errno {.importc, header: "<errno.h>".}: cint
 
-    proc c_strerror(errnum: cint): cstring {.
-      importc: "strerror", header: "<string.h>".}
+    proc c_strerror(errnum: cint): cstring {.importc: "strerror", header: "<string.h>".}
 
 proc `==`*(err1, err2: OSErrorCode): bool {.borrow.}
 proc `$`*(err: OSErrorCode): string {.borrow.}
@@ -50,16 +47,24 @@ proc osErrorMsg*(errorCode: OSErrorCode): string =
   elif defined(windows):
     if errorCode != OSErrorCode(0'i32):
       var msgbuf: WideCString
-      if formatMessageW(0x00000100 or 0x00001000 or 0x00000200,
-                      nil, errorCode.int32, 0, addr(msgbuf), 0, nil) != 0'i32:
+      if formatMessageW(
+        0x00000100 or 0x00001000 or 0x00000200,
+        nil,
+        errorCode.int32,
+        0,
+        addr(msgbuf),
+        0,
+        nil,
+      ) != 0'i32:
         result = $msgbuf
-        if msgbuf != nil: localFree(cast[pointer](msgbuf))
+        if msgbuf != nil:
+          localFree(cast[pointer](msgbuf))
   else:
     if errorCode != OSErrorCode(0'i32):
       result = $c_strerror(errorCode.int32)
 
 proc newOSError*(
-  errorCode: OSErrorCode, additionalInfo = ""
+    errorCode: OSErrorCode, additionalInfo = ""
 ): owned(ref OSError) {.noinline.} =
   ## Creates a new `OSError exception <system.html#OSError>`_.
   ##
@@ -77,7 +82,8 @@ proc newOSError*(
   ## * `osLastError proc`_
   result = (ref OSError)(errorCode: errorCode.int32, msg: osErrorMsg(errorCode))
   if additionalInfo.len > 0:
-    if result.msg.len > 0 and result.msg[^1] != '\n': result.msg.add '\n'
+    if result.msg.len > 0 and result.msg[^1] != '\n':
+      result.msg.add '\n'
     result.msg.add "Additional info: "
     result.msg.add additionalInfo
       # don't add trailing `.` etc, which negatively impacts "jump to file" in IDEs.
@@ -91,7 +97,7 @@ proc raiseOSError*(errorCode: OSErrorCode, additionalInfo = "") {.noinline.} =
   ## how the exception object is created.
   raise newOSError(errorCode, additionalInfo)
 
-{.push stackTrace:off.}
+{.push stackTrace: off.}
 proc osLastError*(): OSErrorCode {.sideEffect.} =
   ## Retrieves the last operating system error code.
   ##
@@ -114,4 +120,5 @@ proc osLastError*(): OSErrorCode {.sideEffect.} =
     result = cast[OSErrorCode](getLastError())
   else:
     result = OSErrorCode(errno)
+
 {.pop.}

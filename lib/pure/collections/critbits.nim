@@ -44,17 +44,18 @@ type
     byte: int ## byte index of the difference
     otherBits: char
     case isLeaf: bool
-    of false: child: array[0..1, ref NodeObj[T]]
+    of false: child: array[0 .. 1, ref NodeObj[T]]
     of true:
       key: string
       when T isnot void:
         val: T
 
   Node[T] = ref NodeObj[T]
-  CritBitTree*[T] = object ## The crit bit tree can either be used
-                           ## as a mapping from strings to
-                           ## some type `T` or as a set of
-                           ## strings if `T` is `void`.
+  CritBitTree*[T] = object
+    ## The crit bit tree can either be used
+    ## as a mapping from strings to
+    ## some type `T` or as a set of
+    ## strings if `T` is `void`.
     root: Node[T]
     count: int
 
@@ -70,7 +71,11 @@ proc rawGet[T](c: CritBitTree[T], key: string): Node[T] =
   var it = c.root
   while it != nil:
     if not it.isLeaf:
-      let ch = if it.byte < key.len: key[it.byte] else: '\0'
+      let ch =
+        if it.byte < key.len:
+          key[it.byte]
+        else:
+          '\0'
       let dir = (1 + (ch.ord or it.otherBits.ord)) shr 8
       it = it.child[dir]
     else:
@@ -96,7 +101,11 @@ proc rawInsert[T](c: var CritBitTree[T], key: string): Node[T] =
   else:
     var it = c.root
     while not it.isLeaf:
-      let ch = if it.byte < key.len: key[it.byte] else: '\0'
+      let ch =
+        if it.byte < key.len:
+          key[it.byte]
+        else:
+          '\0'
       let dir = (1 + (ch.ord or it.otherBits.ord)) shr 8
       it = it.child[dir]
 
@@ -104,7 +113,11 @@ proc rawInsert[T](c: var CritBitTree[T], key: string): Node[T] =
     var newByte = 0
     block blockX:
       while newByte < key.len:
-        let ch = if newByte < it.key.len: it.key[newByte] else: '\0'
+        let ch =
+          if newByte < it.key.len:
+            it.key[newByte]
+          else:
+            '\0'
         if ch != key[newByte]:
           newOtherBits = ch.ord xor key[newByte].ord
           break blockX
@@ -113,10 +126,14 @@ proc rawInsert[T](c: var CritBitTree[T], key: string): Node[T] =
         newOtherBits = it.key[newByte].ord
       else:
         return it
-    while (newOtherBits and (newOtherBits-1)) != 0:
-      newOtherBits = newOtherBits and (newOtherBits-1)
+    while (newOtherBits and (newOtherBits - 1)) != 0:
+      newOtherBits = newOtherBits and (newOtherBits - 1)
     newOtherBits = newOtherBits xor 255
-    let ch = if newByte < it.key.len: it.key[newByte] else: '\0'
+    let ch =
+      if newByte < it.key.len:
+        it.key[newByte]
+      else:
+        '\0'
     let dir = (1 + (ord(ch) or newOtherBits)) shr 8
 
     var inner: Node[T]
@@ -129,10 +146,17 @@ proc rawInsert[T](c: var CritBitTree[T], key: string): Node[T] =
     var wherep = addr(c.root)
     while true:
       var p = wherep[]
-      if p.isLeaf: break
-      if p.byte > newByte: break
-      if p.byte == newByte and p.otherBits.ord > newOtherBits: break
-      let ch = if p.byte < key.len: key[p.byte] else: '\0'
+      if p.isLeaf:
+        break
+      if p.byte > newByte:
+        break
+      if p.byte == newByte and p.otherBits.ord > newOtherBits:
+        break
+      let ch =
+        if p.byte < key.len:
+          key[p.byte]
+        else:
+          '\0'
       let dir = (1 + (ch.ord or p.otherBits.ord)) shr 8
       wherep = addr(p.child[dir])
     inner.child[dir] = wherep[]
@@ -143,13 +167,18 @@ func exclImpl[T](c: var CritBitTree[T], key: string): int =
   var p = c.root
   var wherep = addr(c.root)
   var whereq: ptr Node[T] = nil
-  if p == nil: return c.count
+  if p == nil:
+    return c.count
   var dir = 0
   var q: Node[T]
   while not p.isLeaf:
     whereq = wherep
     q = p
-    let ch = if p.byte < key.len: key[p.byte] else: '\0'
+    let ch =
+      if p.byte < key.len:
+        key[p.byte]
+      else:
+        '\0'
     dir = (1 + (ch.ord or p.otherBits.ord)) shr 8
     wherep = addr(p.child[dir])
     p = wherep[]
@@ -224,7 +253,8 @@ proc containsOrIncl*[T](c: var CritBitTree[T], key: string, val: sink T): bool =
   var n = rawInsert(c, key)
   result = c.count == oldCount
   when T isnot void:
-    if not result: n.val = val
+    if not result:
+      n.val = val
 
 proc containsOrIncl*(c: var CritBitTree[void], key: string): bool =
   ## Returns true if `c` contains the given `key`. If the key does not exist,
@@ -249,7 +279,7 @@ proc containsOrIncl*(c: var CritBitTree[void], key: string): bool =
   discard rawInsert(c, key)
   result = c.count == oldCount
 
-proc inc*(c: var CritBitTree[int]; key: string, val: int = 1) =
+proc inc*(c: var CritBitTree[int], key: string, val: int = 1) =
   ## Increments `c[key]` by `val`.
   runnableExamples:
     var c: CritBitTree[int]
@@ -343,7 +373,8 @@ iterator keys*[T](c: CritBitTree[T]): string =
     let c = {"key1": 1, "key2": 2}.toCritBitTree
     doAssert toSeq(c.keys) == @["key1", "key2"]
 
-  for x in leaves(c.root): yield x.key
+  for x in leaves(c.root):
+    yield x.key
 
 iterator values*[T](c: CritBitTree[T]): lent T =
   ## Yields all values of `c` in the lexicographical order of the
@@ -357,7 +388,8 @@ iterator values*[T](c: CritBitTree[T]): lent T =
     let c = {"key1": 1, "key2": 2}.toCritBitTree
     doAssert toSeq(c.values) == @[1, 2]
 
-  for x in leaves(c.root): yield x.val
+  for x in leaves(c.root):
+    yield x.val
 
 iterator mvalues*[T](c: var CritBitTree[T]): var T =
   ## Yields all values of `c` in the lexicographical order of the
@@ -365,11 +397,13 @@ iterator mvalues*[T](c: var CritBitTree[T]): var T =
   ##
   ## **See also:**
   ## * `values iterator <#values.i,CritBitTree[T]>`_
-  for x in leaves(c.root): yield x.val
+  for x in leaves(c.root):
+    yield x.val
 
 iterator items*[T](c: CritBitTree[T]): string =
   ## Alias for `keys <#keys.i,CritBitTree[T]>`_.
-  for x in leaves(c.root): yield x.key
+  for x in leaves(c.root):
+    yield x.key
 
 iterator pairs*[T](c: CritBitTree[T]): tuple[key: string, val: T] =
   ## Yields all `(key, value)`-pairs of `c` in the lexicographical order of the
@@ -383,7 +417,8 @@ iterator pairs*[T](c: CritBitTree[T]): tuple[key: string, val: T] =
     let c = {"key1": 1, "key2": 2}.toCritBitTree
     doAssert toSeq(c.pairs) == @[(key: "key1", val: 1), (key: "key2", val: 2)]
 
-  for x in leaves(c.root): yield (x.key, x.val)
+  for x in leaves(c.root):
+    yield (x.key, x.val)
 
 iterator mpairs*[T](c: var CritBitTree[T]): tuple[key: string, val: var T] =
   ## Yields all `(key, value)`-pairs of `c` in the lexicographical order of the
@@ -391,7 +426,8 @@ iterator mpairs*[T](c: var CritBitTree[T]): tuple[key: string, val: var T] =
   ##
   ## **See also:**
   ## * `pairs iterator <#pairs.i,CritBitTree[T]>`_
-  for x in leaves(c.root): yield (x.key, x.val)
+  for x in leaves(c.root):
+    yield (x.key, x.val)
 
 proc allprefixedAux[T](c: CritBitTree[T], key: string): Node[T] =
   var p = c.root
@@ -399,12 +435,18 @@ proc allprefixedAux[T](c: CritBitTree[T], key: string): Node[T] =
   if p != nil:
     while not p.isLeaf:
       var q = p
-      let ch = if p.byte < key.len: key[p.byte] else: '\0'
+      let ch =
+        if p.byte < key.len:
+          key[p.byte]
+        else:
+          '\0'
       let dir = (1 + (ch.ord or p.otherBits.ord)) shr 8
       p = p.child[dir]
-      if q.byte < key.len: top = p
+      if q.byte < key.len:
+        top = p
     for i in 0 ..< key.len:
-      if i >= p.key.len or p.key[i] != key[i]: return
+      if i >= p.key.len or p.key[i] != key[i]:
+        return
     result = top
 
 iterator keysWithPrefix*[T](c: CritBitTree[T], prefix: string): string =
@@ -416,7 +458,8 @@ iterator keysWithPrefix*[T](c: CritBitTree[T], prefix: string): string =
     doAssert toSeq(c.keysWithPrefix("key")) == @["key1", "key2"]
 
   let top = allprefixedAux(c, prefix)
-  for x in leaves(top): yield x.key
+  for x in leaves(top):
+    yield x.key
 
 iterator valuesWithPrefix*[T](c: CritBitTree[T], prefix: string): lent T =
   ## Yields all values of `c` starting with `prefix` of the
@@ -431,7 +474,8 @@ iterator valuesWithPrefix*[T](c: CritBitTree[T], prefix: string): lent T =
     doAssert toSeq(c.valuesWithPrefix("key")) == @[42, 43]
 
   let top = allprefixedAux(c, prefix)
-  for x in leaves(top): yield x.val
+  for x in leaves(top):
+    yield x.val
 
 iterator mvaluesWithPrefix*[T](c: var CritBitTree[T], prefix: string): var T =
   ## Yields all values of `c` starting with `prefix` of the
@@ -440,15 +484,18 @@ iterator mvaluesWithPrefix*[T](c: var CritBitTree[T], prefix: string): var T =
   ## **See also:**
   ## * `valuesWithPrefix iterator <#valuesWithPrefix.i,CritBitTree[T],string>`_
   let top = allprefixedAux(c, prefix)
-  for x in leaves(top): yield x.val
+  for x in leaves(top):
+    yield x.val
 
 iterator itemsWithPrefix*[T](c: CritBitTree[T], prefix: string): string =
   ## Alias for `keysWithPrefix <#keysWithPrefix.i,CritBitTree[T],string>`_.
   let top = allprefixedAux(c, prefix)
-  for x in leaves(top): yield x.key
+  for x in leaves(top):
+    yield x.key
 
-iterator pairsWithPrefix*[T](c: CritBitTree[T],
-                             prefix: string): tuple[key: string, val: T] =
+iterator pairsWithPrefix*[T](
+    c: CritBitTree[T], prefix: string
+): tuple[key: string, val: T] =
   ## Yields all (key, value)-pairs of `c` starting with `prefix`.
   ##
   ## **See also:**
@@ -457,20 +504,24 @@ iterator pairsWithPrefix*[T](c: CritBitTree[T],
     from std/sequtils import toSeq
 
     let c = {"key1": 42, "key2": 43}.toCritBitTree
-    doAssert toSeq(c.pairsWithPrefix("key")) == @[(key: "key1", val: 42), (key: "key2", val: 43)]
+    doAssert toSeq(c.pairsWithPrefix("key")) ==
+      @[(key: "key1", val: 42), (key: "key2", val: 43)]
 
   let top = allprefixedAux(c, prefix)
-  for x in leaves(top): yield (x.key, x.val)
+  for x in leaves(top):
+    yield (x.key, x.val)
 
-iterator mpairsWithPrefix*[T](c: var CritBitTree[T],
-                              prefix: string): tuple[key: string, val: var T] =
+iterator mpairsWithPrefix*[T](
+    c: var CritBitTree[T], prefix: string
+): tuple[key: string, val: var T] =
   ## Yields all (key, value)-pairs of `c` starting with `prefix`.
   ## The yielded values can be modified.
   ##
   ## **See also:**
   ## * `pairsWithPrefix iterator <#pairsWithPrefix.i,CritBitTree[T],string>`_
   let top = allprefixedAux(c, prefix)
-  for x in leaves(top): yield (x.key, x.val)
+  for x in leaves(top):
+    yield (x.key, x.val)
 
 func `$`*[T](c: CritBitTree[T]): string =
   ## Turns `c` into a string representation.
@@ -495,11 +546,13 @@ func `$`*[T](c: CritBitTree[T]): string =
     result.add("{")
     when T is void:
       for key in keys(c):
-        if result.len > 1: result.add(", ")
+        if result.len > 1:
+          result.add(", ")
         result.addQuoted(key)
     else:
       for key, val in pairs(c):
-        if result.len > 1: result.add(", ")
+        if result.len > 1:
+          result.add(", ")
         result.addQuoted(key)
         result.add(": ")
         result.addQuoted(val)
@@ -517,21 +570,30 @@ func commonPrefixLen*[T](c: CritBitTree[T]): int {.inline, since((1, 3)).} =
     doAssert c.commonPrefixLen == 3
 
   if c.root != nil:
-    if c.root.isLeaf: len(c.root.key)
-    else: c.root.byte
-  else: 0
+    if c.root.isLeaf:
+      len(c.root.key)
+    else:
+      c.root.byte
+  else:
+    0
 
-proc toCritBitTree*[T](pairs: sink openArray[(string, T)]): CritBitTree[T] {.since: (1, 3).} =
+proc toCritBitTree*[T](
+    pairs: sink openArray[(string, T)]
+): CritBitTree[T] {.since: (1, 3).} =
   ## Creates a new `CritBitTree` that contains the given `pairs`.
   runnableExamples:
     doAssert {"a": "0", "b": "1", "c": "2"}.toCritBitTree is CritBitTree[string]
     doAssert {"a": 0, "b": 1, "c": 2}.toCritBitTree is CritBitTree[int]
 
-  for item in pairs: result.incl item[0], item[1]
+  for item in pairs:
+    result.incl item[0], item[1]
 
-proc toCritBitTree*(items: sink openArray[string]): CritBitTree[void] {.since: (1, 3).} =
+proc toCritBitTree*(
+    items: sink openArray[string]
+): CritBitTree[void] {.since: (1, 3).} =
   ## Creates a new `CritBitTree` that contains the given `items`.
   runnableExamples:
     doAssert ["a", "b", "c"].toCritBitTree is CritBitTree[void]
   result = default(CritBitTree[void])
-  for item in items: result.incl item
+  for item in items:
+    result.incl item

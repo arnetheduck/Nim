@@ -3,23 +3,23 @@
 
 ## This also serves as a blueprint for a possible implementation.
 
-import "$nim" / compiler / [lineinfos, idents]
+import "$nim"/compiler/[lineinfos, idents]
 
 when defined(nimPreviewSlimSystem):
   import std/assertions
 
-import "$nim" / compiler / nodekinds
+import "$nim"/compiler/nodekinds
 export nodekinds
 
 type
   PNode* = ref TNode
-  TNode*{.final, acyclic.} = object
+  TNode* {.final, acyclic.} = object
     case kind*: TNodeKind
-    of nkCharLit..nkUInt64Lit:
+    of nkCharLit .. nkUInt64Lit:
       intVal: BiggestInt
-    of nkFloatLit..nkFloat128Lit:
+    of nkFloatLit .. nkFloat128Lit:
       floatVal: BiggestFloat
-    of nkStrLit..nkTripleStrLit:
+    of nkStrLit .. nkTripleStrLit:
       strVal: string
     of nkSym:
       discard
@@ -48,15 +48,18 @@ proc add*(father, son: PNode) =
     father.last.next = son
     father.last = son
 
-template firstSon*(n: PNode): PNode = n.son
-template secondSon*(n: PNode): PNode = n.son.next
+template firstSon*(n: PNode): PNode =
+  n.son
+
+template secondSon*(n: PNode): PNode =
+  n.son.next
 
 proc replaceFirstSon*(n, newson: PNode) {.inline.} =
   let old = n.son
   n.son = newson
   newson.next = old
 
-proc replaceSon*(n: PNode; i: int; newson: PNode) =
+proc replaceSon*(n: PNode, i: int, newson: PNode) =
   assert i > 0
   assert newson.next == nil
   var i = i
@@ -79,7 +82,7 @@ proc newNode*(kind: TNodeKind, info: TLineInfo): PNode =
   ## new node with line info, no type, and no children
   newNodeImpl(info)
 
-proc newTree*(kind: TNodeKind; info: TLineInfo; child: PNode): PNode =
+proc newTree*(kind: TNodeKind, info: TLineInfo, child: PNode): PNode =
   result = newNode(kind, info)
   result.son = child
 
@@ -96,20 +99,25 @@ proc newAtom*(kind: TNodeKind, floatVal: BiggestFloat, info: TLineInfo): PNode =
   result = newNode(kind, info)
   result.floatVal = floatVal
 
-proc newAtom*(kind: TNodeKind; strVal: sink string; info: TLineInfo): PNode =
+proc newAtom*(kind: TNodeKind, strVal: sink string, info: TLineInfo): PNode =
   result = newNode(kind, info)
   result.strVal = strVal
 
-proc lastSon*(n: PNode): PNode {.inline.} = n.last
+proc lastSon*(n: PNode): PNode {.inline.} =
+  n.last
+
 proc setLastSon*(n: PNode, s: PNode) =
   assert s.next == nil
   n.last = s
-  if n.son == nil: n.son = s
+  if n.son == nil:
+    n.son = s
 
-proc newProcNode*(kind: TNodeKind, info: TLineInfo, body: PNode,
-                 params,
-                 name, pattern, genericParams,
-                 pragmas, exceptions: PNode): PNode =
+proc newProcNode*(
+    kind: TNodeKind,
+    info: TLineInfo,
+    body: PNode,
+    params, name, pattern, genericParams, pragmas, exceptions: PNode,
+): PNode =
   result = newNode(kind, info)
   result.add name
   result.add pattern
@@ -124,12 +132,15 @@ template transitionNodeKindCommon(k: TNodeKind) =
   n[] = TNode(kind: k, info: obj.info)
   # n.comment = obj.comment # shouldn't be needed, the address doesnt' change
 
-proc transitionSonsKind*(n: PNode, kind: range[nkComesFrom..nkTupleConstr]) =
+proc transitionSonsKind*(n: PNode, kind: range[nkComesFrom .. nkTupleConstr]) =
   transitionNodeKindCommon(kind)
   n.son = obj.son
 
-template hasSon*(n: PNode): bool = n.son != nil
-template has2Sons*(n: PNode): bool = n.son != nil and n.son.next != nil
+template hasSon*(n: PNode): bool =
+  n.son != nil
+
+template has2Sons*(n: PNode): bool =
+  n.son != nil and n.son.next != nil
 
 proc isNewStyleConcept*(n: PNode): bool {.inline.} =
   assert n.kind == nkTypeClassTy

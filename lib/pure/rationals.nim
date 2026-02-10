@@ -7,7 +7,6 @@
 #    distribution, for details about the copyright.
 #
 
-
 ## This module implements rational numbers, consisting of a numerator and
 ## a denominator. The denominator can not be 0.
 
@@ -17,7 +16,7 @@ runnableExamples:
     r2 = -3 // 4
 
   doAssert r1 + r2 == -1 // 4
-  doAssert r1 - r2 ==  5 // 4
+  doAssert r1 - r2 == 5 // 4
   doAssert r1 * r2 == -3 // 8
   doAssert r1 / r2 == -2 // 3
 
@@ -84,8 +83,9 @@ func toRational*[T: SomeInteger](x: T): Rational[T] =
   result.num = x
   result.den = 1
 
-func toRational*(x: float,
-                 n: int = high(int) shr (sizeof(int) div 2 * 8)): Rational[int] =
+func toRational*(
+    x: float, n: int = high(int) shr (sizeof(int) div 2 * 8)
+): Rational[int] =
   ## Calculates the best rational approximation of `x`,
   ## where the denominator is smaller than `n`
   ## (default is the largest possible `int` for maximal resolution).
@@ -107,9 +107,11 @@ func toRational*(x: float,
     swap m22, m21
     m11 = m12 * ai + m11
     m21 = m22 * ai + m21
-    if x == float(ai): break # division by zero
+    if x == float(ai):
+      break # division by zero
     x = 1 / (x - float(ai))
-    if x > float(high(int32)): break # representation failure
+    if x > float(high(int32)):
+      break # representation failure
     ai = int(x)
   result = m11 // m21
 

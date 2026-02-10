@@ -9,35 +9,35 @@
 
 # This module implements Nim's standard template filter.
 
-import
-  llstream, ast, msgs, options,
-  filters, lineinfos, pathutils
+import llstream, ast, msgs, options, filters, lineinfos, pathutils
 
 import std/strutils
 
 type
   TParseState = enum
-    psDirective, psTempl
+    psDirective
+    psTempl
+
   TTmplParser = object
     inp: PLLStream
     state: TParseState
     info: TLineInfo
     indent, emitPar: int
-    x: string                # the current input line
-    outp: PLLStream          # the output will be parsed by parser
+    x: string # the current input line
+    outp: PLLStream # the output will be parsed by parser
     subsChar, nimDirective: char
     emit, conc, toStr: string
     curly, bracket, par: int
     pendingExprLine: bool
     config: ConfigRef
 
-const
-  PatternChars = {'a'..'z', 'A'..'Z', '0'..'9', '\x80'..'\xFF', '.', '_'}
+const PatternChars = {'a' .. 'z', 'A' .. 'Z', '0' .. '9', '\x80' .. '\xFF', '.', '_'}
 
 proc newLine(p: var TTmplParser) =
   llStreamWrite(p.outp, repeat(')', p.emitPar))
   p.emitPar = 0
-  if p.info.line > uint16(1): llStreamWrite(p.outp, "\n")
+  if p.info.line > uint16(1):
+    llStreamWrite(p.outp, "\n")
   if p.pendingExprLine:
     llStreamWrite(p.outp, spaces(2))
     p.pendingExprLine = false
@@ -46,34 +46,42 @@ proc scanPar(p: var TTmplParser, d: int) =
   var i = d
   while i < p.x.len:
     case p.x[i]
-    of '(': inc(p.par)
-    of ')': dec(p.par)
-    of '[': inc(p.bracket)
-    of ']': dec(p.bracket)
-    of '{': inc(p.curly)
-    of '}': dec(p.curly)
-    else: discard
+    of '(':
+      inc(p.par)
+    of ')':
+      dec(p.par)
+    of '[':
+      inc(p.bracket)
+    of ']':
+      dec(p.bracket)
+    of '{':
+      inc(p.curly)
+    of '}':
+      dec(p.curly)
+    else:
+      discard
     inc(i)
 
 proc withInExpr(p: TTmplParser): bool {.inline.} =
   result = p.par > 0 or p.bracket > 0 or p.curly > 0
 
-const
-  LineContinuationOprs = {'+', '-', '*', '/', '\\', '<', '>', '^',
-                          '|', '%', '&', '$', '@', '~', ','}
+const LineContinuationOprs =
+  {'+', '-', '*', '/', '\\', '<', '>', '^', '|', '%', '&', '$', '@', '~', ','}
 
 proc parseLine(p: var TTmplParser) =
   var j = 0
   let len = p.x.len
 
-  while j < len and p.x[j] == ' ': inc(j)
+  while j < len and p.x[j] == ' ':
+    inc(j)
 
   if len >= 2 and p.x[0] == p.nimDirective and p.x[1] == '?':
     newLine(p)
   elif j < len and p.x[j] == p.nimDirective:
     newLine(p)
     inc(j)
-    while j < len and p.x[j] == ' ': inc(j)
+    while j < len and p.x[j] == ' ':
+      inc(j)
     let d = j
     var keyw = ""
     while j < len and p.x[j] in PatternChars:
@@ -92,7 +100,7 @@ proc parseLine(p: var TTmplParser) =
       llStreamWrite(p.outp, spaces(p.indent))
       llStreamWrite(p.outp, "#end")
     of "if", "when", "try", "while", "for", "block", "case", "proc", "iterator",
-       "converter", "macro", "template", "method", "func":
+        "converter", "macro", "template", "method", "func":
       llStreamWrite(p.outp, spaces(p.indent))
       llStreamWrite(p.outp, substr(p.x, d))
       inc(p.indent, 2)
@@ -132,7 +140,7 @@ proc parseLine(p: var TTmplParser) =
     p.state = psTempl
     while j < len:
       case p.x[j]
-      of '\x01'..'\x1F', '\x80'..'\xFF':
+      of '\x01' .. '\x1F', '\x80' .. '\xFF':
         llStreamWrite(p.outp, "\\x")
         llStreamWrite(p.outp, toHex(ord(p.x[j]), 2))
         inc(j)
@@ -166,8 +174,10 @@ proc parseLine(p: var TTmplParser) =
                 llStreamWrite(p.outp, '{')
               of '}':
                 inc(j)
-                if curly == 0: break
-                if curly > 0: dec(curly)
+                if curly == 0:
+                  break
+                if curly > 0:
+                  dec(curly)
                 llStreamWrite(p.outp, '}')
               else:
                 llStreamWrite(p.outp, p.x[j])
@@ -178,7 +188,7 @@ proc parseLine(p: var TTmplParser) =
             llStreamWrite(p.outp, ')')
             llStreamWrite(p.outp, p.conc)
             llStreamWrite(p.outp, '\"')
-          of 'a'..'z', 'A'..'Z', '\x80'..'\xFF':
+          of 'a' .. 'z', 'A' .. 'Z', '\x80' .. '\xFF':
             llStreamWrite(p.outp, '\"')
             llStreamWrite(p.outp, p.conc)
             llStreamWrite(p.outp, p.toStr)
@@ -201,17 +211,21 @@ proc parseLine(p: var TTmplParser) =
           inc(j)
     llStreamWrite(p.outp, "\\n\"")
 
-proc filterTmpl*(conf: ConfigRef, stdin: PLLStream, filename: AbsoluteFile,
-                 call: PNode): PLLStream =
-  var p = TTmplParser(config: conf, info: newLineInfo(conf, filename, 0, 0),
-                outp: llStreamOpen(""), inp: stdin,
-                subsChar: charArg(conf, call, "subschar", 1, '$'),
-                nimDirective: charArg(conf, call, "metachar", 2, '#'),
-                emit: strArg(conf, call, "emit", 3, "result.add"),
-                conc: strArg(conf, call, "conc", 4, " & "),
-                toStr: strArg(conf, call, "tostring", 5, "$"),
-                x: newStringOfCap(120)
-                )
+proc filterTmpl*(
+    conf: ConfigRef, stdin: PLLStream, filename: AbsoluteFile, call: PNode
+): PLLStream =
+  var p = TTmplParser(
+    config: conf,
+    info: newLineInfo(conf, filename, 0, 0),
+    outp: llStreamOpen(""),
+    inp: stdin,
+    subsChar: charArg(conf, call, "subschar", 1, '$'),
+    nimDirective: charArg(conf, call, "metachar", 2, '#'),
+    emit: strArg(conf, call, "emit", 3, "result.add"),
+    conc: strArg(conf, call, "conc", 4, " & "),
+    toStr: strArg(conf, call, "tostring", 5, "$"),
+    x: newStringOfCap(120),
+  )
   # do not process the first line which contains the directive:
   if llStreamReadLine(p.inp, p.x):
     inc p.info.line

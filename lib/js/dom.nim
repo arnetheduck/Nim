@@ -16,95 +16,104 @@
 ##
 ## * Basic example of a document ready:
 runnableExamples"-b:js -r:off":
-  proc example(e: Event) = echo "Document is ready"
-  document.addEventListener("DOMContentLoaded", example)  # You can also use "load" event.
+  proc example(e: Event) =
+    echo "Document is ready"
+
+  document.addEventListener("DOMContentLoaded", example) # You can also use "load" event.
 ## * This example runs 5 seconds after the document ready:
 runnableExamples"-b:js -r:off":
-  proc example() = echo "5 seconds after document ready"
-  proc domReady(e: Event) = discard setTimeout(example, 5_000) # Document is ready.
+  proc example() =
+    echo "5 seconds after document ready"
+
+  proc domReady(e: Event) =
+    discard setTimeout(example, 5_000) # Document is ready.
+
   document.addEventListener("DOMContentLoaded", domReady)
 ## Document onUnload
 ## -----------------
 ##
 ## * Simple example of how to implement code that runs when the page unloads:
 runnableExamples"-b:js -r:off":
-  proc example(e: Event) = echo "Document is unloaded"
-  document.addEventListener("unload", example)  # You can also use "beforeunload".
+  proc example(e: Event) =
+    echo "Document is unloaded"
+
+  document.addEventListener("unload", example) # You can also use "beforeunload".
 ## Document Autorefresh
 ## --------------------
 ##
 ## * Minimal example of a document autorefresh:
 runnableExamples"-b:js -r:off":
-  proc example() = window.location.reload()
+  proc example() =
+    window.location.reload()
+
   discard setTimeout(example, 5_000)
 ## - For more examples, see https://developer.mozilla.org/en-US/docs/Web/API/EventTarget/addEventListener
-
 
 import std/private/since
 when not defined(js):
   {.error: "This module only works on the JavaScript platform".}
 
-const
-  DomApiVersion* = 3 ## the version of DOM API we try to follow. No guarantees though.
+const DomApiVersion* = 3
+  ## the version of DOM API we try to follow. No guarantees though.
 
 type
   EventTarget* {.importc.} = ref object of RootObj
-    onabort*: proc (event: Event) {.closure.}
-    onblur*: proc (event: Event) {.closure.}
-    onchange*: proc (event: Event) {.closure.}
-    onclick*: proc (event: Event) {.closure.}
-    ondblclick*: proc (event: Event) {.closure.}
-    onerror*: proc (event: Event) {.closure.}
-    onfocus*: proc (event: Event) {.closure.}
-    onkeydown*: proc (event: Event) {.closure.}
-    onkeypress*: proc (event: Event) {.closure.}
-    onkeyup*: proc (event: Event) {.closure.}
-    onload*: proc (event: Event) {.closure.}
-    onmousedown*: proc (event: Event) {.closure.}
-    onmousemove*: proc (event: Event) {.closure.}
-    onmouseout*: proc (event: Event) {.closure.}
-    onmouseover*: proc (event: Event) {.closure.}
-    onmouseup*: proc (event: Event) {.closure.}
-    onreset*: proc (event: Event) {.closure.}
-    onselect*: proc (event: Event) {.closure.}
-    onstorage*: proc (event: Event) {.closure.}
-    onsubmit*: proc (event: Event) {.closure.}
-    onunload*: proc (event: Event) {.closure.}
-    onloadstart*: proc (event: Event) {.closure.}
-    onprogress*: proc (event: Event) {.closure.}
-    onloadend*: proc (event: Event) {.closure.}
+    onabort*: proc(event: Event) {.closure.}
+    onblur*: proc(event: Event) {.closure.}
+    onchange*: proc(event: Event) {.closure.}
+    onclick*: proc(event: Event) {.closure.}
+    ondblclick*: proc(event: Event) {.closure.}
+    onerror*: proc(event: Event) {.closure.}
+    onfocus*: proc(event: Event) {.closure.}
+    onkeydown*: proc(event: Event) {.closure.}
+    onkeypress*: proc(event: Event) {.closure.}
+    onkeyup*: proc(event: Event) {.closure.}
+    onload*: proc(event: Event) {.closure.}
+    onmousedown*: proc(event: Event) {.closure.}
+    onmousemove*: proc(event: Event) {.closure.}
+    onmouseout*: proc(event: Event) {.closure.}
+    onmouseover*: proc(event: Event) {.closure.}
+    onmouseup*: proc(event: Event) {.closure.}
+    onreset*: proc(event: Event) {.closure.}
+    onselect*: proc(event: Event) {.closure.}
+    onstorage*: proc(event: Event) {.closure.}
+    onsubmit*: proc(event: Event) {.closure.}
+    onunload*: proc(event: Event) {.closure.}
+    onloadstart*: proc(event: Event) {.closure.}
+    onprogress*: proc(event: Event) {.closure.}
+    onloadend*: proc(event: Event) {.closure.}
 
   DomEvent* {.pure.} = enum
     ## see `docs<https://developer.mozilla.org/en-US/docs/Web/Events>`_
-    Abort = "abort",
-    BeforeInput = "beforeinput",
-    Blur = "blur",
-    Click = "click",
-    CompositionEnd = "compositionend",
-    CompositionStart = "compositionstart",
-    CompositionUpdate = "compositionupdate",
-    DblClick = "dblclick",
-    Error = "error",
-    Focus = "focus",
-    FocusIn = "focusin",
-    FocusOut = "focusout",
-    Input = "input",
-    KeyDown = "keydown",
-    KeyPress = "keypress",
-    KeyUp = "keyup",
-    Load = "load",
-    MouseDown = "mousedown",
-    MouseEnter = "mouseenter",
-    MouseLeave = "mouseleave",
-    MouseMove = "mousemove",
-    MouseOut = "mouseout",
-    MouseOver = "mouseover",
-    MouseUp = "mouseup",
-    Resize = "resize",
-    Scroll = "scroll",
-    Select = "select",
-    Storage = "storage",
-    Unload = "unload",
+    Abort = "abort"
+    BeforeInput = "beforeinput"
+    Blur = "blur"
+    Click = "click"
+    CompositionEnd = "compositionend"
+    CompositionStart = "compositionstart"
+    CompositionUpdate = "compositionupdate"
+    DblClick = "dblclick"
+    Error = "error"
+    Focus = "focus"
+    FocusIn = "focusin"
+    FocusOut = "focusout"
+    Input = "input"
+    KeyDown = "keydown"
+    KeyPress = "keypress"
+    KeyUp = "keyup"
+    Load = "load"
+    MouseDown = "mousedown"
+    MouseEnter = "mouseenter"
+    MouseLeave = "mouseleave"
+    MouseMove = "mousemove"
+    MouseOut = "mouseout"
+    MouseOver = "mouseover"
+    MouseUp = "mouseup"
+    Resize = "resize"
+    Scroll = "scroll"
+    Select = "select"
+    Storage = "storage"
+    Unload = "unload"
     Wheel = "wheel"
 
   PerformanceMemory* {.importc.} = ref object
@@ -183,7 +192,7 @@ type
     frames*: seq[Frame]
     screen*: Screen
     performance*: Performance
-    onpopstate*: proc (event: Event)
+    onpopstate*: proc(event: Event)
     localStorage*: Storage
     sessionStorage*: Storage
     parent*: Window
@@ -193,17 +202,17 @@ type
   ClassList* {.importc.} = ref object of RootObj
 
   NodeType* = enum
-    ElementNode = 1,
-    AttributeNode,
-    TextNode,
-    CDATANode,
-    EntityRefNode,
-    EntityNode,
-    ProcessingInstructionNode,
-    CommentNode,
-    DocumentNode,
-    DocumentTypeNode,
-    DocumentFragmentNode,
+    ElementNode = 1
+    AttributeNode
+    TextNode
+    CDATANode
+    EntityRefNode
+    EntityNode
+    ProcessingInstructionNode
+    CommentNode
+    DocumentNode
+    DocumentTypeNode
+    DocumentFragmentNode
     NotationNode
 
   Node* {.importc.} = ref object of EventTarget
@@ -278,7 +287,8 @@ type
     offsetLeft*: int
     offsetTop*: int
 
-  ValidityState* {.importc.} = ref object ## see `docs<https://developer.mozilla.org/en-US/docs/Web/API/ValidityState>`_
+  ValidityState* {.importc.} = ref object
+    ## see `docs<https://developer.mozilla.org/en-US/docs/Web/API/ValidityState>`_
     badInput*: bool
     customError*: bool
     patternMismatch*: bool
@@ -291,21 +301,25 @@ type
     valid*: bool
     valueMissing*: bool
 
-  Blob* {.importc.} = ref object of RootObj ## see `docs<https://developer.mozilla.org/en-US/docs/Web/API/Blob>`_
+  Blob* {.importc.} = ref object of RootObj
+    ## see `docs<https://developer.mozilla.org/en-US/docs/Web/API/Blob>`_
     size*: int
     `type`*: cstring
 
-  File* {.importc.} = ref object of Blob ## see `docs<https://developer.mozilla.org/en-US/docs/Web/API/File>`_
+  File* {.importc.} = ref object of Blob
+    ## see `docs<https://developer.mozilla.org/en-US/docs/Web/API/File>`_
     lastModified*: int
     name*: cstring
 
-  TextAreaElement* {.importc.} = ref object of Element ## see `docs<https://developer.mozilla.org/en-US/docs/Web/API/HTMLTextAreaElement>`_
+  TextAreaElement* {.importc.} = ref object of Element
+    ## see `docs<https://developer.mozilla.org/en-US/docs/Web/API/HTMLTextAreaElement>`_
     value*: cstring
     selectionStart*, selectionEnd*: int
     selectionDirection*: cstring
     rows*, cols*: int
 
-  InputElement* {.importc.} = ref object of Element ## see `docs<https://developer.mozilla.org/en-US/docs/Web/API/HTMLInputElement>`_
+  InputElement* {.importc.} = ref object of Element
+    ## see `docs<https://developer.mozilla.org/en-US/docs/Web/API/HTMLInputElement>`_
     # Properties related to the parent form
     formAction*: cstring
     formEncType*: cstring
@@ -382,7 +396,8 @@ type
     text*: cstring
     value*: cstring
 
-  FormElement* {.importc.} = ref object of Element ## see `docs<https://developer.mozilla.org/en-US/docs/Web/API/HTMLFormElement>`_
+  FormElement* {.importc.} = ref object of Element
+    ## see `docs<https://developer.mozilla.org/en-US/docs/Web/API/HTMLFormElement>`_
     acceptCharset*: cstring
     action*: cstring
     autocomplete*: cstring
@@ -775,12 +790,13 @@ type
     zIndex*: cstring
 
   EventPhase* = enum
-    None = 0,
-    CapturingPhase,
-    AtTarget,
+    None = 0
+    CapturingPhase
+    AtTarget
     BubblingPhase
 
-  Event* {.importc.} = ref object of RootObj ## see `docs<https://developer.mozilla.org/en-US/docs/Web/API/Event>`_
+  Event* {.importc.} = ref object of RootObj
+    ## see `docs<https://developer.mozilla.org/en-US/docs/Web/API/Event>`_
     bubbles*: bool
     cancelBubble*: bool
     cancelable*: bool
@@ -792,11 +808,13 @@ type
     `type`*: cstring
     isTrusted*: bool
 
-  UIEvent* {.importc.} = ref object of Event ## see `docs<https://developer.mozilla.org/en-US/docs/Web/API/UIEvent>`_
+  UIEvent* {.importc.} = ref object of Event
+    ## see `docs<https://developer.mozilla.org/en-US/docs/Web/API/UIEvent>`_
     detail*: int64
     view*: Window
 
-  KeyboardEvent* {.importc.} = ref object of UIEvent ## see `docs<https://developer.mozilla.org/en-US/docs/Web/API/KeyboardEvent>`_
+  KeyboardEvent* {.importc.} = ref object of UIEvent
+    ## see `docs<https://developer.mozilla.org/en-US/docs/Web/API/KeyboardEvent>`_
     altKey*, ctrlKey*, metaKey*, shiftKey*: bool
     code*: cstring
     isComposing*: bool
@@ -804,361 +822,363 @@ type
     keyCode*: int
     location*: int
 
-  KeyboardEventKey* {.pure.} = enum ## see `docs<https://developer.mozilla.org/en-US/docs/Web/API/KeyboardEvent/key/Key_Values>`_
+  KeyboardEventKey* {.pure.} = enum
+    ## see `docs<https://developer.mozilla.org/en-US/docs/Web/API/KeyboardEvent/key/Key_Values>`_
     # Modifier keys
-    Alt,
-    AltGraph,
-    CapsLock,
-    Control,
-    Fn,
-    FnLock,
-    Hyper,
-    Meta,
-    NumLock,
-    ScrollLock,
-    Shift,
-    Super,
-    Symbol,
-    SymbolLock,
+    Alt
+    AltGraph
+    CapsLock
+    Control
+    Fn
+    FnLock
+    Hyper
+    Meta
+    NumLock
+    ScrollLock
+    Shift
+    Super
+    Symbol
+    SymbolLock
 
     # Whitespace keys
-    ArrowDown,
-    ArrowLeft,
-    ArrowRight,
-    ArrowUp,
-    End,
-    Home,
-    PageDown,
-    PageUp,
+    ArrowDown
+    ArrowLeft
+    ArrowRight
+    ArrowUp
+    End
+    Home
+    PageDown
+    PageUp
 
     # Editing keys
-    Backspace,
-    Clear,
-    Copy,
-    CrSel,
-    Cut,
-    Delete,
-    EraseEof,
-    ExSel,
-    Insert,
-    Paste,
-    Redo,
-    Undo,
+    Backspace
+    Clear
+    Copy
+    CrSel
+    Cut
+    Delete
+    EraseEof
+    ExSel
+    Insert
+    Paste
+    Redo
+    Undo
 
     # UI keys
-    Accept,
-    Again,
-    Attn,
-    Cancel,
-    ContextMenu,
-    Escape,
-    Execute,
-    Find,
-    Finish,
-    Help,
-    Pause,
-    Play,
-    Props,
-    Select,
-    ZoomIn,
-    ZoomOut,
+    Accept
+    Again
+    Attn
+    Cancel
+    ContextMenu
+    Escape
+    Execute
+    Find
+    Finish
+    Help
+    Pause
+    Play
+    Props
+    Select
+    ZoomIn
+    ZoomOut
 
     # Device keys
-    BrigtnessDown,
-    BrigtnessUp,
-    Eject,
-    LogOff,
-    Power,
-    PowerOff,
-    PrintScreen,
-    Hibernate,
-    Standby,
-    WakeUp,
+    BrigtnessDown
+    BrigtnessUp
+    Eject
+    LogOff
+    Power
+    PowerOff
+    PrintScreen
+    Hibernate
+    Standby
+    WakeUp
 
     # Common IME keys
-    AllCandidates,
-    Alphanumeric,
-    CodeInput,
-    Compose,
-    Convert,
-    Dead,
-    FinalMode,
-    GroupFirst,
-    GroupLast,
-    GroupNext,
-    GroupPrevious,
-    ModeChange,
-    NextCandidate,
-    NonConvert,
-    PreviousCandidate,
-    Process,
-    SingleCandidate,
+    AllCandidates
+    Alphanumeric
+    CodeInput
+    Compose
+    Convert
+    Dead
+    FinalMode
+    GroupFirst
+    GroupLast
+    GroupNext
+    GroupPrevious
+    ModeChange
+    NextCandidate
+    NonConvert
+    PreviousCandidate
+    Process
+    SingleCandidate
 
     # Korean keyboards only
-    HangulMode,
-    HanjaMode,
-    JunjaMode,
+    HangulMode
+    HanjaMode
+    JunjaMode
 
     # Japanese keyboards only
-    Eisu,
-    Hankaku,
-    Hiragana,
-    HiraganaKatakana,
-    KanaMode,
-    KanjiMode,
-    Katakana,
-    Romaji,
-    Zenkaku,
-    ZenkakuHanaku,
+    Eisu
+    Hankaku
+    Hiragana
+    HiraganaKatakana
+    KanaMode
+    KanjiMode
+    Katakana
+    Romaji
+    Zenkaku
+    ZenkakuHanaku
 
     # Function keys
-    F1,
-    F2,
-    F3,
-    F4,
-    F5,
-    F6,
-    F7,
-    F8,
-    F9,
-    F10,
-    F11,
-    F12,
-    F13,
-    F14,
-    F15,
-    F16,
-    F17,
-    F18,
-    F19,
-    F20,
-    Soft1,
-    Soft2,
-    Soft3,
-    Soft4,
+    F1
+    F2
+    F3
+    F4
+    F5
+    F6
+    F7
+    F8
+    F9
+    F10
+    F11
+    F12
+    F13
+    F14
+    F15
+    F16
+    F17
+    F18
+    F19
+    F20
+    Soft1
+    Soft2
+    Soft3
+    Soft4
 
     # Phone keys
-    AppSwitch,
-    Call,
-    Camera,
-    CameraFocus,
-    EndCall,
-    GoBack,
-    GoHome,
-    HeadsetHook,
-    LastNumberRedial,
-    Notification,
-    MannerMode,
-    VoiceDial,
+    AppSwitch
+    Call
+    Camera
+    CameraFocus
+    EndCall
+    GoBack
+    GoHome
+    HeadsetHook
+    LastNumberRedial
+    Notification
+    MannerMode
+    VoiceDial
 
     # Multimedia keys
-    ChannelDown,
-    ChannelUp,
-    MediaFastForward,
-    MediaPause,
-    MediaPlay,
-    MediaPlayPause,
-    MediaRecord,
-    MediaRewind,
-    MediaStop,
-    MediaTrackNext,
-    MediaTrackPrevious,
+    ChannelDown
+    ChannelUp
+    MediaFastForward
+    MediaPause
+    MediaPlay
+    MediaPlayPause
+    MediaRecord
+    MediaRewind
+    MediaStop
+    MediaTrackNext
+    MediaTrackPrevious
 
     # Audio control keys
-    AudioBalanceLeft,
-    AudioBalanceRight,
-    AudioBassDown,
-    AudioBassBoostDown,
-    AudioBassBoostToggle,
-    AudioBassBoostUp,
-    AudioBassUp,
-    AudioFaderFront,
-    AudioFaderRear,
-    AudioSurroundModeNext,
-    AudioTrebleDown,
-    AudioTrebleUp,
-    AudioVolumeDown,
-    AUdioVolumeMute,
-    AudioVolumeUp,
-    MicrophoneToggle,
-    MicrophoneVolumeDown,
-    MicrophoneVolumeMute,
-    MicrophoneVolumeUp,
+    AudioBalanceLeft
+    AudioBalanceRight
+    AudioBassDown
+    AudioBassBoostDown
+    AudioBassBoostToggle
+    AudioBassBoostUp
+    AudioBassUp
+    AudioFaderFront
+    AudioFaderRear
+    AudioSurroundModeNext
+    AudioTrebleDown
+    AudioTrebleUp
+    AudioVolumeDown
+    AUdioVolumeMute
+    AudioVolumeUp
+    MicrophoneToggle
+    MicrophoneVolumeDown
+    MicrophoneVolumeMute
+    MicrophoneVolumeUp
 
     # TV control keys
-    TV,
-    TV3DMode,
-    TVAntennaCable,
-    TVAudioDescription,
-    TVAudioDescriptionMixDown,
-    TVAudioDescriptionMixUp,
-    TVContentsMenu,
-    TVDataService,
-    TVInput,
-    TVInputComponent1,
-    TVInputComponent2,
-    TVInputComposite1,
-    TVInputComposite2,
-    TVInputHDMI1,
-    TVInputHDMI2,
-    TVInputHDMI3,
-    TVInputHDMI4,
-    TVInputVGA1,
-    TVMediaContext,
-    TVNetwork,
-    TVNumberEntry,
-    TVPower,
-    TVRadioService,
-    TVSatellite,
-    TVSatelliteBS,
-    TVSatelliteCS,
-    TVSatelliteToggle,
-    TVTerrestrialAnalog,
-    TVTerrestrialDigital,
-    TVTimer,
+    TV
+    TV3DMode
+    TVAntennaCable
+    TVAudioDescription
+    TVAudioDescriptionMixDown
+    TVAudioDescriptionMixUp
+    TVContentsMenu
+    TVDataService
+    TVInput
+    TVInputComponent1
+    TVInputComponent2
+    TVInputComposite1
+    TVInputComposite2
+    TVInputHDMI1
+    TVInputHDMI2
+    TVInputHDMI3
+    TVInputHDMI4
+    TVInputVGA1
+    TVMediaContext
+    TVNetwork
+    TVNumberEntry
+    TVPower
+    TVRadioService
+    TVSatellite
+    TVSatelliteBS
+    TVSatelliteCS
+    TVSatelliteToggle
+    TVTerrestrialAnalog
+    TVTerrestrialDigital
+    TVTimer
 
     # Media controller keys
-    AVRInput,
-    AVRPower,
-    ColorF0Red,
-    ColorF1Green,
-    ColorF2Yellow,
-    ColorF3Blue,
-    ColorF4Grey,
-    ColorF5Brown,
-    ClosedCaptionToggle,
-    Dimmer,
-    DisplaySwap,
-    DVR,
-    Exit,
-    FavoriteClear0,
-    FavoriteClear1,
-    FavoriteClear2,
-    FavoriteClear3,
-    FavoriteRecall0,
-    FavoriteRecall1,
-    FavoriteRecall2,
-    FavoriteRecall3,
-    FavoriteStore0,
-    FavoriteStore1,
-    FavoriteStore2,
-    FavoriteStore3,
-    Guide,
-    GuideNextDay,
-    GuidePreviousDay,
-    Info,
-    InstantReplay,
-    Link,
-    ListProgram,
-    LiveContent,
-    Lock,
-    MediaApps,
-    MediaAudioTrack,
-    MediaLast,
-    MediaSkipBackward,
-    MediaSkipForward,
-    MediaStepBackward,
-    MediaStepForward,
-    MediaTopMenu,
-    NavigateIn,
-    NavigateNext,
-    NavigateOut,
-    NavigatePrevious,
-    NextFavoriteChannel,
-    NextUserProfile,
-    OnDemand,
-    Pairing,
-    PinPDown,
-    PinPMove,
-    PinPUp,
-    PlaySpeedDown,
-    PlaySpeedReset,
-    PlaySpeedUp,
-    RandomToggle,
-    RcLowBattery,
-    RecordSpeedNext,
-    RfBypass,
-    ScanChannelsToggle,
-    ScreenModeNext,
-    Settings,
-    SplitScreenToggle,
-    STBInput,
-    STBPower,
-    Subtitle,
-    Teletext,
-    VideoModeNext,
-    Wink,
-    ZoomToggle,
+    AVRInput
+    AVRPower
+    ColorF0Red
+    ColorF1Green
+    ColorF2Yellow
+    ColorF3Blue
+    ColorF4Grey
+    ColorF5Brown
+    ClosedCaptionToggle
+    Dimmer
+    DisplaySwap
+    DVR
+    Exit
+    FavoriteClear0
+    FavoriteClear1
+    FavoriteClear2
+    FavoriteClear3
+    FavoriteRecall0
+    FavoriteRecall1
+    FavoriteRecall2
+    FavoriteRecall3
+    FavoriteStore0
+    FavoriteStore1
+    FavoriteStore2
+    FavoriteStore3
+    Guide
+    GuideNextDay
+    GuidePreviousDay
+    Info
+    InstantReplay
+    Link
+    ListProgram
+    LiveContent
+    Lock
+    MediaApps
+    MediaAudioTrack
+    MediaLast
+    MediaSkipBackward
+    MediaSkipForward
+    MediaStepBackward
+    MediaStepForward
+    MediaTopMenu
+    NavigateIn
+    NavigateNext
+    NavigateOut
+    NavigatePrevious
+    NextFavoriteChannel
+    NextUserProfile
+    OnDemand
+    Pairing
+    PinPDown
+    PinPMove
+    PinPUp
+    PlaySpeedDown
+    PlaySpeedReset
+    PlaySpeedUp
+    RandomToggle
+    RcLowBattery
+    RecordSpeedNext
+    RfBypass
+    ScanChannelsToggle
+    ScreenModeNext
+    Settings
+    SplitScreenToggle
+    STBInput
+    STBPower
+    Subtitle
+    Teletext
+    VideoModeNext
+    Wink
+    ZoomToggle
 
     # Speech recognition keys
-    SpeechCorrectionList,
-    SpeechInputToggle,
+    SpeechCorrectionList
+    SpeechInputToggle
 
     # Document keys
-    Close,
-    New,
-    Open,
-    Print,
-    Save,
-    SpellCheck,
-    MailForward,
-    MailReply,
-    MailSend,
+    Close
+    New
+    Open
+    Print
+    Save
+    SpellCheck
+    MailForward
+    MailReply
+    MailSend
 
     # Application selector keys
-    LaunchCalculator,
-    LaunchCalendar,
-    LaunchContacts,
-    LaunchMail,
-    LaunchMediaPlayer,
-    LaunchMusicPlayer,
-    LaunchMyComputer,
-    LaunchPhone,
-    LaunchScreenSaver,
-    LaunchSpreadsheet,
-    LaunchWebBrowser,
-    LaunchWebCam,
-    LaunchWordProcessor,
-    LaunchApplication1,
-    LaunchApplication2,
-    LaunchApplication3,
-    LaunchApplication4,
-    LaunchApplication5,
-    LaunchApplication6,
-    LaunchApplication7,
-    LaunchApplication8,
-    LaunchApplication9,
-    LaunchApplication10,
-    LaunchApplication11,
-    LaunchApplication12,
-    LaunchApplication13,
-    LaunchApplication14,
-    LaunchApplication15,
-    LaunchApplication16,
+    LaunchCalculator
+    LaunchCalendar
+    LaunchContacts
+    LaunchMail
+    LaunchMediaPlayer
+    LaunchMusicPlayer
+    LaunchMyComputer
+    LaunchPhone
+    LaunchScreenSaver
+    LaunchSpreadsheet
+    LaunchWebBrowser
+    LaunchWebCam
+    LaunchWordProcessor
+    LaunchApplication1
+    LaunchApplication2
+    LaunchApplication3
+    LaunchApplication4
+    LaunchApplication5
+    LaunchApplication6
+    LaunchApplication7
+    LaunchApplication8
+    LaunchApplication9
+    LaunchApplication10
+    LaunchApplication11
+    LaunchApplication12
+    LaunchApplication13
+    LaunchApplication14
+    LaunchApplication15
+    LaunchApplication16
 
     # Browser control keys
-    BrowserBack,
-    BrowserFavorites,
-    BrowserForward,
-    BrowserHome,
-    BrowserRefresh,
-    BrowserSearch,
-    BrowserStop,
+    BrowserBack
+    BrowserFavorites
+    BrowserForward
+    BrowserHome
+    BrowserRefresh
+    BrowserSearch
+    BrowserStop
 
     # Numeric keypad keys
-    Key11,
-    Key12,
+    Key11
+    Key12
     Separator
 
   MouseButtons* = enum
-    NoButton = 0,
-    PrimaryButton = 1,
-    SecondaryButton = 2,
-    AuxilaryButton = 4,
-    FourthButton = 8,
+    NoButton = 0
+    PrimaryButton = 1
+    SecondaryButton = 2
+    AuxilaryButton = 4
+    FourthButton = 8
     FifthButton = 16
 
-  MouseEvent* {.importc.} = ref object of UIEvent ## see `docs<https://developer.mozilla.org/en-US/docs/Web/API/MouseEvent>`_
+  MouseEvent* {.importc.} = ref object of UIEvent
+    ## see `docs<https://developer.mozilla.org/en-US/docs/Web/API/MouseEvent>`_
     altKey*, ctrlKey*, metaKey*, shiftKey*: bool
     button*: int
     buttons*: int
@@ -1172,14 +1192,16 @@ type
     x*, y*: int
 
   DataTransferItemKind* {.pure.} = enum
-    File = "file",
+    File = "file"
     String = "string"
 
-  DataTransferItem* {.importc.} = ref object of RootObj ## see `docs<https://developer.mozilla.org/en-US/docs/Web/API/DataTransferItem>`_
+  DataTransferItem* {.importc.} = ref object of RootObj
+    ## see `docs<https://developer.mozilla.org/en-US/docs/Web/API/DataTransferItem>`_
     kind*: cstring
     `type`*: cstring
 
-  DataTransfer* {.importc.} = ref object of RootObj ## see `docs<https://developer.mozilla.org/en-US/docs/Web/API/DataTransfer>`_
+  DataTransfer* {.importc.} = ref object of RootObj
+    ## see `docs<https://developer.mozilla.org/en-US/docs/Web/API/DataTransfer>`_
     dropEffect*: cstring
     effectAllowed*: cstring
     files*: seq[Element]
@@ -1187,30 +1209,30 @@ type
     types*: seq[cstring]
 
   DataTransferDropEffect* {.pure.} = enum
-    None = "none",
-    Copy = "copy",
-    Link = "link",
+    None = "none"
+    Copy = "copy"
+    Link = "link"
     Move = "move"
 
   DataTransferEffectAllowed* {.pure.} = enum
-    None = "none",
-    Copy = "copy",
-    CopyLink = "copyLink",
-    CopyMove = "copyMove",
-    Link = "link",
-    LinkMove = "linkMove",
-    Move = "move",
-    All = "all",
+    None = "none"
+    Copy = "copy"
+    CopyLink = "copyLink"
+    CopyMove = "copyMove"
+    Link = "link"
+    LinkMove = "linkMove"
+    Move = "move"
+    All = "all"
     Uninitialized = "uninitialized"
 
   DragEventTypes* = enum
-    Drag = "drag",
-    DragEnd = "dragend",
-    DragEnter = "dragenter",
-    DragExit = "dragexit",
-    DragLeave = "dragleave",
-    DragOver = "dragover",
-    DragStart = "dragstart",
+    Drag = "drag"
+    DragEnd = "dragend"
+    DragEnter = "dragenter"
+    DragExit = "dragexit"
+    DragLeave = "dragleave"
+    DragOver = "dragover"
+    DragStart = "dragstart"
     Drop = "drop"
 
   DragEvent* {.importc.} = object of MouseEvent
@@ -1221,7 +1243,8 @@ type
     ## see `docs<https://developer.mozilla.org/en-US/docs/Web/API/ClipboardEvent>`_
     clipboardData*: DataTransfer
 
-  StorageEvent* {.importc.} = ref object of Event ## see `docs<https://developer.mozilla.org/en-US/docs/Web/API/StorageEvent>`_
+  StorageEvent* {.importc.} = ref object of Event
+    ## see `docs<https://developer.mozilla.org/en-US/docs/Web/API/StorageEvent>`_
     key*: cstring
     newValue*, oldValue*: cstring
     storageArea*: Storage
@@ -1259,19 +1282,26 @@ type
     appCodeName*: cstring
     appName*: cstring
     appVersion*: cstring
-    buildID*: cstring        ## https://developer.mozilla.org/en-US/docs/Web/API/Navigator/buildID
+    buildID*: cstring
+      ## https://developer.mozilla.org/en-US/docs/Web/API/Navigator/buildID
     cookieEnabled*: bool
-    deviceMemory*: float     ## https://developer.mozilla.org/en-US/docs/Web/API/Navigator/deviceMemory
-    doNotTrack*: cstring     ## https://developer.mozilla.org/en-US/docs/Web/API/Navigator/doNotTrack
+    deviceMemory*: float
+      ## https://developer.mozilla.org/en-US/docs/Web/API/Navigator/deviceMemory
+    doNotTrack*: cstring
+      ## https://developer.mozilla.org/en-US/docs/Web/API/Navigator/doNotTrack
     language*: cstring
-    languages*: seq[cstring] ## https://developer.mozilla.org/en-US/docs/Web/API/NavigatorLanguage/languages
-    maxTouchPoints*: cint    ## https://developer.mozilla.org/en-US/docs/Web/API/Navigator/maxTouchPoints
-    onLine*: bool            ## https://developer.mozilla.org/en-US/docs/Web/API/NavigatorOnLine/onLine
-    oscpu*: cstring          ## https://developer.mozilla.org/en-US/docs/Web/API/Navigator/oscpu
+    languages*: seq[cstring]
+      ## https://developer.mozilla.org/en-US/docs/Web/API/NavigatorLanguage/languages
+    maxTouchPoints*: cint
+      ## https://developer.mozilla.org/en-US/docs/Web/API/Navigator/maxTouchPoints
+    onLine*: bool
+      ## https://developer.mozilla.org/en-US/docs/Web/API/NavigatorOnLine/onLine
+    oscpu*: cstring ## https://developer.mozilla.org/en-US/docs/Web/API/Navigator/oscpu
     platform*: cstring
     userAgent*: cstring
-    vendor*: cstring         ## https://developer.mozilla.org/en-US/docs/Web/API/Navigator/vendor
-    webdriver*: bool         ## https://developer.mozilla.org/en-US/docs/Web/API/Navigator/webdriver
+    vendor*: cstring ## https://developer.mozilla.org/en-US/docs/Web/API/Navigator/vendor
+    webdriver*: bool
+      ## https://developer.mozilla.org/en-US/docs/Web/API/Navigator/webdriver
     mimeTypes*: seq[ref MimeType]
 
   Plugin* {.importc.} = object of RootObj
@@ -1287,6 +1317,7 @@ type
 
   LocationBar* {.importc.} = object of RootObj
     visible*: bool
+
   MenuBar* = LocationBar
   PersonalBar* = LocationBar
   ScrollBars* = LocationBar
@@ -1351,23 +1382,26 @@ since (1, 3):
       ## the file or data to read.
       ## https://developer.mozilla.org/en-US/docs/Web/API/FileReader
 
-    FileReaderState* = distinct range[0'u16..2'u16]
+    FileReaderState* = distinct range[0'u16 .. 2'u16]
     RootNodeOptions* = object of RootObj
       composed*: bool
+
     DocumentOrShadowRoot* {.importc.} = object of RootObj
-      activeElement*: Element
-      # styleSheets*: StyleSheetList
+      activeElement*: Element # styleSheets*: StyleSheetList
+
     ShadowRoot* {.importc.} = ref object of DocumentOrShadowRoot
       delegatesFocus*: bool
       host*: Element
       innerHTML*: cstring
       mode*: cstring # "open" or "closed"
+
     ShadowRootInit* = object of RootObj
       mode*: cstring
       delegatesFocus*: bool
 
     HTMLSlotElement* {.importc.} = ref object of RootObj
       name*: cstring
+
     SlotOptions* = object of RootObj
       flatten*: bool
 
@@ -1377,37 +1411,43 @@ since (1, 3):
     fileReaderDone* = 2.FileReaderState
 
 proc id*(n: Node): cstring {.importcpp: "#.id", nodecl.}
-proc `id=`*(n: Node; x: cstring) {.importcpp: "#.id = #", nodecl.}
+proc `id=`*(n: Node, x: cstring) {.importcpp: "#.id = #", nodecl.}
 proc class*(n: Node): cstring {.importcpp: "#.className", nodecl.}
-proc `class=`*(n: Node; v: cstring) {.importcpp: "#.className = #", nodecl.}
+proc `class=`*(n: Node, v: cstring) {.importcpp: "#.className = #", nodecl.}
 
 proc value*(n: Node): cstring {.importcpp: "#.value", nodecl.}
-proc `value=`*(n: Node; v: cstring) {.importcpp: "#.value = #", nodecl.}
+proc `value=`*(n: Node, v: cstring) {.importcpp: "#.value = #", nodecl.}
 
 proc checked*(n: Node): bool {.importcpp: "#.checked", nodecl.}
-proc `checked=`*(n: Node; v: bool) {.importcpp: "#.checked = #", nodecl.}
+proc `checked=`*(n: Node, v: bool) {.importcpp: "#.checked = #", nodecl.}
 
-proc `disabled=`*(n: Node; v: bool) {.importcpp: "#.disabled = #", nodecl.}
+proc `disabled=`*(n: Node, v: bool) {.importcpp: "#.disabled = #", nodecl.}
 
 when defined(nodejs):
   # we provide a dummy DOM for nodejs for testing purposes
-  proc len*(x: Node): int = x.childNodes.len
-  proc `[]`*(x: Node; idx: int): Element =
+  proc len*(x: Node): int =
+    x.childNodes.len
+
+  proc `[]`*(x: Node, idx: int): Element =
     assert idx >= 0 and idx < x.childNodes.len
     result = cast[Element](x.childNodes[idx])
 
   var document* = Document(nodeType: DocumentNode)
   document.ownerDocument = document
 
-  proc getElem(x: Element; id: cstring): Element =
-    if x.id == id: return x
-    for i in 0..<x.len:
+  proc getElem(x: Element, id: cstring): Element =
+    if x.id == id:
+      return x
+    for i in 0 ..< x.len:
       result = getElem(x[i], id)
-      if result != nil: return result
+      if result != nil:
+        return result
 
-  proc getElementById*(doc: Document; id: cstring): Element =
+  proc getElementById*(doc: Document, id: cstring): Element =
     getElem(doc.body, id)
-  proc getElementById*(id: cstring): Element = document.getElementById(id)
+
+  proc getElementById*(id: cstring): Element =
+    document.getElementById(id)
 
   proc appendChild*(parent, n: Node) =
     n.parentNode = parent
@@ -1438,11 +1478,11 @@ when defined(nodejs):
   proc insertBefore*(parent, newNode, before: Node) =
     appendChild(parent, newNode)
     var i = 0
-    while i < parent.len-1:
+    while i < parent.len - 1:
       if Node(parent[i]) == before:
-        for j in countdown(parent.len-1, i-1):
-          parent.childNodes[j] = parent.childNodes[j-1]
-        parent.childNodes[i-1] = newNode
+        for j in countdown(parent.len - 1, i - 1):
+          parent.childNodes[j] = parent.childNodes[j - 1]
+        parent.childNodes[i - 1] = newNode
         return
       inc i
     #raiseAssert "before not in node list"
@@ -1466,8 +1506,11 @@ when defined(nodejs):
 
 else:
   proc len*(x: Node): int {.importcpp: "#.childNodes.length".}
-  proc `[]`*(x: Node; idx: int): Element {.importcpp: "#.childNodes[#]".}
-  proc getElementById*(id: cstring): Element {.importc: "document.getElementById", nodecl.}
+  proc `[]`*(x: Node, idx: int): Element {.importcpp: "#.childNodes[#]".}
+  proc getElementById*(
+    id: cstring
+  ): Element {.importc: "document.getElementById", nodecl.}
+
   proc appendChild*(n, child: Node) {.importcpp.}
   proc removeChild*(n, child: Node) {.importcpp.}
   proc remove*(child: Node) {.importcpp.}
@@ -1475,24 +1518,37 @@ else:
   proc insertBefore*(n, newNode, before: Node) {.importcpp.}
   proc getElementById*(d: Document, id: cstring): Element {.importcpp.}
   proc createElement*(d: Document, identifier: cstring): Element {.importcpp.}
-  proc createElementNS*(d: Document, namespaceURI, qualifiedIdentifier: cstring): Element {.importcpp.}
+  proc createElementNS*(
+    d: Document, namespaceURI, qualifiedIdentifier: cstring
+  ): Element {.importcpp.}
+
   proc createTextNode*(d: Document, identifier: cstring): Node {.importcpp.}
   proc createComment*(d: Document, data: cstring): Node {.importcpp.}
 
-proc setTimeout*(action: proc(); ms: int): TimeOut {.importc, nodecl.}
+proc setTimeout*(action: proc(), ms: int): TimeOut {.importc, nodecl.}
 proc clearTimeout*(t: TimeOut) {.importc, nodecl.}
-proc setInterval*(action: proc(); ms: int): Interval {.importc, nodecl.}
+proc setInterval*(action: proc(), ms: int): Interval {.importc, nodecl.}
 proc clearInterval*(i: Interval) {.importc, nodecl.}
 
 {.push importcpp.}
 
 # EventTarget "methods"
-proc addEventListener*(et: EventTarget, ev: cstring, cb: proc(ev: Event), useCapture: bool = false)
-proc addEventListener*(et: EventTarget, ev: cstring, cb: proc(ev: Event), options: AddEventListenerOptions)
-proc dispatchEvent*(et: EventTarget, ev: Event)
-proc removeEventListener*(et: EventTarget, ev: cstring, cb: proc(ev: Event), useCapture: bool = false)
-proc removeEventListener*(et: EventTarget, ev: cstring, cb: proc(ev: Event), options: AddEventListenerOptions)
+proc addEventListener*(
+  et: EventTarget, ev: cstring, cb: proc(ev: Event), useCapture: bool = false
+)
 
+proc addEventListener*(
+  et: EventTarget, ev: cstring, cb: proc(ev: Event), options: AddEventListenerOptions
+)
+
+proc dispatchEvent*(et: EventTarget, ev: Event)
+proc removeEventListener*(
+  et: EventTarget, ev: cstring, cb: proc(ev: Event), useCapture: bool = false
+)
+
+proc removeEventListener*(
+  et: EventTarget, ev: cstring, cb: proc(ev: Event), options: AddEventListenerOptions
+)
 
 # Window "methods"
 proc alert*(w: Window, msg: cstring)
@@ -1504,8 +1560,7 @@ proc close*(w: Window)
 proc confirm*(w: Window, msg: cstring): bool
 proc disableExternalCapture*(w: Window)
 proc enableExternalCapture*(w: Window)
-proc find*(w: Window, text: cstring, caseSensitive = false,
-           backwards = false): bool
+proc find*(w: Window, text: cstring, caseSensitive = false, backwards = false): bool
 proc focus*(w: Window)
 proc forward*(w: Window)
 proc getComputedStyle*(w: Window, e: Node, pe: Node = nil): Style
@@ -1515,8 +1570,7 @@ proc handleEvent*(w: Window, e: Event)
 proc home*(w: Window)
 proc moveBy*(w: Window, x, y: int)
 proc moveTo*(w: Window, x, y: int)
-proc open*(w: Window, uri, windowname: cstring,
-           properties: cstring = nil): Window
+proc open*(w: Window, uri, windowname: cstring, properties: cstring = nil): Window
 proc print*(w: Window)
 proc prompt*(w: Window, text, default: cstring): cstring
 proc resizeBy*(w: Window, x, y: int)
@@ -1525,11 +1579,11 @@ proc routeEvent*(w: Window, event: Event)
 proc scrollBy*(w: Window, x, y: int)
 proc scrollTo*(w: Window, x, y: int)
 proc setInterval*(w: Window, code: cstring, pause: int): Interval
-proc setInterval*(w: Window, function: proc (), pause: int): Interval
+proc setInterval*(w: Window, function: proc(), pause: int): Interval
 proc setTimeout*(w: Window, code: cstring, pause: int): TimeOut
-proc setTimeout*(w: Window, function: proc (), pause: int): Interval
+proc setTimeout*(w: Window, function: proc(), pause: int): Interval
 proc stop*(w: Window)
-proc requestAnimationFrame*(w: Window, function: proc (time: float)): int
+proc requestAnimationFrame*(w: Window, function: proc(time: float)): int
 proc cancelAnimationFrame*(w: Window, id: int)
 proc matchMedia*(w: Window, mediaQueryString: cstring): MediaQueryList
 
@@ -1553,7 +1607,7 @@ proc setAttribute*(n: Node, name, value: cstring)
 proc setAttributeNode*(n: Node, attr: Node)
 proc querySelector*(n: Node, selectors: cstring): Element
 proc querySelectorAll*(n: Node, selectors: cstring): seq[Element]
-proc compareDocumentPosition*(n: Node, otherNode:Node): int
+proc compareDocumentPosition*(n: Node, otherNode: Node): int
 proc lookupPrefix*(n: Node): cstring
 proc lookupNamespaceURI*(n: Node): cstring
 proc isDefaultNamespace*(n: Node): bool
@@ -1562,16 +1616,16 @@ proc isEqualNode*(n: Node): bool
 proc isSameNode*(n: Node): bool
 
 since (1, 3):
-  proc getRootNode*(n: Node,options: RootNodeOptions): Node
+  proc getRootNode*(n: Node, options: RootNodeOptions): Node
 
   # DocumentOrShadowRoot
   proc getSelection*(n: DocumentOrShadowRoot): Selection
-  proc elementFromPoint*(n: DocumentOrShadowRoot; x, y: float): Element
+  proc elementFromPoint*(n: DocumentOrShadowRoot, x, y: float): Element
 
   # shadow dom
   proc attachShadow*(n: Element): ShadowRoot
-  proc assignedNodes*(n: HTMLSlotElement; options: SlotOptions): seq[Node]
-  proc assignedElements*(n: HTMLSlotElement; options: SlotOptions): seq[Element]
+  proc assignedNodes*(n: HTMLSlotElement, options: SlotOptions): seq[Node]
+  proc assignedElements*(n: HTMLSlotElement, options: SlotOptions): seq[Element]
 
 # Document "methods"
 proc createAttribute*(d: Document, identifier: cstring): Node
@@ -1620,11 +1674,20 @@ proc pushState*[T](h: History, stateObject: T, title, url: cstring)
 # Navigator "methods"
 proc javaEnabled*(h: Navigator): bool
 since (1, 3):
-  proc canShare*(self: Navigator; data: cstring): bool           ## https://developer.mozilla.org/en-US/docs/Web/API/Navigator/canShare
-  proc sendBeacon*(self: Navigator; url, data: cstring): bool    ## https://developer.mozilla.org/en-US/docs/Web/API/Navigator/sendBeacon
-  proc vibrate*(self: Navigator; pattern: cint): bool            ## https://developer.mozilla.org/en-US/docs/Web/API/Navigator/vibrate
-  proc vibrate*(self: Navigator; pattern: openArray[cint]): bool ## https://developer.mozilla.org/en-US/docs/Web/API/Navigator/vibrate
-  proc registerProtocolHandler*(self: Navigator; scheme, url, title: cstring) ## https://developer.mozilla.org/en-US/docs/Web/API/Navigator/registerProtocolHandler
+  proc canShare*(self: Navigator, data: cstring): bool
+    ## https://developer.mozilla.org/en-US/docs/Web/API/Navigator/canShare
+
+  proc sendBeacon*(self: Navigator, url, data: cstring): bool
+    ## https://developer.mozilla.org/en-US/docs/Web/API/Navigator/sendBeacon
+
+  proc vibrate*(self: Navigator, pattern: cint): bool
+    ## https://developer.mozilla.org/en-US/docs/Web/API/Navigator/vibrate
+
+  proc vibrate*(self: Navigator, pattern: openArray[cint]): bool
+    ## https://developer.mozilla.org/en-US/docs/Web/API/Navigator/vibrate
+
+  proc registerProtocolHandler*(self: Navigator, scheme, url, title: cstring)
+    ## https://developer.mozilla.org/en-US/docs/Web/API/Navigator/registerProtocolHandler
 
 # ClassList "methods"
 proc add*(c: ClassList, class: cstring)
@@ -1663,13 +1726,28 @@ proc setDragImage*(dt: DataTransfer, img: Element, xOffset: int, yOffset: int)
 proc getAsFile*(dti: DataTransferItem): File
 
 # InputElement "methods"
-proc setSelectionRange*(e: InputElement, selectionStart: int, selectionEnd: int, selectionDirection: cstring = "none")
-proc setRangeText*(e: InputElement, replacement: cstring, startindex: int = 0, endindex: int = 0, selectionMode: cstring = "preserve")
+proc setSelectionRange*(
+  e: InputElement,
+  selectionStart: int,
+  selectionEnd: int,
+  selectionDirection: cstring = "none",
+)
+
+proc setRangeText*(
+  e: InputElement,
+  replacement: cstring,
+  startindex: int = 0,
+  endindex: int = 0,
+  selectionMode: cstring = "preserve",
+)
+
 proc setCustomValidity*(e: InputElement, error: cstring)
 proc checkValidity*(e: InputElement): bool
 
 # Blob "methods"
-proc slice*(e: Blob, startindex: int = 0, endindex: int = e.size, contentType: cstring = "")
+proc slice*(
+  e: Blob, startindex: int = 0, endindex: int = e.size, contentType: cstring = ""
+)
 
 # Performance "methods"
 proc now*(p: Performance): float
@@ -1679,7 +1757,8 @@ proc removeAllRanges*(s: Selection)
 proc deleteFromDocument*(s: Selection)
 proc getRangeAt*(s: Selection, index: int): Range
 converter toString*(s: Selection): cstring
-proc `$`*(s: Selection): string = $(s.toString())
+proc `$`*(s: Selection): string =
+  $(s.toString())
 
 # Storage "methods"
 proc getItem*(s: Storage, key: cstring): cstring
@@ -1689,7 +1768,7 @@ proc removeItem*(s: Storage, key: cstring)
 
 {.pop.}
 
-proc setAttr*(n: Node; key, val: cstring) {.importcpp: "#.setAttribute(@)".}
+proc setAttr*(n: Node, key, val: cstring) {.importcpp: "#.setAttribute(@)".}
 
 var
   window* {.importc, nodecl.}: Window
@@ -1708,31 +1787,34 @@ proc unescape*(uri: cstring): cstring {.importc, nodecl.}
 proc decodeURIComponent*(uri: cstring): cstring {.importc, nodecl.}
 proc encodeURIComponent*(uri: cstring): cstring {.importc, nodecl.}
 proc isFinite*(x: BiggestFloat): bool {.importc, nodecl.}
-proc isNaN*(x: BiggestFloat): bool {.importc, nodecl.}
-  ## see also `math.isNaN`.
+proc isNaN*(x: BiggestFloat): bool {.importc, nodecl.} ## see also `math.isNaN`.
 
 proc newEvent*(name: cstring): Event {.importcpp: "new Event(@)", constructor.}
 
-proc getElementsByClass*(n: Node; name: cstring): seq[Node] {.
-  importcpp: "#.getElementsByClassName(#)", nodecl.}
+proc getElementsByClass*(
+  n: Node, name: cstring
+): seq[Node] {.importcpp: "#.getElementsByClassName(#)", nodecl.}
 
+type BoundingRect* {.importc.} = object
+  top*, bottom*, left*, right*, x*, y*, width*, height*: float
 
-type
-  BoundingRect* {.importc.} = object
-    top*, bottom*, left*, right*, x*, y*, width*, height*: float
+proc getBoundingClientRect*(
+  e: Node
+): BoundingRect {.importcpp: "getBoundingClientRect", nodecl.}
 
-proc getBoundingClientRect*(e: Node): BoundingRect {.
-  importcpp: "getBoundingClientRect", nodecl.}
 proc clientHeight*(): int {.
-  importcpp: "(window.innerHeight || document.documentElement.clientHeight)@", nodecl.}
+  importcpp: "(window.innerHeight || document.documentElement.clientHeight)@", nodecl
+.}
+
 proc clientWidth*(): int {.
-  importcpp: "(window.innerWidth || document.documentElement.clientWidth)@", nodecl.}
+  importcpp: "(window.innerWidth || document.documentElement.clientWidth)@", nodecl
+.}
 
 proc inViewport*(el: Node): bool =
   let rect = el.getBoundingClientRect()
-  result = rect.top >= 0 and rect.left >= 0 and
-           rect.bottom <= clientHeight().float and
-           rect.right <= clientWidth().float
+  result =
+    rect.top >= 0 and rect.left >= 0 and rect.bottom <= clientHeight().float and
+    rect.right <= clientWidth().float
 
 proc scrollTop*(e: Node): int {.importcpp: "#.scrollTop", nodecl.}
 proc `scrollTop=`*(e: Node, value: int) {.importcpp: "#.scrollTop = #", nodecl.}
@@ -1747,97 +1829,126 @@ proc offsetLeft*(e: Node): int {.importcpp: "#.offsetLeft", nodecl.}
 since (1, 3):
   func newDomParser*(): DomParser {.importcpp: "new DOMParser()".}
     ## DOM Parser constructor.
-  func parseFromString*(this: DomParser; str: cstring; mimeType: cstring): Document {.importcpp.}
-    ## Parse from string to `Document`.
+  func parseFromString*(
+    this: DomParser, str: cstring, mimeType: cstring
+  ): Document {.importcpp.} ## Parse from string to `Document`.
 
   proc newDomException*(): DomException {.importcpp: "new DomException()", constructor.}
     ## DOM Exception constructor
+
   proc message*(ex: DomException): cstring {.importcpp: "#.message", nodecl.}
     ## https://developer.mozilla.org/en-US/docs/Web/API/DOMException/message
-  proc name*(ex: DomException): cstring  {.importcpp: "#.name", nodecl.}
+
+  proc name*(ex: DomException): cstring {.importcpp: "#.name", nodecl.}
     ## https://developer.mozilla.org/en-US/docs/Web/API/DOMException/name
 
   proc newFileReader*(): FileReader {.importcpp: "new FileReader()", constructor.}
     ## File Reader constructor
+
   proc error*(f: FileReader): DomException {.importcpp: "#.error", nodecl.}
     ## https://developer.mozilla.org/en-US/docs/Web/API/FileReader/error
+
   proc readyState*(f: FileReader): FileReaderState {.importcpp: "#.readyState", nodecl.}
     ## https://developer.mozilla.org/en-US/docs/Web/API/FileReader/readyState
+
   proc resultAsString*(f: FileReader): cstring {.importcpp: "#.result", nodecl.}
     ## https://developer.mozilla.org/en-US/docs/Web/API/FileReader/result
+
   proc abort*(f: FileReader) {.importcpp: "#.abort()".}
     ## https://developer.mozilla.org/en-US/docs/Web/API/FileReader/abort
-  proc readAsBinaryString*(f: FileReader, b: Blob) {.importcpp: "#.readAsBinaryString(#)".}
+
+  proc readAsBinaryString*(
+    f: FileReader, b: Blob
+  ) {.importcpp: "#.readAsBinaryString(#)".}
     ## https://developer.mozilla.org/en-US/docs/Web/API/FileReader/readAsBinaryString
+
   proc readAsDataURL*(f: FileReader, b: Blob) {.importcpp: "#.readAsDataURL(#)".}
     ## https://developer.mozilla.org/en-US/docs/Web/API/FileReader/readAsDataURL
-  proc readAsText*(f: FileReader, b: Blob|File, encoding = cstring"UTF-8") {.importcpp: "#.readAsText(#, #)".}
+
+  proc readAsText*(
+    f: FileReader, b: Blob | File, encoding = cstring"UTF-8"
+  ) {.importcpp: "#.readAsText(#, #)".}
     ## https://developer.mozilla.org/en-US/docs/Web/API/FileReader/readAsText
 
 since (1, 5):
-  proc elementsFromPoint*(n: DocumentOrShadowRoot; x, y: float): seq[Element] {.importcpp.}
-
+  proc elementsFromPoint*(
+    n: DocumentOrShadowRoot, x, y: float
+  ): seq[Element] {.importcpp.}
 
 since (1, 7):
-
-  proc insertAdjacentText*(self: Node; position, data: cstring) {.importjs: "#.$1(#, #)".}
+  proc insertAdjacentText*(
+    self: Node, position, data: cstring
+  ) {.importjs: "#.$1(#, #)".}
     ## https://developer.mozilla.org/en-US/docs/Web/API/Element/insertAdjacentText
 
-  proc insertAdjacentElement*(self: Node; position: cstring; element: Node) {.importjs: "#.$1(#, #)".}
+  proc insertAdjacentElement*(
+    self: Node, position: cstring, element: Node
+  ) {.importjs: "#.$1(#, #)".}
     ## https://developer.mozilla.org/en-US/docs/Web/API/Element/insertAdjacentElement
 
-  proc insertAdjacentHTML*(self: Node; position, html: cstring) {.importjs: "#.$1(#, #)".}
+  proc insertAdjacentHTML*(
+    self: Node, position, html: cstring
+  ) {.importjs: "#.$1(#, #)".}
     ## https://developer.mozilla.org/en-US/docs/Web/API/Element/insertAdjacentHTML
 
-  proc after*(self: Node; element: Node): Node {.importjs: "#.$1(@)", varargs.}
+  proc after*(self: Node, element: Node): Node {.importjs: "#.$1(@)", varargs.}
     ## https://developer.mozilla.org/en-US/docs/Web/API/Element/after
 
-  proc before*(self: Node; element: Node): Node {.importjs: "#.$1(@)", varargs.}
+  proc before*(self: Node, element: Node): Node {.importjs: "#.$1(@)", varargs.}
     ## https://developer.mozilla.org/en-US/docs/Web/API/Element/before
 
-  proc append*(self: Node; element: Node): Node {.importjs: "#.$1(@)", varargs.}
+  proc append*(self: Node, element: Node): Node {.importjs: "#.$1(@)", varargs.}
     ## https://developer.mozilla.org/en-US/docs/Web/API/Element/append
 
-  proc closest*(self: Node; cssSelector: cstring): Node {.importjs: "#.$1(#)".}
+  proc closest*(self: Node, cssSelector: cstring): Node {.importjs: "#.$1(#)".}
     ## https://developer.mozilla.org/en-US/docs/Web/API/Element/closest
 
-  proc hasAttributeNS*(self: Node; namespace, localName: cstring): bool {.importjs: "(#.$1(#, #) || false)".}
+  proc hasAttributeNS*(
+    self: Node, namespace, localName: cstring
+  ): bool {.importjs: "(#.$1(#, #) || false)".}
     ## https://developer.mozilla.org/en-US/docs/Web/API/Element/hasAttributeNS
 
-  proc removeAttributeNS*(self: Node; namespace, attributeName: cstring) {.importjs: "#.$1(#, #)".}
+  proc removeAttributeNS*(
+    self: Node, namespace, attributeName: cstring
+  ) {.importjs: "#.$1(#, #)".}
     ## https://developer.mozilla.org/en-US/docs/Web/API/Element/removeAttributeNS
 
-  proc hasPointerCapture*(self: Node; pointerId: SomeNumber): bool {.importjs: "(#.$1(#) || false)".}
+  proc hasPointerCapture*(
+    self: Node, pointerId: SomeNumber
+  ): bool {.importjs: "(#.$1(#) || false)".}
     ## https://developer.mozilla.org/en-US/docs/Web/API/Element/hasPointerCapture
 
-  proc releasePointerCapture*(self: Node; pointerId: SomeNumber) {.importjs: "#.$1(#)".}
+  proc releasePointerCapture*(self: Node, pointerId: SomeNumber) {.importjs: "#.$1(#)".}
     ## https://developer.mozilla.org/en-US/docs/Web/API/Element/releasePointerCapture
 
   proc requestPointerLock*(self: Node) {.importjs: "#.$1()".}
     ## https://developer.mozilla.org/en-US/docs/Web/API/Element/requestPointerLock
 
-  proc replaceChildren*(self: Node; replacements: Node) {.importjs: "#.$1(@)", varargs.}
+  proc replaceChildren*(self: Node, replacements: Node) {.importjs: "#.$1(@)", varargs.}
     ## https://developer.mozilla.org/en-US/docs/Web/API/Element/replaceChildren
 
-  proc replaceWith*(self: Node; replacements: Node) {.importjs: "#.$1(@)", varargs.}
+  proc replaceWith*(self: Node, replacements: Node) {.importjs: "#.$1(@)", varargs.}
     ## https://developer.mozilla.org/en-US/docs/Web/API/Element/replaceWith
 
-  proc scrollIntoViewIfNeeded*(self: Node; centerIfNeeded: bool) {.importjs: "#.$1(#)".}
+  proc scrollIntoViewIfNeeded*(self: Node, centerIfNeeded: bool) {.importjs: "#.$1(#)".}
     ## https://developer.mozilla.org/en-US/docs/Web/API/Element/scrollIntoViewIfNeeded
 
-  proc setHTML*(self: Node; html: cstring) {.importjs: "#.$1(#)".}
+  proc setHTML*(self: Node, html: cstring) {.importjs: "#.$1(#)".}
     ## https://developer.mozilla.org/en-US/docs/Web/API/Element/setHTML
 
-  proc toggleAttribute*(self: Node; name: cstring; force = false): bool {.importjs: "(#.$1(#, #) || false)".}
+  proc toggleAttribute*(
+    self: Node, name: cstring, force = false
+  ): bool {.importjs: "(#.$1(#, #) || false)".}
     ## https://developer.mozilla.org/en-US/docs/Web/API/Element/toggleAttribute
 
-  proc matches*(self: Node; cssSelector: cstring): bool {.importjs: "(#.$1(#) || false)".}
+  proc matches*(
+    self: Node, cssSelector: cstring
+  ): bool {.importjs: "(#.$1(#) || false)".}
     ## https://developer.mozilla.org/en-US/docs/Web/API/Element/matches
-
 
 since (2, 1):
   type VisualViewport* {.importc.} = ref object of EventTarget
     offsetLeft*, offsetTop*, pageLeft*, pageTop*, width*, height*, scale*: float
-    onResize*, onScroll*: proc (event: Event) {.closure.}
+    onResize*, onScroll*: proc(event: Event) {.closure.}
 
   func visualViewport*(self: Window): VisualViewport {.importjs: "#.$1", nodecl.}

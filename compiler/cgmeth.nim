@@ -10,8 +10,8 @@
 ## This module implements code generation for methods.
 
 import
-  options, ast, msgs, idents, renderer, types, magicsys,
-  sempass2, modulegraphs, lineinfos, astalgo
+  options, ast, msgs, idents, renderer, types, magicsys, sempass2, modulegraphs,
+  lineinfos, astalgo
 
 import std/intsets
 
@@ -20,7 +20,7 @@ when defined(nimPreviewSlimSystem):
 
 import std/[tables]
 
-proc genConv(n: PNode, d: PType, downcast: bool; conf: ConfigRef): PNode =
+proc genConv(n: PNode, d: PType, downcast: bool, conf: ConfigRef): PNode =
   var dest = skipTypes(d, abstractPtrs)
   var source = skipTypes(n.typ, abstractPtrs)
   if (source.kind == tyObject) and (dest.kind == tyObject):
@@ -31,7 +31,8 @@ proc genConv(n: PNode, d: PType, downcast: bool; conf: ConfigRef): PNode =
     elif diff < 0:
       result = newNodeIT(nkObjUpConv, n.info, d)
       result.add n
-      if downcast: internalError(conf, n.info, "cgmeth.genConv: no upcast allowed")
+      if downcast:
+        internalError(conf, n.info, "cgmeth.genConv: no upcast allowed")
     elif diff > 0:
       result = newNodeIT(nkObjDownConv, n.info, d)
       result.add n
@@ -50,7 +51,7 @@ proc getDispatcher*(s: PSym): PSym =
   else:
     result = nil
 
-proc methodCall*(n: PNode; conf: ConfigRef): PNode =
+proc methodCall*(n: PNode, conf: ConfigRef): PNode =
   result = n
   # replace ordinary method by dispatcher method:
   let disp = getDispatcher(result[0].sym)
@@ -58,17 +59,20 @@ proc methodCall*(n: PNode; conf: ConfigRef): PNode =
     result[0].typ() = disp.typ
     result[0].sym = disp
     # change the arguments to up/downcasts to fit the dispatcher's parameters:
-    for i in 1..<result.len:
+    for i in 1 ..< result.len:
       result[i] = genConv(result[i], disp.typ[i], true, conf)
   else:
     localError(conf, n.info, "'" & $result[0] & "' lacks a dispatcher")
 
-type
-  MethodResult = enum No, Invalid, Yes
+type MethodResult = enum
+  No
+  Invalid
+  Yes
 
-proc sameMethodBucket(a, b: PSym; multiMethods: bool): MethodResult =
+proc sameMethodBucket(a, b: PSym, multiMethods: bool): MethodResult =
   result = No
-  if a.name.id != b.name.id: return
+  if a.name.id != b.name.id:
+    return
   if a.typ.signatureLen != b.typ.signatureLen:
     return
 
@@ -95,7 +99,7 @@ proc sameMethodBucket(a, b: PSym; multiMethods: bool): MethodResult =
           result = Yes
         else:
           return No
-      elif diff != high(int) and sfFromGeneric notin (a.flags+b.flags):
+      elif diff != high(int) and sfFromGeneric notin (a.flags + b.flags):
         result = Invalid
       else:
         return No
@@ -116,12 +120,12 @@ proc attachDispatcher(s: PSym, dispatcher: PNode) =
     # we've added a dispatcher already, so overwrite it
     s.ast[dispatcherPos] = dispatcher
   else:
-    setLen(s.ast.sons, dispatcherPos+1)
+    setLen(s.ast.sons, dispatcherPos + 1)
     if s.ast[resultPos] == nil:
       s.ast[resultPos] = newNodeI(nkEmpty, s.info)
     s.ast[dispatcherPos] = dispatcher
 
-proc createDispatcher(s: PSym; g: ModuleGraph; idgen: IdGenerator): PSym =
+proc createDispatcher(s: PSym, g: ModuleGraph, idgen: IdGenerator): PSym =
   var disp = copySym(s, idgen)
   incl(disp.flags, sfDispatcher)
   excl(disp.flags, sfExported)
@@ -130,7 +134,8 @@ proc createDispatcher(s: PSym; g: ModuleGraph; idgen: IdGenerator): PSym =
   copyTypeProps(g, idgen.module, disp.typ, old)
 
   # we can't inline the dispatcher itself (for now):
-  if disp.typ.callConv == ccInline: disp.typ.callConv = ccNimCall
+  if disp.typ.callConv == ccInline:
+    disp.typ.callConv = ccNimCall
   disp.ast = copyTree(s.ast)
   disp.ast[bodyPos] = newNodeI(nkEmpty, s.info)
   disp.loc.snippet = ""
@@ -147,43 +152,56 @@ proc createDispatcher(s: PSym; g: ModuleGraph; idgen: IdGenerator): PSym =
   attachDispatcher(disp, newSymNode(disp))
   return disp
 
-proc fixupDispatcher(meth, disp: PSym; conf: ConfigRef) =
+proc fixupDispatcher(meth, disp: PSym, conf: ConfigRef) =
   # We may have constructed the dispatcher from a method prototype
   # and need to augment the incomplete dispatcher with information
   # from later definitions, particularly the resultPos slot. Also,
   # the lock level of the dispatcher needs to be updated/checked
   # against that of the method.
   if disp.ast.len > resultPos and meth.ast.len > resultPos and
-     disp.ast[resultPos].kind == nkEmpty:
+      disp.ast[resultPos].kind == nkEmpty:
     disp.ast[resultPos] = copyTree(meth.ast[resultPos])
 
-proc methodDef*(g: ModuleGraph; idgen: IdGenerator; s: PSym) =
+proc methodDef*(g: ModuleGraph, idgen: IdGenerator, s: PSym) =
   var witness: PSym = nil
-  if s.typ.firstParamType.owner.getModule != s.getModule and vtables in g.config.features and not
-      g.config.isDefined("nimInternalNonVtablesTesting"):
-    localError(g.config, s.info, errGenerated, "method `" & s.name.s &
-          "` can be defined only in the same module with its type (" & s.typ.firstParamType.typeToString() & ")")
+  if s.typ.firstParamType.owner.getModule != s.getModule and vtables in g.config.features and
+      not g.config.isDefined("nimInternalNonVtablesTesting"):
+    localError(
+      g.config,
+      s.info,
+      errGenerated,
+      "method `" & s.name.s & "` can be defined only in the same module with its type (" &
+        s.typ.firstParamType.typeToString() & ")",
+    )
   if sfImportc in s.flags:
-    localError(g.config, s.info, errGenerated, "method `" & s.name.s &
-          "` is not allowed to have 'importc' pragmas")
+    localError(
+      g.config,
+      s.info,
+      errGenerated,
+      "method `" & s.name.s & "` is not allowed to have 'importc' pragmas",
+    )
 
-  for i in 0..<g.methods.len:
+  for i in 0 ..< g.methods.len:
     let disp = g.methods[i].dispatcher
-    case sameMethodBucket(disp, s, multimethods = optMultiMethods in g.config.globalOptions)
+    case sameMethodBucket(
+      disp, s, multimethods = optMultiMethods in g.config.globalOptions
+    )
     of Yes:
       g.methods[i].methods.add(s)
       attachDispatcher(s, disp.ast[dispatcherPos])
       fixupDispatcher(s, disp, g.config)
       #echo "fixup ", disp.name.s, " ", disp.id
-      when useEffectSystem: checkMethodEffects(g, disp, s)
-      if {sfBase, sfFromGeneric} * s.flags == {sfBase} and
-           g.methods[i].methods[0] != s:
+      when useEffectSystem:
+        checkMethodEffects(g, disp, s)
+      if {sfBase, sfFromGeneric} * s.flags == {sfBase} and g.methods[i].methods[0] != s:
         # already exists due to forwarding definition?
         localError(g.config, s.info, "method is not a base")
       return
-    of No: discard
+    of No:
+      discard
     of Invalid:
-      if witness.isNil: witness = g.methods[i].methods[0]
+      if witness.isNil:
+        witness = g.methods[i].methods[0]
   # create a new dispatcher:
   # stores the id and the position
   if s.typ.firstParamType.skipTypes(skipPtrs).itemId notin g.bucketTable:
@@ -193,8 +211,12 @@ proc methodDef*(g: ModuleGraph; idgen: IdGenerator; s: PSym) =
   g.methods.add((methods: @[s], dispatcher: createDispatcher(s, g, idgen)))
   #echo "adding ", s.info
   if witness != nil:
-    localError(g.config, s.info, "invalid declaration order; cannot attach '" & s.name.s &
-                       "' to method defined here: " & g.config$witness.info)
+    localError(
+      g.config,
+      s.info,
+      "invalid declaration order; cannot attach '" & s.name.s &
+        "' to method defined here: " & g.config $ witness.info,
+    )
   elif sfBase notin s.flags:
     message(g.config, s.info, warnUseBase)
 
@@ -203,14 +225,14 @@ proc relevantCol*(methods: seq[PSym], col: int): bool =
   result = false
   var t = methods[0].typ[col].skipTypes(skipPtrs)
   if t.kind == tyObject:
-    for i in 1..high(methods):
+    for i in 1 .. high(methods):
       let t2 = skipTypes(methods[i].typ[col], skipPtrs)
       if not sameType(t2, t):
         return true
 
 proc cmpSignatures(a, b: PSym, relevantCols: IntSet): int =
   result = 0
-  for col in FirstParamAt..<a.typ.signatureLen:
+  for col in FirstParamAt ..< a.typ.signatureLen:
     if contains(relevantCols, col):
       var aa = skipTypes(a.typ[col], skipPtrs)
       var bb = skipTypes(b.typ[col], skipPtrs)
@@ -224,20 +246,25 @@ proc sortBucket*(a: var seq[PSym], relevantCols: IntSet) =
   var h = 1
   while true:
     h = 3 * h + 1
-    if h > n: break
+    if h > n:
+      break
   while true:
     h = h div 3
-    for i in h..<n:
+    for i in h ..< n:
       var v = a[i]
       var j = i
       while cmpSignatures(a[j - h], v, relevantCols) >= 0:
         a[j] = a[j - h]
         j = j - h
-        if j < h: break
+        if j < h:
+          break
       a[j] = v
-    if h == 1: break
+    if h == 1:
+      break
 
-proc genIfDispatcher*(g: ModuleGraph; methods: seq[PSym], relevantCols: IntSet; idgen: IdGenerator): PSym =
+proc genIfDispatcher*(
+    g: ModuleGraph, methods: seq[PSym], relevantCols: IntSet, idgen: IdGenerator
+): PSym =
   var base = methods[0].ast[dispatcherPos].sym
   result = base
   var paramLen = base.typ.signatureLen
@@ -246,16 +273,17 @@ proc genIfDispatcher*(g: ModuleGraph; methods: seq[PSym], relevantCols: IntSet; 
   var ands = getSysMagic(g, unknownLineInfo, "and", mAnd)
   var iss = getSysMagic(g, unknownLineInfo, "of", mOf)
   let boolType = getSysType(g, unknownLineInfo, tyBool)
-  for col in FirstParamAt..<paramLen:
+  for col in FirstParamAt ..< paramLen:
     if contains(relevantCols, col):
       let param = base.typ.n[col].sym
       if param.typ.skipTypes(abstractInst).kind in {tyRef, tyPtr}:
-        nilchecks.add newTree(nkCall,
-            newSymNode(getCompilerProc(g, "chckNilDisp")), newSymNode(param))
-  for meth in 0..high(methods):
-    var curr = methods[meth]      # generate condition:
+        nilchecks.add newTree(
+          nkCall, newSymNode(getCompilerProc(g, "chckNilDisp")), newSymNode(param)
+        )
+  for meth in 0 .. high(methods):
+    var curr = methods[meth] # generate condition:
     var cond: PNode = nil
-    for col in FirstParamAt..<paramLen:
+    for col in FirstParamAt ..< paramLen:
       if contains(relevantCols, col):
         var isn = newNodeIT(nkCall, base.info, boolType)
         isn.add newSymNode(iss)
@@ -273,9 +301,8 @@ proc genIfDispatcher*(g: ModuleGraph; methods: seq[PSym], relevantCols: IntSet; 
     let retTyp = base.typ.returnType
     let call = newNodeIT(nkCall, base.info, retTyp)
     call.add newSymNode(curr)
-    for col in 1..<paramLen:
-      call.add genConv(newSymNode(base.typ.n[col].sym),
-                           curr.typ[col], false, g.config)
+    for col in 1 ..< paramLen:
+      call.add genConv(newSymNode(base.typ.n[col].sym), curr.typ[col], false, g.config)
     var ret: PNode
     if retTyp != nil:
       var a = newNodeI(nkFastAsgn, base.info)
@@ -297,10 +324,11 @@ proc genIfDispatcher*(g: ModuleGraph; methods: seq[PSym], relevantCols: IntSet; 
   result.ast[bodyPos] = nilchecks
 
 proc generateIfMethodDispatchers*(g: ModuleGraph, idgen: IdGenerator) =
-  for bucket in 0..<g.methods.len:
+  for bucket in 0 ..< g.methods.len:
     var relevantCols = initIntSet()
-    for col in FirstParamAt..<g.methods[bucket].methods[0].typ.signatureLen:
-      if relevantCol(g.methods[bucket].methods, col): incl(relevantCols, col)
+    for col in FirstParamAt ..< g.methods[bucket].methods[0].typ.signatureLen:
+      if relevantCol(g.methods[bucket].methods, col):
+        incl(relevantCols, col)
       if optMultiMethods notin g.config.globalOptions:
         # if multi-methods are not enabled, we are interested only in the first field
         break

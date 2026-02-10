@@ -7,7 +7,6 @@
 #    distribution, for details about the copyright.
 #
 
-
 ## The `std/envvars` module implements environment variable handling.
 import std/oserrors
 
@@ -15,11 +14,13 @@ when defined(nimPreviewSlimSystem):
   import std/assertions
 
 type
-  ReadEnvEffect* = object of ReadIOEffect   ## Effect that denotes a read
-                                            ## from an environment variable.
-  WriteEnvEffect* = object of WriteIOEffect ## Effect that denotes a write
-                                            ## to an environment variable.
+  ReadEnvEffect* = object of ReadIOEffect
+    ## Effect that denotes a read
+    ## from an environment variable.
 
+  WriteEnvEffect* = object of WriteIOEffect
+    ## Effect that denotes a write
+    ## to an environment variable.
 
 when not defined(nimscript):
   when defined(nodejs):
@@ -49,7 +50,7 @@ when not defined(nimscript):
       var num: int
       var keys: RootObj
       {.emit: "`keys` = Object.keys(process.env); `num` = `keys`.length;".}
-      for i in 0..<num:
+      for i in 0 ..< num:
         var key, value: cstring
         {.emit: "`key` = `keys`[`i`]; `value` = process.env[`key`];".}
         yield ($key, $value)
@@ -57,28 +58,35 @@ when not defined(nimscript):
   # commented because it must keep working with js+VM
   # elif defined(js):
   #   {.error: "requires -d:nodejs".}
-
   else:
-
     when defined(windows):
-      proc c_putenv(envstring: cstring): cint {.importc: "_putenv", header: "<stdlib.h>".}
+      proc c_putenv(
+        envstring: cstring
+      ): cint {.importc: "_putenv", header: "<stdlib.h>".}
+
       from std/private/win_setenv import setEnvImpl
       import std/winlean
       when defined(nimPreviewSlimSystem):
         import std/widestrs
 
       type wchar_t {.importc: "wchar_t", header: "<stdlib.h>".} = int16
-      proc c_wgetenv(varname: ptr wchar_t): ptr wchar_t {.importc: "_wgetenv",
-          header: "<stdlib.h>".}
+      proc c_wgetenv(
+        varname: ptr wchar_t
+      ): ptr wchar_t {.importc: "_wgetenv", header: "<stdlib.h>".}
+
       proc getEnvImpl(env: cstring): WideCString =
         let r: WideCString = env.newWideCString
         cast[WideCString](c_wgetenv(cast[ptr wchar_t](r)))
+
     else:
-      proc c_getenv(env: cstring): cstring {.
-        importc: "getenv", header: "<stdlib.h>".}
-      proc c_setenv(envname: cstring, envval: cstring, overwrite: cint): cint {.importc: "setenv", header: "<stdlib.h>".}
+      proc c_getenv(env: cstring): cstring {.importc: "getenv", header: "<stdlib.h>".}
+      proc c_setenv(
+        envname: cstring, envval: cstring, overwrite: cint
+      ): cint {.importc: "setenv", header: "<stdlib.h>".}
+
       proc c_unsetenv(env: cstring): cint {.importc: "unsetenv", header: "<stdlib.h>".}
-      proc getEnvImpl(env: cstring): cstring = c_getenv(env)
+      proc getEnvImpl(env: cstring): cstring =
+        c_getenv(env)
 
     proc getEnv*(key: string, default = ""): string {.tags: [ReadEnvEffect].} =
       ## Returns the value of the `environment variable`:idx: named `key`.
@@ -143,7 +151,9 @@ when not defined(nimscript):
       ## * `existsEnv proc`_
       ## * `putEnv proc`_
       ## * `envPairs iterator`_
-      template bail = raiseOSError(osLastError(), key)
+      template bail() =
+        raiseOSError(osLastError(), key)
+
       when defined(windows):
         #[
         # https://docs.microsoft.com/en-us/cpp/c-runtime-library/reference/putenv-s-wputenv-s?view=msvc-160
@@ -153,17 +163,25 @@ when not defined(nimscript):
         if key.len == 0 or '=' in key:
           raise newException(OSError, "invalid key, got: " & key)
         let envToDel = key & "="
-        if c_putenv(cstring envToDel) != 0'i32: bail
+        if c_putenv(cstring envToDel) != 0'i32:
+          bail
       else:
-        if c_unsetenv(key) != 0'i32: bail
+        if c_unsetenv(key) != 0'i32:
+          bail
 
     when defined(windows):
       when defined(cpp):
-        proc strEnd(cstr: WideCString, c = 0'i32): WideCString {.importcpp: "(NI16*)wcschr((const wchar_t *)#, #)",
-            header: "<string.h>".}
+        proc strEnd(
+          cstr: WideCString, c = 0'i32
+        ): WideCString {.
+          importcpp: "(NI16*)wcschr((const wchar_t *)#, #)", header: "<string.h>"
+        .}
+
       else:
-        proc strEnd(cstr: WideCString, c = 0'i32): WideCString {.importc: "wcschr",
-            header: "<string.h>".}
+        proc strEnd(
+          cstr: WideCString, c = 0'i32
+        ): WideCString {.importc: "wcschr", header: "<string.h>".}
+
     elif defined(macosx) and not defined(ios) and not defined(emscripten):
       # From the manual:
       # Shared libraries and bundles don't have direct access to environ,
@@ -173,8 +191,10 @@ when not defined(nimscript):
       # environ is needed, the _NSGetEnviron() routine, defined in
       # <crt_externs.h>, can be used to retrieve the address of environ
       # at runtime.
-      proc NSGetEnviron(): ptr cstringArray {.importc: "_NSGetEnviron",
-          header: "<crt_externs.h>".}
+      proc NSGetEnviron(): ptr cstringArray {.
+        importc: "_NSGetEnviron", header: "<crt_externs.h>"
+      .}
+
     elif defined(haiku):
       var gEnv {.importc: "environ", header: "<stdlib.h>".}: cstringArray
     else:
@@ -189,9 +209,10 @@ when not defined(nimscript):
             let eend = strEnd(e)
             let kv = $e
             let p = find(kv, '=')
-            yield (substr(kv, 0, p-1), substr(kv, p+1))
-            e = cast[WideCString](cast[ByteAddress](eend)+2)
-            if int(eend[1]) == 0: break
+            yield (substr(kv, 0, p - 1), substr(kv, p + 1))
+            e = cast[WideCString](cast[ByteAddress](eend) + 2)
+            if int(eend[1]) == 0:
+              break
           discard freeEnvironmentStringsW(env)
       else:
         var i = 0
@@ -201,9 +222,11 @@ when not defined(nimscript):
           let kv = $gEnv[i]
           inc(i)
           let p = find(kv, '=')
-          yield (substr(kv, 0, p-1), substr(kv, p+1))
+          yield (substr(kv, 0, p - 1), substr(kv, p + 1))
 
-proc envPairsImplSeq(): seq[tuple[key, value: string]] = raiseAssert "implemented in the vmops" # vmops
+proc envPairsImplSeq(): seq[tuple[key, value: string]] =
+  raiseAssert "implemented in the vmops"
+  # vmops
 
 iterator envPairs*(): tuple[key, value: string] {.tags: [ReadEnvEffect].} =
   ## Iterate over all `environments variables`:idx:.
@@ -217,8 +240,11 @@ iterator envPairs*(): tuple[key, value: string] {.tags: [ReadEnvEffect].} =
   ## * `putEnv proc`_
   ## * `delEnv proc`_
   when nimvm:
-    for ai in envPairsImplSeq(): yield ai
+    for ai in envPairsImplSeq():
+      yield ai
   else:
-    when defined(nimscript): discard
+    when defined(nimscript):
+      discard
     else:
-      for ai in envPairsImpl(): yield ai
+      for ai in envPairsImpl():
+        yield ai

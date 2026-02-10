@@ -19,34 +19,39 @@
 
 when defined(gcc) or defined(llvm_gcc) or defined(clang):
   const useBuiltinSwap = true
-  proc builtin_bswap16(a: uint16): uint16 {.
-      importc: "__builtin_bswap16", nodecl, noSideEffect.}
+  proc builtin_bswap16(
+    a: uint16
+  ): uint16 {.importc: "__builtin_bswap16", nodecl, noSideEffect.}
 
-  proc builtin_bswap32(a: uint32): uint32 {.
-      importc: "__builtin_bswap32", nodecl, noSideEffect.}
+  proc builtin_bswap32(
+    a: uint32
+  ): uint32 {.importc: "__builtin_bswap32", nodecl, noSideEffect.}
 
-  proc builtin_bswap64(a: uint64): uint64 {.
-      importc: "__builtin_bswap64", nodecl, noSideEffect.}
+  proc builtin_bswap64(
+    a: uint64
+  ): uint64 {.importc: "__builtin_bswap64", nodecl, noSideEffect.}
+
 elif defined(icc):
   const useBuiltinSwap = true
-  proc builtin_bswap16(a: uint16): uint16 {.
-      importc: "_bswap16", nodecl, noSideEffect.}
+  proc builtin_bswap16(a: uint16): uint16 {.importc: "_bswap16", nodecl, noSideEffect.}
 
-  proc builtin_bswap32(a: uint32): uint32 {.
-      importc: "_bswap", nodecl, noSideEffect.}
+  proc builtin_bswap32(a: uint32): uint32 {.importc: "_bswap", nodecl, noSideEffect.}
 
-  proc builtin_bswap64(a: uint64): uint64 {.
-      importc: "_bswap64", nodecl, noSideEffect.}
+  proc builtin_bswap64(a: uint64): uint64 {.importc: "_bswap64", nodecl, noSideEffect.}
 elif defined(vcc):
   const useBuiltinSwap = true
-  proc builtin_bswap16(a: uint16): uint16 {.
-      importc: "_byteswap_ushort", nodecl, header: "<intrin.h>", noSideEffect.}
+  proc builtin_bswap16(
+    a: uint16
+  ): uint16 {.importc: "_byteswap_ushort", nodecl, header: "<intrin.h>", noSideEffect.}
 
-  proc builtin_bswap32(a: uint32): uint32 {.
-      importc: "_byteswap_ulong", nodecl, header: "<intrin.h>", noSideEffect.}
+  proc builtin_bswap32(
+    a: uint32
+  ): uint32 {.importc: "_byteswap_ulong", nodecl, header: "<intrin.h>", noSideEffect.}
 
-  proc builtin_bswap64(a: uint64): uint64 {.
-      importc: "_byteswap_uint64", nodecl, header: "<intrin.h>", noSideEffect.}
+  proc builtin_bswap64(
+    a: uint64
+  ): uint64 {.importc: "_byteswap_uint64", nodecl, header: "<intrin.h>", noSideEffect.}
+
 else:
   const useBuiltinSwap = false
 
@@ -121,28 +126,51 @@ else:
     o[1] = i[0]
 
 when system.cpuEndian == bigEndian:
-  proc littleEndian64*(outp, inp: pointer) {.inline.} = swapEndian64(outp, inp)
-  proc littleEndian32*(outp, inp: pointer) {.inline.} = swapEndian32(outp, inp)
-  proc littleEndian16*(outp, inp: pointer) {.inline.} = swapEndian16(outp, inp)
-  proc bigEndian64*(outp, inp: pointer) {.inline.} = copyMem(outp, inp, 8)
-  proc bigEndian32*(outp, inp: pointer) {.inline.} = copyMem(outp, inp, 4)
-  proc bigEndian16*(outp, inp: pointer) {.inline.} = copyMem(outp, inp, 2)
+  proc littleEndian64*(outp, inp: pointer) {.inline.} =
+    swapEndian64(outp, inp)
+
+  proc littleEndian32*(outp, inp: pointer) {.inline.} =
+    swapEndian32(outp, inp)
+
+  proc littleEndian16*(outp, inp: pointer) {.inline.} =
+    swapEndian16(outp, inp)
+
+  proc bigEndian64*(outp, inp: pointer) {.inline.} =
+    copyMem(outp, inp, 8)
+
+  proc bigEndian32*(outp, inp: pointer) {.inline.} =
+    copyMem(outp, inp, 4)
+
+  proc bigEndian16*(outp, inp: pointer) {.inline.} =
+    copyMem(outp, inp, 2)
+
 else:
-  proc littleEndian64*(outp, inp: pointer) {.inline.} = copyMem(outp, inp, 8)
+  proc littleEndian64*(outp, inp: pointer) {.inline.} =
     ## Copies `inp` to `outp`, storing it in 64-bit little-endian order.
     ## Both buffers are supposed to contain at least 8 bytes.
-  proc littleEndian32*(outp, inp: pointer) {.inline.} = copyMem(outp, inp, 4)
+    copyMem(outp, inp, 8)
+
+  proc littleEndian32*(outp, inp: pointer) {.inline.} =
     ## Copies `inp` to `outp`, storing it in 32-bit little-endian order.
     ## Both buffers are supposed to contain at least 4 bytes.
-  proc littleEndian16*(outp, inp: pointer){.inline.} = copyMem(outp, inp, 2)
+    copyMem(outp, inp, 4)
+
+  proc littleEndian16*(outp, inp: pointer) {.inline.} =
     ## Copies `inp` to `outp`, storing it in 16-bit little-endian order.
     ## Both buffers are supposed to contain at least 2 bytes.
-  proc bigEndian64*(outp, inp: pointer) {.inline.} = swapEndian64(outp, inp)
+    copyMem(outp, inp, 2)
+
+  proc bigEndian64*(outp, inp: pointer) {.inline.} =
     ## Copies `inp` to `outp`, storing it in 64-bit big-endian order.
     ## Both buffers are supposed to contain at least 8 bytes.
-  proc bigEndian32*(outp, inp: pointer) {.inline.} = swapEndian32(outp, inp)
+    swapEndian64(outp, inp)
+
+  proc bigEndian32*(outp, inp: pointer) {.inline.} =
     ## Copies `inp` to `outp`, storing it in 32-bit big-endian order.
     ## Both buffers are supposed to contain at least 4 bytes.
-  proc bigEndian16*(outp, inp: pointer) {.inline.} = swapEndian16(outp, inp)
+    swapEndian32(outp, inp)
+
+  proc bigEndian16*(outp, inp: pointer) {.inline.} =
     ## Copies `inp` to `outp`, storing it in 16-bit big-endian order.
     ## Both buffers are supposed to contain at least 2 bytes.
+    swapEndian16(outp, inp)

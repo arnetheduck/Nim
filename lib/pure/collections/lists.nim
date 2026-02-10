@@ -70,6 +70,7 @@ type
     next*: DoublyLinkedNode[T]
     prev* {.cursor.}: DoublyLinkedNode[T]
     value*: T
+
   DoublyLinkedNode*[T] = ref DoublyLinkedNodeObj[T]
 
   SinglyLinkedNodeObj*[T] = object
@@ -78,25 +79,22 @@ type
     ## It consists of a `value` field, and a pointer to `next`.
     next*: SinglyLinkedNode[T]
     value*: T
+
   SinglyLinkedNode*[T] = ref SinglyLinkedNodeObj[T]
 
-  SinglyLinkedList*[T] = object
-    ## A singly linked list.
+  SinglyLinkedList*[T] = object ## A singly linked list.
     head*: SinglyLinkedNode[T]
     tail* {.cursor.}: SinglyLinkedNode[T]
 
-  DoublyLinkedList*[T] = object
-    ## A doubly linked list.
+  DoublyLinkedList*[T] = object ## A doubly linked list.
     head*: DoublyLinkedNode[T]
     tail* {.cursor.}: DoublyLinkedNode[T]
 
-  SinglyLinkedRing*[T] = object
-    ## A singly linked ring.
+  SinglyLinkedRing*[T] = object ## A singly linked ring.
     head*: SinglyLinkedNode[T]
     tail* {.cursor.}: SinglyLinkedNode[T]
 
-  DoublyLinkedRing*[T] = object
-    ## A doubly linked ring.
+  DoublyLinkedRing*[T] = object ## A doubly linked ring.
     head*: DoublyLinkedNode[T]
 
   SomeLinkedList*[T] = SinglyLinkedList[T] | DoublyLinkedList[T]
@@ -177,7 +175,8 @@ template itemsRingImpl() {.dirty.} =
     while true:
       yield it.value
       it = it.next
-      if it == L.head: break
+      if it == L.head:
+        break
 
 iterator items*[T](L: SomeLinkedList[T]): T =
   ## Yields every value of `L`.
@@ -189,7 +188,8 @@ iterator items*[T](L: SomeLinkedList[T]): T =
     from std/sugar import collect
     from std/sequtils import toSeq
     let a = collect(initSinglyLinkedList):
-      for i in 1..3: 10 * i
+      for i in 1 .. 3:
+        10 * i
     assert toSeq(items(a)) == toSeq(a)
     assert toSeq(a) == @[10, 20, 30]
 
@@ -205,7 +205,8 @@ iterator items*[T](L: SomeLinkedRing[T]): T =
     from std/sugar import collect
     from std/sequtils import toSeq
     let a = collect(initSinglyLinkedRing):
-      for i in 1..3: 10 * i
+      for i in 1 .. 3:
+        10 * i
     assert toSeq(items(a)) == toSeq(a)
     assert toSeq(a) == @[10, 20, 30]
 
@@ -219,7 +220,7 @@ iterator mitems*[T](L: var SomeLinkedList[T]): var T =
   ## * `nodes iterator <#nodes.i,SomeLinkedList[T]>`_
   runnableExamples:
     var a = initSinglyLinkedList[int]()
-    for i in 1..5:
+    for i in 1 .. 5:
       a.add(10 * i)
     assert $a == "[10, 20, 30, 40, 50]"
     for x in mitems(a):
@@ -236,7 +237,7 @@ iterator mitems*[T](L: var SomeLinkedRing[T]): var T =
   ## * `nodes iterator <#nodes.i,SomeLinkedRing[T]>`_
   runnableExamples:
     var a = initSinglyLinkedRing[int]()
-    for i in 1..5:
+    for i in 1 .. 5:
       a.add(10 * i)
     assert $a == "[10, 20, 30, 40, 50]"
     for x in mitems(a):
@@ -254,7 +255,7 @@ iterator nodes*[T](L: SomeLinkedList[T]): SomeLinkedNode[T] =
   ## * `mitems iterator <#mitems.i,SomeLinkedList[T]>`_
   runnableExamples:
     var a = initDoublyLinkedList[int]()
-    for i in 1..5:
+    for i in 1 .. 5:
       a.add(10 * i)
     assert $a == "[10, 20, 30, 40, 50]"
     for x in nodes(a):
@@ -279,7 +280,7 @@ iterator nodes*[T](L: SomeLinkedRing[T]): SomeLinkedNode[T] =
   ## * `mitems iterator <#mitems.i,SomeLinkedRing[T]>`_
   runnableExamples:
     var a = initDoublyLinkedRing[int]()
-    for i in 1..5:
+    for i in 1 .. 5:
       a.add(10 * i)
     assert $a == "[10, 20, 30, 40, 50]"
     for x in nodes(a):
@@ -295,7 +296,8 @@ iterator nodes*[T](L: SomeLinkedRing[T]): SomeLinkedNode[T] =
       let nxt = it.next
       yield it
       it = nxt
-      if it == L.head: break
+      if it == L.head:
+        break
 
 proc `$`*[T](L: SomeLinkedCollection[T]): string =
   ## Turns a list into its string representation for logging and printing.
@@ -305,7 +307,8 @@ proc `$`*[T](L: SomeLinkedCollection[T]): string =
 
   result = "["
   for x in nodes(L):
-    if result.len > 1: result.add(", ")
+    if result.len > 1:
+      result.add(", ")
     result.addQuoted(x.value)
   result.add("]")
 
@@ -321,7 +324,8 @@ proc find*[T](L: SomeLinkedCollection[T], value: T): SomeLinkedNode[T] =
     assert a.find(1) == nil
 
   for x in nodes(L):
-    if x.value == value: return x
+    if x.value == value:
+      return x
 
 proc contains*[T](L: SomeLinkedCollection[T], value: T): bool {.inline.} =
   ## Searches in the list for a value. Returns `false` if the value does not
@@ -379,7 +383,8 @@ proc prependMoved*[T: SomeLinkedList](a, b: var T) {.since: (1, 5, 1).} =
     c.prependMoved(c)
     let s = collect:
       for i, ci in enumerate(c):
-        if i == 6: break
+        if i == 6:
+          break
         ci
     assert s == [0, 1, 0, 1, 0, 1]
 
@@ -405,7 +410,8 @@ proc add*[T](L: var SinglyLinkedList[T], n: SinglyLinkedNode[T]) {.inline.} =
     assert(L.tail.next == nil)
     L.tail.next = n
   L.tail = n
-  if L.head == nil: L.head = n
+  if L.head == nil:
+    L.head = n
 
 proc add*[T](L: var SinglyLinkedList[T], value: T) {.inline.} =
   ## Appends (adds to the end) a value to `L`. Efficiency: O(1).
@@ -423,8 +429,7 @@ proc add*[T](L: var SinglyLinkedList[T], value: T) {.inline.} =
 
   add(L, newSinglyLinkedNode(value))
 
-proc prepend*[T](L: var SinglyLinkedList[T],
-                 n: SinglyLinkedNode[T]) {.inline.} =
+proc prepend*[T](L: var SinglyLinkedList[T], n: SinglyLinkedNode[T]) {.inline.} =
   ## Prepends (adds to the beginning) a node to `L`. Efficiency: O(1).
   ##
   ## **See also:**
@@ -440,7 +445,8 @@ proc prepend*[T](L: var SinglyLinkedList[T],
 
   n.next = L.head
   L.head = n
-  if L.tail == nil: L.tail = n
+  if L.tail == nil:
+    L.tail = n
 
 proc prepend*[T](L: var SinglyLinkedList[T], value: T) {.inline.} =
   ## Prepends (adds to the beginning) a node to `L`. Efficiency: O(1).
@@ -465,6 +471,7 @@ func copy*[T](a: SinglyLinkedList[T]): SinglyLinkedList[T] {.since: (1, 5, 1).} 
     from std/sequtils import toSeq
     type Foo = ref object
       x: int
+
     var
       f = Foo(x: 1)
       a = [f].toSinglyLinkedList
@@ -502,7 +509,8 @@ proc addMoved*[T](a, b: var SinglyLinkedList[T]) {.since: (1, 5, 1).} =
     c.addMoved(c)
     let s = collect:
       for i, ci in enumerate(c):
-        if i == 6: break
+        if i == 6:
+          break
         ci
     assert s == [0, 1, 0, 1, 0, 1]
 
@@ -538,7 +546,8 @@ proc add*[T](L: var DoublyLinkedList[T], n: DoublyLinkedNode[T]) =
     assert(L.tail.next == nil)
     L.tail.next = n
   L.tail = n
-  if L.head == nil: L.head = n
+  if L.head == nil:
+    L.head = n
 
 proc add*[T](L: var DoublyLinkedList[T], value: T) =
   ## Appends (adds to the end) a value to `L`. Efficiency: O(1).
@@ -581,7 +590,8 @@ proc prepend*[T](L: var DoublyLinkedList[T], n: DoublyLinkedNode[T]) =
     assert(L.head.prev == nil)
     L.head.prev = n
   L.head = n
-  if L.tail == nil: L.tail = n
+  if L.tail == nil:
+    L.tail = n
 
 proc prepend*[T](L: var DoublyLinkedList[T], value: T) =
   ## Prepends (adds to the beginning) a value to `L`. Efficiency: O(1).
@@ -608,6 +618,7 @@ func copy*[T](a: DoublyLinkedList[T]): DoublyLinkedList[T] {.since: (1, 5, 1).} 
     from std/sequtils import toSeq
     type Foo = ref object
       x: int
+
     var
       f = Foo(x: 1)
       a = [f].toDoublyLinkedList
@@ -646,7 +657,8 @@ proc addMoved*[T](a, b: var DoublyLinkedList[T]) {.since: (1, 5, 1).} =
     c.addMoved(c)
     let s = collect:
       for i, ci in enumerate(c):
-        if i == 6: break
+        if i == 6:
+          break
         ci
     assert s == [0, 1, 0, 1, 0, 1]
 
@@ -681,7 +693,9 @@ proc add*[T: SomeLinkedList](a: var T, b: T) {.since: (1, 5, 1).} =
   var tmp = b.copy
   a.addMoved(tmp)
 
-proc remove*[T](L: var SinglyLinkedList[T], n: SinglyLinkedNode[T]): bool {.discardable.} =
+proc remove*[T](
+    L: var SinglyLinkedList[T], n: SinglyLinkedNode[T]
+): bool {.discardable.} =
   ## Removes a node `n` from `L`.
   ## Returns `true` if `n` was found in `L`.
   ## Efficiency: O(n); the list is traversed until `n` is found.
@@ -700,7 +714,8 @@ proc remove*[T](L: var SinglyLinkedList[T], n: SinglyLinkedNode[T]): bool {.disc
     a.remove(a.head)
     let s = collect:
       for i, ai in enumerate(a):
-        if i == 4: break
+        if i == 4:
+          break
         ai
     assert s == [2, 2, 2, 2]
 
@@ -739,16 +754,19 @@ proc remove*[T](L: var DoublyLinkedList[T], n: DoublyLinkedNode[T]) =
     a.remove(a.head)
     let s = collect:
       for i, ai in enumerate(a):
-        if i == 4: break
+        if i == 4:
+          break
         ai
     assert s == [2, 2, 2, 2]
 
-  if n == L.tail: L.tail = n.prev
-  if n == L.head: L.head = n.next
-  if n.next != nil: n.next.prev = n.prev
-  if n.prev != nil: n.prev.next = n.next
-
-
+  if n == L.tail:
+    L.tail = n.prev
+  if n == L.head:
+    L.head = n.next
+  if n.next != nil:
+    n.next.prev = n.prev
+  if n.prev != nil:
+    n.prev.next = n.next
 
 proc add*[T](L: var SinglyLinkedRing[T], n: SinglyLinkedNode[T]) =
   ## Appends (adds to the end) a node `n` to `L`. Efficiency: O(1).
@@ -829,8 +847,6 @@ proc prepend*[T](L: var SinglyLinkedRing[T], value: T) =
     assert a.contains(9)
 
   prepend(L, newSinglyLinkedNode(value))
-
-
 
 proc add*[T](L: var DoublyLinkedRing[T], n: DoublyLinkedNode[T]) =
   ## Appends (adds to the end) a node `n` to `L`. Efficiency: O(1).
@@ -944,8 +960,10 @@ proc remove*[T](L: var DoublyLinkedRing[T], n: DoublyLinkedNode[T]) =
     else:
       L.head = p
 
-proc append*[T](a: var (SinglyLinkedList[T] | SinglyLinkedRing[T]),
-                b: SinglyLinkedList[T] | SinglyLinkedNode[T] | T) =
+proc append*[T](
+    a: var (SinglyLinkedList[T] | SinglyLinkedRing[T]),
+    b: SinglyLinkedList[T] | SinglyLinkedNode[T] | T,
+) =
   ## Alias for `a.add(b)`.
   ##
   ## **See also:**
@@ -954,8 +972,10 @@ proc append*[T](a: var (SinglyLinkedList[T] | SinglyLinkedRing[T]),
   ## * `add proc <#add,T,T>`_
   a.add(b)
 
-proc append*[T](a: var (DoublyLinkedList[T] | DoublyLinkedRing[T]),
-                b: DoublyLinkedList[T] | DoublyLinkedNode[T] | T) =
+proc append*[T](
+    a: var (DoublyLinkedList[T] | DoublyLinkedRing[T]),
+    b: DoublyLinkedList[T] | DoublyLinkedNode[T] | T,
+) =
   ## Alias for `a.add(b)`.
   ##
   ## **See also:**
@@ -972,7 +992,9 @@ proc appendMoved*[T: SomeLinkedList](a, b: var T) {.since: (1, 5, 1).} =
   ## * `addMoved proc <#addMoved,DoublyLinkedList[T],DoublyLinkedList[T]>`_
   a.addMoved(b)
 
-func toSinglyLinkedList*[T](elems: openArray[T]): SinglyLinkedList[T] {.since: (1, 5, 1).} =
+func toSinglyLinkedList*[T](
+    elems: openArray[T]
+): SinglyLinkedList[T] {.since: (1, 5, 1).} =
   ## Creates a new `SinglyLinkedList` from the members of `elems`.
   runnableExamples:
     from std/sequtils import toSeq
@@ -994,7 +1016,9 @@ func toSinglyLinkedRing*[T](elems: openArray[T]): SinglyLinkedRing[T] =
   for elem in elems.items:
     result.add(elem)
 
-func toDoublyLinkedList*[T](elems: openArray[T]): DoublyLinkedList[T] {.since: (1, 5, 1).} =
+func toDoublyLinkedList*[T](
+    elems: openArray[T]
+): DoublyLinkedList[T] {.since: (1, 5, 1).} =
   ## Creates a new `DoublyLinkedList` from the members of `elems`.
   runnableExamples:
     from std/sequtils import toSeq

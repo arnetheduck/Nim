@@ -71,22 +71,18 @@ proc now*(d: DateLib): int {.importcpp.}
 proc UTC*(d: DateLib): int {.importcpp.}
 proc parse*(d: DateLib, s: cstring): int {.importcpp.}
 
-proc newDate*(): DateTime {.
-  importcpp: "new Date()".}
+proc newDate*(): DateTime {.importcpp: "new Date()".}
 
-proc newDate*(date: int|string): DateTime {.
-  importcpp: "new Date(#)".}
+proc newDate*(date: int | string): DateTime {.importcpp: "new Date(#)".}
 
 when jsNoBigInt64:
-  proc newDate*(date: int64): DateTime {.
-    importcpp: "new Date(#)".}
+  proc newDate*(date: int64): DateTime {.importcpp: "new Date(#)".}
 else:
-  proc newDate*(date: int64): DateTime {.
-    importcpp: "new Date(Number(#))".}
+  proc newDate*(date: int64): DateTime {.importcpp: "new Date(Number(#))".}
 
-proc newDate*(year, month, day, hours, minutes,
-             seconds, milliseconds: int): DateTime {.
-  importcpp: "new Date(#,#,#,#,#,#,#)".}
+proc newDate*(
+  year, month, day, hours, minutes, seconds, milliseconds: int
+): DateTime {.importcpp: "new Date(#,#,#,#,#,#,#)".}
 
 proc getDay*(d: DateTime): int {.importcpp.}
 proc getFullYear*(d: DateTime): int {.importcpp.}
@@ -120,14 +116,19 @@ func toUTCString*(d: DateTime): cstring {.importcpp.}
 proc stringify*(l: JsonLib, s: JsRoot): cstring {.importcpp.}
 proc parse*(l: JsonLib, s: cstring): JsRoot {.importcpp.}
 
-
 since (1, 5):
   func debugger*() {.importjs: "debugger@".}
     ## https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/debugger
 
-  func copyWithin*[T](self: openArray[T]; target: int): seq[T] {.importjs: "#.copyWithin(#)".}
-  func copyWithin*[T](self: openArray[T]; target, start: int): seq[T] {.importjs: "#.copyWithin(#, #)".}
-  func copyWithin*[T](self: openArray[T]; target, start, ends: int): seq[T] {.importjs: "#.copyWithin(#, #, #)".} =
+  func copyWithin*[T](
+    self: openArray[T], target: int
+  ): seq[T] {.importjs: "#.copyWithin(#)".}
+  func copyWithin*[T](
+    self: openArray[T], target, start: int
+  ): seq[T] {.importjs: "#.copyWithin(#, #)".}
+  func copyWithin*[T](
+      self: openArray[T], target, start, ends: int
+  ): seq[T] {.importjs: "#.copyWithin(#, #, #)".} =
     ## https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/copyWithin
     ## `copyWithin` uses shallow copy.
     runnableExamples:
@@ -137,7 +138,6 @@ since (1, 5):
       assert [1, 2, 3, 4, 5].copyWithin(0, 3) == @[4, 5, 3, 4, 5]
       assert [1, 2, 3, 4, 5].copyWithin(0, 3, 4) == @[4, 2, 3, 4, 5]
       assert [1, 2, 3, 4, 5].copyWithin(-2, -3, -1) == @[1, 2, 3, 3, 4]
-
 
 since (1, 7):
   func shift*[T](self: seq[T]): T {.importjs: "#.$1()".} =
@@ -150,4 +150,8 @@ since (1, 7):
   func queueMicrotask*(function: proc) {.importjs: "$1(#)".} =
     ## * https://developer.mozilla.org/en-US/docs/Web/API/queueMicrotask
     ## * https://developer.mozilla.org/en-US/docs/Web/API/HTML_DOM_API/Microtask_guide
-    runnableExamples"-r:off": queueMicrotask(proc() = echo "Microtask")
+    runnableExamples"-r:off":
+      queueMicrotask(
+        proc() =
+          echo "Microtask"
+      )

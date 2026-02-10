@@ -22,21 +22,24 @@ elif defined(posix):
   import std/posix, system/ansi_c
 
 when weirdTarget:
-  {.pragma: noWeirdTarget, error: "this proc is not available on the NimScript/js target".}
+  {.
+    pragma: noWeirdTarget,
+    error: "this proc is not available on the NimScript/js target"
+  .}
 else:
   {.pragma: noWeirdTarget.}
 
 when defined(nimscript):
   # for procs already defined in scriptconfig.nim
-  template noNimJs(body): untyped = discard
+  template noNimJs(body): untyped =
+    discard
+
 elif defined(js):
   {.pragma: noNimJs, error: "this proc is not available on the js target".}
 else:
   {.pragma: noNimJs.}
 
-
-proc normalizePathAux(path: var string){.inline, raises: [], noSideEffect.}
-
+proc normalizePathAux(path: var string) {.inline, raises: [], noSideEffect.}
 
 import std/private/osseps
 export osseps
@@ -48,12 +51,16 @@ proc normalizePathEnd*(path: var string, trailingSep = false) =
   ## ``trailingSep``, and taking care of edge cases: it preservers whether
   ## a path is absolute or relative, and makes sure trailing sep is `DirSep`,
   ## not `AltSep`. Trailing `/.` are compressed, see examples.
-  if path.len == 0: return
+  if path.len == 0:
+    return
   var i = path.len
   while i >= 1:
-    if path[i-1] in {DirSep, AltSep}: dec(i)
-    elif path[i-1] == '.' and i >= 2 and path[i-2] in {DirSep, AltSep}: dec(i)
-    else: break
+    if path[i - 1] in {DirSep, AltSep}:
+      dec(i)
+    elif path[i - 1] == '.' and i >= 2 and path[i - 2] in {DirSep, AltSep}:
+      dec(i)
+    else:
+      break
   if trailingSep:
     # foo// => foo
     path.setLen(i)
@@ -82,13 +89,14 @@ template endsWith(a: string, b: set[char]): bool =
   a.len > 0 and a[^1] in b
 
 proc joinPathImpl(result: var string, state: var int, tail: string) =
-  let trailingSep = tail.endsWith({DirSep, AltSep}) or tail.len == 0 and result.endsWith({DirSep, AltSep})
-  normalizePathEnd(result, trailingSep=false)
+  let trailingSep =
+    tail.endsWith({DirSep, AltSep}) or
+    tail.len == 0 and result.endsWith({DirSep, AltSep})
+  normalizePathEnd(result, trailingSep = false)
   addNormalizePath(tail, result, state, DirSep)
-  normalizePathEnd(result, trailingSep=trailingSep)
+  normalizePathEnd(result, trailingSep = trailingSep)
 
-proc joinPath*(head, tail: string): string {.
-  noSideEffect, rtl, extern: "nos$1".} =
+proc joinPath*(head, tail: string): string {.noSideEffect, rtl, extern: "nos$1".} =
   ## Joins two directory names to one.
   ##
   ## returns normalized path concatenation of `head` and `tail`, preserving
@@ -120,7 +128,7 @@ proc joinPath*(head, tail: string): string {.
   when false:
     if len(head) == 0:
       result = tail
-    elif head[len(head)-1] in {DirSep, AltSep}:
+    elif head[len(head) - 1] in {DirSep, AltSep}:
       if tail.len > 0 and tail[0] in {DirSep, AltSep}:
         result = head & substr(tail, 1)
       else:
@@ -131,8 +139,9 @@ proc joinPath*(head, tail: string): string {.
       else:
         result = head & DirSep & tail
 
-proc joinPath*(parts: varargs[string]): string {.noSideEffect,
-  rtl, extern: "nos$1OpenArray".} =
+proc joinPath*(
+    parts: varargs[string]
+): string {.noSideEffect, rtl, extern: "nos$1OpenArray".} =
   ## The same as `joinPath(head, tail) proc`_,
   ## but works with any number of directory parts.
   ##
@@ -151,10 +160,11 @@ proc joinPath*(parts: varargs[string]): string {.noSideEffect,
       assert joinPath("usr/lib", "../../var", "log") == "var/log"
 
   var estimatedLen = 0
-  for p in parts: estimatedLen += p.len
+  for p in parts:
+    estimatedLen += p.len
   result = newStringOfCap(estimatedLen)
   var state = 0
-  for i in 0..high(parts):
+  for i in 0 .. high(parts):
     joinPathImpl(result, state, parts[i])
 
 proc `/`*(head, tail: string): string {.noSideEffect, inline.} =
@@ -180,8 +190,9 @@ proc `/`*(head, tail: string): string {.noSideEffect, inline.} =
 when doslikeFileSystem:
   import std/private/ntpath
 
-proc splitPath*(path: string): tuple[head, tail: string] {.
-  noSideEffect, rtl, extern: "nos$1".} =
+proc splitPath*(
+    path: string
+): tuple[head, tail: string] {.noSideEffect, rtl, extern: "nos$1".} =
   ## Splits a directory into `(head, tail)` tuple, so that
   ## ``head / tail == path`` (except for edge cases like "/usr").
   ##
@@ -209,18 +220,23 @@ proc splitPath*(path: string): tuple[head, tail: string] {.
     const stop = 0
 
   var sepPos = -1
-  for i in countdown(len(path)-1, stop):
+  for i in countdown(len(path) - 1, stop):
     if path[i] in {DirSep, AltSep}:
       sepPos = i
       break
   if sepPos >= 0:
-    result.head = substr(path, 0,
+    result.head = substr(
+      path,
+      0,
       when (NimMajor, NimMinor) <= (1, 0):
-        sepPos-1
+        sepPos - 1
       else:
-        if likely(sepPos >= 1): sepPos-1 else: 0
+        if likely(sepPos >= 1):
+          sepPos - 1
+        else:
+          0,
     )
-    result.tail = substr(path, sepPos+1)
+    result.tail = substr(path, sepPos + 1)
   else:
     when doslikeFileSystem:
       result.head = drive
@@ -229,7 +245,9 @@ proc splitPath*(path: string): tuple[head, tail: string] {.
       result.head = ""
       result.tail = path
 
-proc isAbsolute*(path: string): bool {.rtl, noSideEffect, extern: "nos$1", raises: [].} =
+proc isAbsolute*(
+    path: string
+): bool {.rtl, noSideEffect, extern: "nos$1", raises: [].} =
   ## Checks whether a given `path` is absolute.
   ##
   ## On Windows, network paths are considered absolute too.
@@ -241,12 +259,14 @@ proc isAbsolute*(path: string): bool {.rtl, noSideEffect, extern: "nos$1", raise
       assert not "a/".isAbsolute
       assert "/a/".isAbsolute
 
-  if len(path) == 0: return false
+  if len(path) == 0:
+    return false
 
   when doslikeFileSystem:
     var len = len(path)
-    result = (path[0] in {'/', '\\'}) or
-              (len > 1 and path[0] in {'a'..'z', 'A'..'Z'} and path[1] == ':')
+    result =
+      (path[0] in {'/', '\\'}) or
+      (len > 1 and path[0] in {'a' .. 'z', 'A' .. 'Z'} and path[1] == ':')
   elif defined(macos):
     # according to https://perldoc.perl.org/File/Spec/Mac.html `:a` is a relative path
     result = path[0] != ':'
@@ -255,22 +275,25 @@ proc isAbsolute*(path: string): bool {.rtl, noSideEffect, extern: "nos$1", raise
   elif defined(posix):
     result = path[0] == '/'
   elif defined(nodejs):
-    {.emit: [result," = require(\"path\").isAbsolute(",path.cstring,");"].}
+    {.emit: [result, " = require(\"path\").isAbsolute(", path.cstring, ");"].}
   else:
     raiseAssert "unreachable" # if ever hits here, adapt as needed
 
 when FileSystemCaseSensitive:
-  template `!=?`(a, b: char): bool = a != b
+  template `!=?`(a, b: char): bool =
+    a != b
+
 else:
-  template `!=?`(a, b: char): bool = toLowerAscii(a) != toLowerAscii(b)
+  template `!=?`(a, b: char): bool =
+    toLowerAscii(a) != toLowerAscii(b)
 
 when doslikeFileSystem:
   proc isAbsFromCurrentDrive(path: string): bool {.noSideEffect, raises: [].} =
     ## An absolute path from the root of the current drive (e.g. "\foo")
-    path.len > 0 and
-    (path[0] == AltSep or
-     (path[0] == DirSep and
-      (path.len == 1 or path[1] notin {DirSep, AltSep, ':'})))
+    path.len > 0 and (
+      path[0] == AltSep or
+      (path[0] == DirSep and (path.len == 1 or path[1] notin {DirSep, AltSep, ':'}))
+    )
 
   proc sameRoot(path1, path2: string): bool {.noSideEffect, raises: [].} =
     ## Return true if path1 and path2 have a same root.
@@ -288,8 +311,7 @@ when doslikeFileSystem:
     else:
       result = false
 
-proc relativePath*(path, base: string, sep = DirSep): string {.
-  rtl, extern: "nos$1".} =
+proc relativePath*(path, base: string, sep = DirSep): string {.rtl, extern: "nos$1".} =
   ## Converts `path` to a path relative to `base`.
   ##
   ## The `sep` (default: DirSep_) is used for the path normalizations,
@@ -305,7 +327,8 @@ proc relativePath*(path, base: string, sep = DirSep): string {.
   ## * `parentDir proc`_
   ## * `tailDir proc`_
   runnableExamples:
-    assert relativePath("/Users/me/bar/z.nim", "/Users/other/bad", '/') == "../../me/bar/z.nim"
+    assert relativePath("/Users/me/bar/z.nim", "/Users/other/bad", '/') ==
+      "../../me/bar/z.nim"
     assert relativePath("/Users/me/bar/z.nim", "/Users/other", '/') == "../me/bar/z.nim"
     when not doslikeFileSystem: # On Windows, UNC-paths start with `//`
       assert relativePath("/Users///me/bar//z.nim", "//Users/", '/') == "me/bar/z.nim"
@@ -314,7 +337,8 @@ proc relativePath*(path, base: string, sep = DirSep): string {.
     assert relativePath("foo", ".", '/') == "foo"
     assert relativePath("foo", "foo", '/') == "."
 
-  if path.len == 0: return ""
+  if path.len == 0:
+    return ""
   var base = if base == ".": "" else: base
   var path = path
   path.normalizePathAux
@@ -341,13 +365,15 @@ proc relativePath*(path, base: string, sep = DirSep): string {.
     ff = next(f, path)
     bb = next(b, base)
     let diff = ff[1] - ff[0]
-    if diff != bb[1] - bb[0]: break
+    if diff != bb[1] - bb[0]:
+      break
     var same = true
-    for i in 0..diff:
+    for i in 0 .. diff:
       if path[i + ff[0]] !=? base[i + bb[0]]:
         same = false
         break
-    if not same: break
+    if not same:
+      break
     ff = (0, -1)
     bb = (0, -1)
   #  for i in 0..diff:
@@ -362,7 +388,8 @@ proc relativePath*(path, base: string, sep = DirSep): string {.
       if result.len > 0 and result[^1] != sep:
         result.add sep
       result.add ".."
-    if not b.hasNext(base): break
+    if not b.hasNext(base):
+      break
     bb = b.next(base)
 
   # add the rest of 'path':
@@ -370,13 +397,15 @@ proc relativePath*(path, base: string, sep = DirSep): string {.
     if ff[1] >= ff[0]:
       if result.len > 0 and result[^1] != sep:
         result.add sep
-      for i in 0..ff[1] - ff[0]:
+      for i in 0 .. ff[1] - ff[0]:
         result.add path[i + ff[0]]
-    if not f.hasNext(path): break
+    if not f.hasNext(path):
+      break
     ff = f.next(path)
 
   when not defined(nimOldRelativePathBehavior):
-    if result.len == 0: result.add "."
+    if result.len == 0:
+      result.add "."
 
 proc isRelativeTo*(path: string, base: string): bool {.since: (1, 1).} =
   ## Returns true if `path` is relative to `base`.
@@ -392,13 +421,14 @@ proc isRelativeTo*(path: string, base: string): bool {.since: (1, 1).} =
 
 proc parentDirPos(path: string): int =
   var q = 1
-  if len(path) >= 1 and path[len(path)-1] in {DirSep, AltSep}: q = 2
-  for i in countdown(len(path)-q, 0):
-    if path[i] in {DirSep, AltSep}: return i
+  if len(path) >= 1 and path[len(path) - 1] in {DirSep, AltSep}:
+    q = 2
+  for i in countdown(len(path) - q, 0):
+    if path[i] in {DirSep, AltSep}:
+      return i
   result = -1
 
-proc parentDir*(path: string): string {.
-  noSideEffect, rtl, extern: "nos$1".} =
+proc parentDir*(path: string): string {.noSideEffect, rtl, extern: "nos$1".} =
   ## Returns the parent directory of `path`.
   ##
   ## This is similar to ``splitPath(path).head`` when ``path`` doesn't end
@@ -428,7 +458,8 @@ proc parentDir*(path: string): string {.
   if sepPos >= 0:
     result = substr(result, 0, sepPos)
     normalizePathEnd(result)
-  elif result == ".." or result == "." or result.len == 0 or result[^1] in {DirSep, AltSep}:
+  elif result == ".." or result == "." or result.len == 0 or
+      result[^1] in {DirSep, AltSep}:
     # `.` => `..` and .. => `../..`(etc) would be a sensible alternative
     # `/` => `/` (as done with splitFile) would be a sensible alternative
     result = ""
@@ -442,8 +473,7 @@ proc parentDir*(path: string): string {.
     else:
       result = drive & result
 
-proc tailDir*(path: string): string {.
-  noSideEffect, rtl, extern: "nos$1".} =
+proc tailDir*(path: string): string {.noSideEffect, rtl, extern: "nos$1".} =
   ## Returns the tail part of `path`.
   ##
   ## See also:
@@ -466,13 +496,13 @@ proc tailDir*(path: string): string {.
       return splitpath.strip(chars = {DirSep, AltSep}, trailing = false)
   while i < len(path):
     if path[i] in {DirSep, AltSep}:
-      while i < len(path) and path[i] in {DirSep, AltSep}: inc i
+      while i < len(path) and path[i] in {DirSep, AltSep}:
+        inc i
       return substr(path, i)
     inc i
   result = ""
 
-proc isRootDir*(path: string): bool {.
-  noSideEffect, rtl, extern: "nos$1".} =
+proc isRootDir*(path: string): bool {.noSideEffect, rtl, extern: "nos$1".} =
   ## Checks whether a given `path` is a root directory.
   runnableExamples:
     assert isRootDir("")
@@ -487,7 +517,7 @@ proc isRootDir*(path: string): bool {.
       return true
   result = parentDirPos(path) < 0
 
-iterator parentDirs*(path: string, fromRoot=false, inclusive=true): string =
+iterator parentDirs*(path: string, fromRoot = false, inclusive = true): string =
   ## Walks over all parent directories of a given `path`.
   ##
   ## If `fromRoot` is true (default: false), the traversal will start from
@@ -510,22 +540,24 @@ iterator parentDirs*(path: string, fromRoot=false, inclusive=true): string =
       # a/b
       # a
 
-    for p in g.parentDirs(fromRoot=true):
+    for p in g.parentDirs(fromRoot = true):
       echo p
       # a/
       # a/b/
       # a/b/c
 
-    for p in g.parentDirs(inclusive=false):
+    for p in g.parentDirs(inclusive = false):
       echo p
       # a/b
       # a
 
   if not fromRoot:
     var current = path
-    if inclusive: yield path
+    if inclusive:
+      yield path
     while true:
-      if current.isRootDir: break
+      if current.isRootDir:
+        break
       current = current.parentDir
       yield current
   else:
@@ -535,11 +567,11 @@ iterator parentDirs*(path: string, fromRoot=false, inclusive=true): string =
       const start = 0
     for i in countup(start, path.len - 2): # ignore the last /
       # deal with non-normalized paths such as /foo//bar//baz
-      if path[i] in {DirSep, AltSep} and
-          (i == 0 or path[i-1] notin {DirSep, AltSep}):
+      if path[i] in {DirSep, AltSep} and (i == 0 or path[i - 1] notin {DirSep, AltSep}):
         yield path.substr(0, i)
 
-    if inclusive: yield path
+    if inclusive:
+      yield path
 
 proc `/../`*(head, tail: string): string {.noSideEffect.} =
   ## The same as ``parentDir(head) / tail``, unless there is no parent
@@ -557,15 +589,17 @@ proc `/../`*(head, tail: string): string {.noSideEffect.} =
     let (drive, head) = splitDrive(head)
   let sepPos = parentDirPos(head)
   if sepPos >= 0:
-    result = substr(head, 0, sepPos-1) / tail
+    result = substr(head, 0, sepPos - 1) / tail
   else:
     result = head / tail
   when doslikeFileSystem:
     result = drive / result
 
 proc normExt(ext: string): string =
-  if ext == "" or ext[0] == ExtSep: result = ext # no copy needed here
-  else: result = ExtSep & ext
+  if ext == "" or ext[0] == ExtSep:
+    result = ext # no copy needed here
+  else:
+    result = ExtSep & ext
 
 proc searchExtPos*(path: string): int =
   ## Returns index of the `'.'` char in `path` if it signifies the beginning
@@ -588,7 +622,11 @@ proc searchExtPos*(path: string): int =
 
   # Unless there is any char that is not `ExtSep` before last `ExtSep` in the file name,
   # it is not a file extension.
-  const DirSeps = when doslikeFileSystem: {DirSep, AltSep, ':'} else: {DirSep, AltSep}
+  const DirSeps =
+    when doslikeFileSystem:
+      {DirSep, AltSep, ':'}
+    else:
+      {DirSep, AltSep}
   result = -1
   var i = path.high
   while i >= 1:
@@ -605,8 +643,9 @@ proc searchExtPos*(path: string): int =
       result = i
       break
 
-proc splitFile*(path: string): tuple[dir, name, ext: string] {.
-  noSideEffect, rtl, extern: "nos$1".} =
+proc splitFile*(
+    path: string
+): tuple[dir, name, ext: string] {.noSideEffect, rtl, extern: "nos$1".} =
   ## Splits a filename into `(dir, name, extension)` tuple.
   ##
   ## `dir` does not end in DirSep_ unless it's `/`.
@@ -651,7 +690,14 @@ proc splitFile*(path: string): tuple[dir, name, ext: string] {.
   for i in countdown(len(path) - 1, stop):
     if path[i] in {DirSep, AltSep} or i == 0:
       if path[i] in {DirSep, AltSep}:
-        result.dir = substr(path, 0, if likely(i >= 1): i - 1 else: 0)
+        result.dir = substr(
+          path,
+          0,
+          if likely(i >= 1):
+            i - 1
+          else:
+            0,
+        )
         namePos = i + 1
       if dotPos > i:
         result.name = substr(path, namePos, dotPos - 1)
@@ -660,12 +706,10 @@ proc splitFile*(path: string): tuple[dir, name, ext: string] {.
         result.name = substr(path, namePos)
       break
     elif path[i] == ExtSep and i > 0 and i < len(path) - 1 and
-         path[i - 1] notin {DirSep, AltSep} and
-         path[i + 1] != ExtSep and dotPos == 0:
+        path[i - 1] notin {DirSep, AltSep} and path[i + 1] != ExtSep and dotPos == 0:
       dotPos = i
 
-proc extractFilename*(path: string): string {.
-  noSideEffect, rtl, extern: "nos$1".} =
+proc extractFilename*(path: string): string {.noSideEffect, rtl, extern: "nos$1".} =
   ## Extracts the filename of a given `path`.
   ##
   ## This is the same as ``name & ext`` from `splitFile(path) proc`_.
@@ -681,13 +725,12 @@ proc extractFilename*(path: string): string {.
     assert extractFilename("foo/bar") == "bar"
     assert extractFilename("foo/bar.baz") == "bar.baz"
 
-  if path.len == 0 or path[path.len-1] in {DirSep, AltSep}:
+  if path.len == 0 or path[path.len - 1] in {DirSep, AltSep}:
     result = ""
   else:
     result = splitPath(path).tail
 
-proc lastPathPart*(path: string): string {.
-  noSideEffect, rtl, extern: "nos$1".} =
+proc lastPathPart*(path: string): string {.noSideEffect, rtl, extern: "nos$1".} =
   ## Like `extractFilename proc`_, but ignores
   ## trailing dir separator; aka: `baseName`:idx: in some other languages.
   ##
@@ -704,8 +747,9 @@ proc lastPathPart*(path: string): string {.
   let path = path.normalizePathEnd(trailingSep = false)
   result = extractFilename(path)
 
-proc changeFileExt*(filename, ext: string): string {.
-  noSideEffect, rtl, extern: "nos$1".} =
+proc changeFileExt*(
+    filename, ext: string
+): string {.noSideEffect, rtl, extern: "nos$1".} =
   ## Changes the file extension to `ext`.
   ##
   ## If the `filename` has no extension, `ext` will be added.
@@ -727,11 +771,12 @@ proc changeFileExt*(filename, ext: string): string {.
     assert changeFileExt("foo", "baz") == "foo.baz"
 
   var extPos = searchExtPos(filename)
-  if extPos < 0: result = filename & normExt(ext)
-  else: result = substr(filename, 0, extPos-1) & normExt(ext)
+  if extPos < 0:
+    result = filename & normExt(ext)
+  else:
+    result = substr(filename, 0, extPos - 1) & normExt(ext)
 
-proc addFileExt*(filename, ext: string): string {.
-  noSideEffect, rtl, extern: "nos$1".} =
+proc addFileExt*(filename, ext: string): string {.noSideEffect, rtl, extern: "nos$1".} =
   ## Adds the file extension `ext` to `filename`, unless
   ## `filename` already has an extension.
   ##
@@ -751,11 +796,12 @@ proc addFileExt*(filename, ext: string): string {.
     assert addFileExt("foo", "baz") == "foo.baz"
 
   var extPos = searchExtPos(filename)
-  if extPos < 0: result = filename & normExt(ext)
-  else: result = filename
+  if extPos < 0:
+    result = filename & normExt(ext)
+  else:
+    result = filename
 
-proc cmpPaths*(pathA, pathB: string): int {.
-  noSideEffect, rtl, extern: "nos$1".} =
+proc cmpPaths*(pathA, pathB: string): int {.noSideEffect, rtl, extern: "nos$1".} =
   ## Compares two paths.
   ##
   ## On a case-sensitive filesystem this is done
@@ -777,12 +823,14 @@ proc cmpPaths*(pathA, pathB: string): int {.
   else:
     when defined(nimscript):
       result = cmpic(a, b)
-    elif defined(nimdoc): discard
+    elif defined(nimdoc):
+      discard
     else:
       result = cmpIgnoreCase(a, b)
 
-proc unixToNativePath*(path: string, drive=""): string {.
-  noSideEffect, rtl, extern: "nos$1".} =
+proc unixToNativePath*(
+    path: string, drive = ""
+): string {.noSideEffect, rtl, extern: "nos$1".} =
   ## Converts an UNIX-like path to a native one.
   ##
   ## On an UNIX system this does nothing. Else it converts
@@ -795,7 +843,8 @@ proc unixToNativePath*(path: string, drive=""): string {.
   when defined(unix):
     result = path
   else:
-    if path.len == 0: return ""
+    if path.len == 0:
+      return ""
 
     var start: int
     if path[0] == '/':
@@ -820,7 +869,8 @@ proc unixToNativePath*(path: string, drive=""): string {.
 
     var i = start
     while i < len(path): # ../../../ --> ::::
-      if i+2 < path.len and path[i] == '.' and path[i+1] == '.' and path[i+2] == '/':
+      if i + 2 < path.len and path[i] == '.' and path[i + 1] == '.' and
+          path[i + 2] == '/':
         # parent directory
         when defined(macos):
           if result[high(result)] == ':':
@@ -836,7 +886,6 @@ proc unixToNativePath*(path: string, drive=""): string {.
       else:
         add result, path[i]
         inc(i)
-
 
 when not defined(nimscript) and supportedSystem:
   proc getCurrentDir*(): string {.rtl, extern: "nos$1", tags: [].} =
@@ -869,7 +918,7 @@ when not defined(nimscript) and supportedSystem:
           res = newWideCString(L)
           bufsize = L
         else:
-          result = res$L
+          result = res $ L
           break
     else:
       var bufsize = 1024 # should be enough
@@ -887,7 +936,14 @@ when not defined(nimscript) and supportedSystem:
           else:
             raiseOSError(osLastError())
 
-proc absolutePath*(path: string, root = when supportedSystem: getCurrentDir() else: ""): string =
+proc absolutePath*(
+    path: string,
+    root =
+      when supportedSystem:
+        getCurrentDir()
+      else:
+        "",
+): string =
   ## Returns the absolute path of `path`, rooted at `root` (which must be absolute;
   ## default: current directory).
   ## If `path` is absolute, return it, ignoring `root`.
@@ -898,7 +954,8 @@ proc absolutePath*(path: string, root = when supportedSystem: getCurrentDir() el
   runnableExamples:
     assert absolutePath("a") == getCurrentDir() / "a"
 
-  if isAbsolute(path): path
+  if isAbsolute(path):
+    path
   else:
     if not root.isAbsolute:
       raise newException(ValueError, "The specified root is not absolute: " & root)
@@ -906,7 +963,6 @@ proc absolutePath*(path: string, root = when supportedSystem: getCurrentDir() el
 
 proc absolutePathInternal(path: string): string =
   absolutePath(path)
-
 
 proc normalizePath*(path: var string) {.rtl, extern: "nos$1", tags: [].} =
   ## Normalize a path.
@@ -940,7 +996,7 @@ proc normalizePath*(path: var string) {.rtl, extern: "nos$1", tags: [].} =
       of "..":
         if stack.len == 0:
           if isAbs:
-            discard  # collapse all double dots on absoluta paths
+            discard # collapse all double dots on absoluta paths
           else:
             stack.add(p)
         elif stack[^1] == "..":
@@ -957,7 +1013,8 @@ proc normalizePath*(path: var string) {.rtl, extern: "nos$1", tags: [].} =
     else:
       path = "."
 
-proc normalizePathAux(path: var string) = normalizePath(path)
+proc normalizePathAux(path: var string) =
+  normalizePath(path)
 
 proc normalizedPath*(path: string): string {.rtl, extern: "nos$1", tags: [].} =
   ## Returns a normalized path for the current OS.
@@ -983,8 +1040,9 @@ proc normalizeExe*(file: var string) {.since: (1, 3, 5).} =
       file = "./" & file
 
 when supportedSystem:
-  proc sameFile*(path1, path2: string): bool {.rtl, extern: "nos$1",
-    tags: [ReadDirEffect], noWeirdTarget.} =
+  proc sameFile*(
+      path1, path2: string
+  ): bool {.rtl, extern: "nos$1", tags: [ReadDirEffect], noWeirdTarget.} =
     ## Returns true if both pathname arguments refer to the same physical
     ## file or directory.
     ##
@@ -1007,10 +1065,11 @@ when supportedSystem:
         var fi1, fi2: BY_HANDLE_FILE_INFORMATION
 
         if getFileInformationByHandle(f1, addr(fi1)) != 0 and
-           getFileInformationByHandle(f2, addr(fi2)) != 0:
-          result = fi1.dwVolumeSerialNumber == fi2.dwVolumeSerialNumber and
-                   fi1.nFileIndexHigh == fi2.nFileIndexHigh and
-                   fi1.nFileIndexLow == fi2.nFileIndexLow
+            getFileInformationByHandle(f2, addr(fi2)) != 0:
+          result =
+            fi1.dwVolumeSerialNumber == fi2.dwVolumeSerialNumber and
+            fi1.nFileIndexHigh == fi2.nFileIndexHigh and
+            fi1.nFileIndexLow == fi2.nFileIndexLow
         else:
           lastErr = osLastError()
           success = false
@@ -1021,7 +1080,8 @@ when supportedSystem:
       discard closeHandle(f1)
       discard closeHandle(f2)
 
-      if not success: raiseOSError(lastErr, $(path1, path2))
+      if not success:
+        raiseOSError(lastErr, $(path1, path2))
     else:
       var a, b: Stat
       if stat(path1, a) < 0'i32 or stat(path2, b) < 0'i32:

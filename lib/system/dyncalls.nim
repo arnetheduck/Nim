@@ -14,8 +14,7 @@
 
 {.push stack_trace: off.}
 
-const
-  NilLibHandle: LibHandle = nil
+const NilLibHandle: LibHandle = nil
 
 proc nimLoadLibraryError(path: string) =
   # carefully written to avoid memory allocation:
@@ -76,14 +75,11 @@ when defined(posix):
   when defined(linux) or defined(macosx):
     const RTLD_NOW = cint(2)
   else:
-    var
-      RTLD_NOW {.importc: "RTLD_NOW", header: "<dlfcn.h>".}: cint
+    var RTLD_NOW {.importc: "RTLD_NOW", header: "<dlfcn.h>".}: cint
 
   proc dlclose(lib: LibHandle) {.importc, header: "<dlfcn.h>".}
-  proc dlopen(path: cstring, mode: cint): LibHandle {.
-      importc, header: "<dlfcn.h>".}
-  proc dlsym(lib: LibHandle, name: cstring): ProcAddr {.
-      importc, header: "<dlfcn.h>".}
+  proc dlopen(path: cstring, mode: cint): LibHandle {.importc, header: "<dlfcn.h>".}
+  proc dlsym(lib: LibHandle, name: cstring): ProcAddr {.importc, header: "<dlfcn.h>".}
 
   proc dlerror(): cstring {.importc, header: "<dlfcn.h>".}
 
@@ -92,8 +88,10 @@ when defined(posix):
 
   proc nimLoadLibrary(path: string): LibHandle =
     let flags =
-      when defined(globalSymbols): RTLD_NOW or RTLD_GLOBAL
-      else: RTLD_NOW
+      when defined(globalSymbols):
+        RTLD_NOW or RTLD_GLOBAL
+      else:
+        RTLD_NOW
     result = dlopen(path, flags)
     when defined(nimDebugDlOpen):
       let error = dlerror()
@@ -103,7 +101,8 @@ when defined(posix):
 
   proc nimGetProcAddr(lib: LibHandle, name: cstring): ProcAddr =
     result = dlsym(lib, name)
-    if result == nil: procAddrError(name)
+    if result == nil:
+      procAddrError(name)
 
 elif defined(windows) or defined(dos):
   #
@@ -112,21 +111,28 @@ elif defined(windows) or defined(dos):
   # =======================================================================
   #
   when defined(cpp):
-    type
-      THINSTANCE {.importc: "HINSTANCE".} = object
-        x: pointer
-    proc getProcAddress(lib: THINSTANCE, name: cstring): ProcAddr {.
-        importcpp: "(void*)GetProcAddress(@)", header: "<windows.h>", stdcall.}
-  else:
-    type
-      THINSTANCE {.importc: "HINSTANCE".} = pointer
-    proc getProcAddress(lib: THINSTANCE, name: cstring): ProcAddr {.
-        importc: "GetProcAddress", header: "<windows.h>", stdcall.}
+    type THINSTANCE {.importc: "HINSTANCE".} = object
+      x: pointer
 
-  proc freeLibrary(lib: THINSTANCE) {.
-      importc: "FreeLibrary", header: "<windows.h>", stdcall.}
-  proc winLoadLibrary(path: cstring): THINSTANCE {.
-      importc: "LoadLibraryA", header: "<windows.h>", stdcall.}
+    proc getProcAddress(
+      lib: THINSTANCE, name: cstring
+    ): ProcAddr {.
+      importcpp: "(void*)GetProcAddress(@)", header: "<windows.h>", stdcall
+    .}
+
+  else:
+    type THINSTANCE {.importc: "HINSTANCE".} = pointer
+    proc getProcAddress(
+      lib: THINSTANCE, name: cstring
+    ): ProcAddr {.importc: "GetProcAddress", header: "<windows.h>", stdcall.}
+
+  proc freeLibrary(
+    lib: THINSTANCE
+  ) {.importc: "FreeLibrary", header: "<windows.h>", stdcall.}
+
+  proc winLoadLibrary(
+    path: cstring
+  ): THINSTANCE {.importc: "LoadLibraryA", header: "<windows.h>", stdcall.}
 
   proc nimUnloadLibrary(lib: LibHandle) =
     freeLibrary(cast[THINSTANCE](lib))
@@ -136,13 +142,15 @@ elif defined(windows) or defined(dos):
 
   proc nimGetProcAddr(lib: LibHandle, name: cstring): ProcAddr =
     result = getProcAddress(cast[THINSTANCE](lib), name)
-    if result != nil: return
+    if result != nil:
+      return
     const decoratedLength = 250
     var decorated: array[decoratedLength, char]
     decorated[0] = '_'
     var m = 1
     while m < (decoratedLength - 5):
-      if name[m - 1] == '\x00': break
+      if name[m - 1] == '\x00':
+        break
       decorated[m] = name[m - 1]
       inc(m)
     decorated[m] = '@'
@@ -160,13 +168,14 @@ elif defined(windows) or defined(dos):
         decorated[m] = chr(ord('0') + (k %% 10))
         dec(m)
         k = k div 10
-        if k == 0: break
+        if k == 0:
+          break
       result = getProcAddress(cast[THINSTANCE](lib), cast[cstring](addr decorated))
-      if result != nil: return
+      if result != nil:
+        return
     procAddrError(name)
 
 elif defined(genode):
-
   proc nimUnloadLibrary(lib: LibHandle) =
     raiseAssert("nimUnloadLibrary not implemented")
 
@@ -186,7 +195,6 @@ elif defined(nintendoswitch) or defined(freertos) or defined(zephyr) or defined(
     cstderr.rawWrite("nimLoadLibrary not implemented")
     cstderr.rawWrite("\n")
     rawQuit(1)
-
 
   proc nimGetProcAddr(lib: LibHandle, name: cstring): ProcAddr =
     cstderr.rawWrite("nimGetProAddr not implemented")

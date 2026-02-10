@@ -1,4 +1,3 @@
-
 #
 #
 #            Nim's Runtime Library
@@ -17,7 +16,8 @@ proc underscoredCalls*(result, calls, arg0: NimNode)
 proc underscoredCall(n, arg0: NimNode): NimNode =
   proc underscorePos(n: NimNode): int =
     for i in 1 ..< n.len:
-      if n[i].eqIdent("_"): return i
+      if n[i].eqIdent("_"):
+        return i
     return 0
 
   if n.kind in nnkCallKinds:
@@ -31,9 +31,11 @@ proc underscoredCall(n, arg0: NimNode): NimNode =
       result.add n[0]
 
       let u = underscorePos(n)
-      for i in 1..u-1: result.add n[i]
+      for i in 1 .. u - 1:
+        result.add n[i]
       result.add arg0
-      for i in u+1..n.len-1: result.add n[i]
+      for i in u + 1 .. n.len - 1:
+        result.add n[i]
   elif n.kind in {nnkAsgn, nnkExprEqExpr}:
     var field = n[0]
     if n[0].kind == nnkDotExpr and n[0][0].eqIdent("_"):

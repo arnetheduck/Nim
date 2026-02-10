@@ -21,38 +21,51 @@ proc hashTree*(n: PNode): Hash =
     return
   result = ord(n.kind)
   case n.kind
-  of nkEmpty: discard
-  of nkSym: result = result !& n.sym.id
-  of nkIdent: result = result !& n.ident.h
-  of nkCharLit..nkUInt64Lit: result = result !& hash(n.intVal)
-  of nkFloatLit..nkFloat64Lit: result = result !& hash(cast[uint64](n.floatVal))
-  of nkStrLit..nkTripleStrLit: result = result !& hash(n.strVal)
-  of nkType, nkNilLit: result = result !& hash(n.typ.itemId)
+  of nkEmpty:
+    discard
+  of nkSym:
+    result = result !& n.sym.id
+  of nkIdent:
+    result = result !& n.ident.h
+  of nkCharLit .. nkUInt64Lit:
+    result = result !& hash(n.intVal)
+  of nkFloatLit .. nkFloat64Lit:
+    result = result !& hash(cast[uint64](n.floatVal))
+  of nkStrLit .. nkTripleStrLit:
+    result = result !& hash(n.strVal)
+  of nkType, nkNilLit:
+    result = result !& hash(n.typ.itemId)
   else:
-    for i in 0..<n.len:
+    for i in 0 ..< n.len:
       result = result !& hashTree(n[i])
   result = !$result
   #echo "hashTree ", result
   #echo n
 
-proc treesEquivalent(a, b: PNode; ignoreTypes: bool): bool =
+proc treesEquivalent(a, b: PNode, ignoreTypes: bool): bool =
   if a == b:
     result = true
   elif (a != nil) and (b != nil) and (a.kind == b.kind):
     case a.kind
-    of nkEmpty: result = true
-    of nkSym: result = a.sym.id == b.sym.id
-    of nkIdent: result = a.ident.id == b.ident.id
-    of nkCharLit..nkUInt64Lit: result = a.intVal == b.intVal
-    of nkFloatLit..nkFloat64Lit:
+    of nkEmpty:
+      result = true
+    of nkSym:
+      result = a.sym.id == b.sym.id
+    of nkIdent:
+      result = a.ident.id == b.ident.id
+    of nkCharLit .. nkUInt64Lit:
+      result = a.intVal == b.intVal
+    of nkFloatLit .. nkFloat64Lit:
       result = cast[uint64](a.floatVal) == cast[uint64](b.floatVal)
-    of nkStrLit..nkTripleStrLit: result = a.strVal == b.strVal
+    of nkStrLit .. nkTripleStrLit:
+      result = a.strVal == b.strVal
     of nkType, nkNilLit:
       result = a.typ == b.typ
     else:
       if a.len == b.len:
-        for i in 0..<a.len:
-          if not treesEquivalent(a[i], b[i], ignoreTypes): return
+        for i in 0 ..< a.len:
+          if not treesEquivalent(a[i], b[i], ignoreTypes):
+            return
         result = true
       else:
         result = false
@@ -71,13 +84,15 @@ proc nodeTableRawGet(t: TNodeTable, k: Hash, key: PNode): int =
 
 proc nodeTableGet*(t: TNodeTable, key: PNode): int =
   var index = nodeTableRawGet(t, hashTree(key), key)
-  if index >= 0: result = t.data[index].val
-  else: result = low(int)
+  if index >= 0:
+    result = t.data[index].val
+  else:
+    result = low(int)
 
-proc nodeTableRawInsert(data: var TNodePairSeq, k: Hash, key: PNode,
-                        val: int) =
+proc nodeTableRawInsert(data: var TNodePairSeq, k: Hash, key: PNode, val: int) =
   var h: Hash = k and high(data)
-  while data[h].key != nil: h = nextTry(h, high(data))
+  while data[h].key != nil:
+    h = nextTry(h, high(data))
   assert(data[h].key == nil)
   data[h].h = k
   data[h].key = key
@@ -92,7 +107,7 @@ proc nodeTablePut*(t: var TNodeTable, key: PNode, val: int) =
   else:
     if mustRehash(t.data.len, t.counter):
       var n = newSeq[TNodePair](t.data.len * GrowthFactor)
-      for i in 0..high(t.data):
+      for i in 0 .. high(t.data):
         if t.data[i].key != nil:
           nodeTableRawInsert(n, t.data[i].h, t.data[i].key, t.data[i].val)
       t.data = move n
@@ -108,7 +123,7 @@ proc nodeTableTestOrSet*(t: var TNodeTable, key: PNode, val: int): int =
   else:
     if mustRehash(t.data.len, t.counter):
       var n = newSeq[TNodePair](t.data.len * GrowthFactor)
-      for i in 0..high(t.data):
+      for i in 0 .. high(t.data):
         if t.data[i].key != nil:
           nodeTableRawInsert(n, t.data[i].h, t.data[i].key, t.data[i].val)
       t.data = move n

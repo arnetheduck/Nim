@@ -9,16 +9,15 @@
 
 # This module handles the conditional symbols.
 
-import
-  std/strtabs
+import std/strtabs
 
 from options import Feature
 from lineinfos import hintMin, hintMax, warnMin, warnMax
 
-proc defineSymbol*(symbols: StringTableRef; symbol: string, value: string = "true") =
+proc defineSymbol*(symbols: StringTableRef, symbol: string, value: string = "true") =
   symbols[symbol] = value
 
-proc undefSymbol*(symbols: StringTableRef; symbol: string) =
+proc undefSymbol*(symbols: StringTableRef, symbol: string) =
   symbols.del(symbol)
 
 #proc lookupSymbol*(symbols: StringTableRef; symbol: string): string =
@@ -33,7 +32,9 @@ proc countDefinedSymbols*(symbols: StringTableRef): int =
 
 proc initDefines*(symbols: StringTableRef) =
   # for bootstrapping purposes and old code:
-  template defineSymbol(s) = symbols.defineSymbol(s)
+  template defineSymbol(s) =
+    symbols.defineSymbol(s)
+
   defineSymbol("nimhygiene") # deadcode
   defineSymbol("niminheritable") # deadcode
   defineSymbol("nimmixin") # deadcode
@@ -55,7 +56,8 @@ proc initDefines*(symbols: StringTableRef) =
   defineSymbol("nimDistros") # deadcode
   defineSymbol("nimHasCppDefine") # deadcode
   defineSymbol("nimGenericInOutFlags") # deadcode
-  when false: defineSymbol("nimHasOpt") # deadcode
+  when false:
+    defineSymbol("nimHasOpt") # deadcode
   defineSymbol("nimNoArrayToCstringConversion") # deadcode
   defineSymbol("nimHasRunnableExamples") # deadcode
   defineSymbol("nimNewDot") # deadcode
@@ -98,14 +100,12 @@ proc initDefines*(symbols: StringTableRef) =
   defineSymbol("nimNewIntegerOps") # deadcode
   defineSymbol("nimHasInvariant") # deadcode
 
-
-
   for f in Feature:
     defineSymbol("nimHas" & $f)
 
-  for s in warnMin..warnMax:
+  for s in warnMin .. warnMax:
     defineSymbol("nimHasWarning" & $s)
-  for s in hintMin..hintMax:
+  for s in hintMin .. hintMax:
     defineSymbol("nimHasHint" & $s)
 
   defineSymbol("nimFixedOwned")

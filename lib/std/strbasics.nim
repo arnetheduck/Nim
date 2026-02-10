@@ -14,7 +14,6 @@
 when defined(nimPreviewSlimSystem):
   import std/assertions
 
-
 const whitespaces = {' ', '\t', '\v', '\r', '\l', '\f'}
 
 proc add*(x: var string, y: openArray[char]) =
@@ -31,7 +30,9 @@ proc add*(x: var string, y: openArray[char]) =
     i.inc
   # xxx use `nimCopyMem(x[n].addr, y[0].addr, y.len)` after some refactoring
 
-func stripSlice(s: openArray[char], leading = true, trailing = true, chars: set[char] = whitespaces): Slice[int] =
+func stripSlice(
+    s: openArray[char], leading = true, trailing = true, chars: set[char] = whitespaces
+): Slice[int] =
   ## Returns the slice range of `s` which is stripped `chars`.
   runnableExamples:
     assert stripSlice(" abc  ") == 1 .. 3
@@ -39,9 +40,11 @@ func stripSlice(s: openArray[char], leading = true, trailing = true, chars: set[
     first = 0
     last = high(s)
   if leading:
-    while first <= last and s[first] in chars: inc(first)
+    while first <= last and s[first] in chars:
+      inc(first)
   if trailing:
-    while last >= first and s[last] in chars: dec(last)
+    while last >= first and s[last] in chars:
+      dec(last)
   result = first .. last
 
 func setSlice*(s: var string, slice: Slice[int]) =
@@ -57,13 +60,11 @@ func setSlice*(s: var string, slice: Slice[int]) =
     doAssert a.dup(setSlice(1 .. 0)).len == 0
     doAssert a.dup(setSlice(20 .. -1)).len == 0
 
-
     doAssertRaises(AssertionDefect):
       discard a.dup(setSlice(-1 .. 1))
 
     doAssertRaises(AssertionDefect):
       discard a.dup(setSlice(1 .. 11))
-
 
   let first = slice.a
   let last = slice.b
@@ -74,11 +75,13 @@ func setSlice*(s: var string, slice: Slice[int]) =
   if first > last:
     s.setLen(0)
     return
-  template impl =
+  template impl() =
     for index in first .. last:
       s[index - first] = s[index]
+
   if first > 0:
-    when nimvm: impl()
+    when nimvm:
+      impl()
     else:
       # not JS and not Nimscript
       when not declared(moveMem):
@@ -89,7 +92,9 @@ func setSlice*(s: var string, slice: Slice[int]) =
         moveMem(addr s[0], addr s[first], last - first + 1)
   s.setLen(last - first + 1)
 
-func strip*(a: var string, leading = true, trailing = true, chars: set[char] = whitespaces) {.inline.} =
+func strip*(
+    a: var string, leading = true, trailing = true, chars: set[char] = whitespaces
+) {.inline.} =
   ## Inplace version of `strip`. Strips leading or
   ## trailing `chars` (default: whitespace characters).
   ##

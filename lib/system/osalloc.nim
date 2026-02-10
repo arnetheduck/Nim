@@ -10,7 +10,7 @@
 {.push raises: [], gcsafe.}
 
 proc roundup(x, v: int): int {.inline.} =
-  result = (x + (v-1)) and not (v-1)
+  result = (x + (v - 1)) and not (v - 1)
   sysAssert(result >= x, "roundup: result < x")
   #return ((-x) and (v-1)) +% x
 
@@ -26,17 +26,20 @@ sysAssert(roundup(65, 8) == 72, "roundup broken 2")
 # and x86 are safe though; Windows is special because MEM_RELEASE can only be
 # used with a size of 0. We also allow unmapping to be turned off with
 # -d:nimAllocNoUnmap:
-const doNotUnmap = not (defined(amd64) or defined(i386)) or
-                   defined(windows) or defined(nimAllocNoUnmap)
-
+const doNotUnmap =
+  not (defined(amd64) or defined(i386)) or defined(windows) or defined(nimAllocNoUnmap)
 
 when defined(nimAllocPagesViaMalloc):
   when not defined(gcArc) and not defined(gcOrc) and not defined(gcAtomicArc):
-    {.error: "-d:nimAllocPagesViaMalloc is only supported with --mm:arc or --mm:atomicArc or --mm:orc".}
+    {.
+      error:
+        "-d:nimAllocPagesViaMalloc is only supported with --mm:arc or --mm:atomicArc or --mm:orc"
+    .}
 
   proc osTryAllocPages(size: int): pointer {.inline.} =
     let base = c_malloc(csize_t size + PageSize - 1 + sizeof(uint32))
-    if base == nil: raiseOutOfMem()
+    if base == nil:
+      raiseOutOfMem()
     # memory layout: padding + offset (4 bytes) + user_data
     # in order to deallocate: read offset at user_data - 4 bytes,
     # then deallocate user_data - offset
@@ -46,7 +49,8 @@ when defined(nimAllocPagesViaMalloc):
 
   proc osAllocPages(size: int): pointer {.inline.} =
     result = osTryAllocPages(size)
-    if result == nil: raiseOutOfMem()
+    if result == nil:
+      raiseOutOfMem()
 
   proc osDeallocPages(p: pointer, size: int) {.inline.} =
     # read offset at p - 4 bytes, then deallocate (p - offset) pointer
@@ -55,26 +59,27 @@ when defined(nimAllocPagesViaMalloc):
 
 elif defined(emscripten) and not defined(StandaloneHeapSize):
   const
-    PROT_READ  = 1             # page can be read
-    PROT_WRITE = 2             # page can be written
-    MAP_PRIVATE = 2'i32        # Changes are private
+    PROT_READ = 1 # page can be read
+    PROT_WRITE = 2 # page can be written
+    MAP_PRIVATE = 2'i32 # Changes are private
 
   var MAP_ANONYMOUS {.importc: "MAP_ANONYMOUS", header: "<sys/mman.h>".}: cint
   type
     PEmscriptenMMapBlock = ptr EmscriptenMMapBlock
     EmscriptenMMapBlock {.pure, inheritable.} = object
-      realSize: int        # size of previous chunk; for coalescing
-      realPointer: pointer     # if < PageSize it is a small chunk
+      realSize: int # size of previous chunk; for coalescing
+      realPointer: pointer # if < PageSize it is a small chunk
 
-  proc mmap(adr: pointer, len: int, prot, flags, fildes: cint,
-            off: int): pointer {.header: "<sys/mman.h>".}
+  proc mmap(
+    adr: pointer, len: int, prot, flags, fildes: cint, off: int
+  ): pointer {.header: "<sys/mman.h>".}
 
   proc munmap(adr: pointer, len: int) {.header: "<sys/mman.h>".}
 
   proc osAllocPages(block_size: int): pointer {.inline.} =
     let realSize = block_size + sizeof(EmscriptenMMapBlock) + PageSize + 1
-    result = mmap(nil, realSize, PROT_READ or PROT_WRITE,
-                             MAP_PRIVATE or MAP_ANONYMOUS, -1, 0)
+    result =
+      mmap(nil, realSize, PROT_READ or PROT_WRITE, MAP_PRIVATE or MAP_ANONYMOUS, -1, 0)
     if result == nil or result == cast[pointer](-1):
       raiseOutOfMem()
 
@@ -83,7 +88,7 @@ elif defined(emscripten) and not defined(StandaloneHeapSize):
 
     # Convert pointer to PageSize correct one.
     var new_pos = cast[int](pos) +% (PageSize - (pos %% PageSize))
-    if (new_pos-pos) < sizeof(EmscriptenMMapBlock):
+    if (new_pos - pos) < sizeof(EmscriptenMMapBlock):
       new_pos = new_pos +% PageSize
     result = cast[pointer](new_pos)
 
@@ -95,7 +100,8 @@ elif defined(emscripten) and not defined(StandaloneHeapSize):
 
     #c_fprintf(stdout, "[Alloc] size %d %d realSize:%d realPos:%d\n", block_size, cast[int](result), realSize, cast[int](realPointer))
 
-  proc osTryAllocPages(size: int): pointer = osAllocPages(size)
+  proc osTryAllocPages(size: int): pointer =
+    osAllocPages(size)
 
   proc osDeallocPages(p: pointer, size: int) {.inline.} =
     var mmapDescrPos = cast[int](p) -% sizeof(EmscriptenMMapBlock)
@@ -104,55 +110,69 @@ elif defined(emscripten) and not defined(StandaloneHeapSize):
 
 elif defined(genode) and not defined(StandaloneHeapSize):
   include genode/alloc # osAllocPages, osTryAllocPages, osDeallocPages
-
 elif defined(posix) and not defined(StandaloneHeapSize):
   const
-    PROT_READ  = 1             # page can be read
-    PROT_WRITE = 2             # page can be written
+    PROT_READ = 1 # page can be read
+    PROT_WRITE = 2 # page can be written
 
   when defined(netbsd) or defined(openbsd):
     # OpenBSD security for setjmp/longjmp coroutines
     var MAP_STACK {.importc: "MAP_STACK", header: "<sys/mman.h>".}: cint
   else:
-    const MAP_STACK = 0             # avoid sideeffects
+    const MAP_STACK = 0 # avoid sideeffects
 
   when defined(macosx) or defined(freebsd):
     const MAP_ANONYMOUS = 0x1000
-    const MAP_PRIVATE = 0x02        # Changes are private
+    const MAP_PRIVATE = 0x02 # Changes are private
   elif defined(solaris):
     const MAP_ANONYMOUS = 0x100
-    const MAP_PRIVATE = 0x02        # Changes are private
+    const MAP_PRIVATE = 0x02 # Changes are private
   elif defined(linux) and defined(amd64):
     # actually, any architecture using asm-generic, but being conservative here,
     # some arches like mips and alpha use different values
     const MAP_ANONYMOUS = 0x20
-    const MAP_PRIVATE = 0x02        # Changes are private
+    const MAP_PRIVATE = 0x02 # Changes are private
   elif defined(haiku):
     const MAP_ANONYMOUS = 0x08
     const MAP_PRIVATE = 0x02
-  else:  # posix including netbsd or openbsd
+  else: # posix including netbsd or openbsd
     var
       MAP_ANONYMOUS {.importc: "MAP_ANONYMOUS", header: "<sys/mman.h>".}: cint
       MAP_PRIVATE {.importc: "MAP_PRIVATE", header: "<sys/mman.h>".}: cint
 
-  proc mmap(adr: pointer, len: csize_t, prot, flags, fildes: cint,
-            off: int): pointer {.header: "<sys/mman.h>".}
+  proc mmap(
+    adr: pointer, len: csize_t, prot, flags, fildes: cint, off: int
+  ): pointer {.header: "<sys/mman.h>".}
 
   proc munmap(adr: pointer, len: csize_t): cint {.header: "<sys/mman.h>".}
 
   proc osAllocPages(size: int): pointer {.inline.} =
-    result = mmap(nil, cast[csize_t](size), PROT_READ or PROT_WRITE,
-                             MAP_ANONYMOUS or MAP_PRIVATE or MAP_STACK, -1, 0)
+    result = mmap(
+      nil,
+      cast[csize_t](size),
+      PROT_READ or PROT_WRITE,
+      MAP_ANONYMOUS or MAP_PRIVATE or MAP_STACK,
+      -1,
+      0,
+    )
     if result == nil or result == cast[pointer](-1):
       raiseOutOfMem()
 
   proc osTryAllocPages(size: int): pointer {.inline.} =
-    result = mmap(nil, cast[csize_t](size), PROT_READ or PROT_WRITE,
-                             MAP_ANONYMOUS or MAP_PRIVATE or MAP_STACK, -1, 0)
-    if result == cast[pointer](-1): result = nil
+    result = mmap(
+      nil,
+      cast[csize_t](size),
+      PROT_READ or PROT_WRITE,
+      MAP_ANONYMOUS or MAP_PRIVATE or MAP_STACK,
+      -1,
+      0,
+    )
+    if result == cast[pointer](-1):
+      result = nil
 
   proc osDeallocPages(p: pointer, size: int) {.inline.} =
-    when reallyOsDealloc: discard munmap(p, cast[csize_t](size))
+    when reallyOsDealloc:
+      discard munmap(p, cast[csize_t](size))
 
 elif defined(windows) and not defined(StandaloneHeapSize):
   const
@@ -164,22 +184,21 @@ elif defined(windows) and not defined(StandaloneHeapSize):
     MEM_DECOMMIT = 0x4000
     MEM_RELEASE = 0x8000
 
-  proc virtualAlloc(lpAddress: pointer, dwSize: int, flAllocationType,
-                    flProtect: int32): pointer {.
-                    header: "<windows.h>", stdcall, importc: "VirtualAlloc".}
+  proc virtualAlloc(
+    lpAddress: pointer, dwSize: int, flAllocationType, flProtect: int32
+  ): pointer {.header: "<windows.h>", stdcall, importc: "VirtualAlloc".}
 
-  proc virtualFree(lpAddress: pointer, dwSize: int,
-                   dwFreeType: int32): cint {.header: "<windows.h>", stdcall,
-                   importc: "VirtualFree".}
+  proc virtualFree(
+    lpAddress: pointer, dwSize: int, dwFreeType: int32
+  ): cint {.header: "<windows.h>", stdcall, importc: "VirtualFree".}
 
   proc osAllocPages(size: int): pointer {.inline.} =
-    result = virtualAlloc(nil, size, MEM_RESERVE or MEM_COMMIT,
-                          PAGE_READWRITE)
-    if result == nil: raiseOutOfMem()
+    result = virtualAlloc(nil, size, MEM_RESERVE or MEM_COMMIT, PAGE_READWRITE)
+    if result == nil:
+      raiseOutOfMem()
 
   proc osTryAllocPages(size: int): pointer {.inline.} =
-    result = virtualAlloc(nil, size, MEM_RESERVE or MEM_COMMIT,
-                          PAGE_READWRITE)
+    result = virtualAlloc(nil, size, MEM_RESERVE or MEM_COMMIT, PAGE_READWRITE)
 
   proc osDeallocPages(p: pointer, size: int) {.inline.} =
     # according to Microsoft, 0 is the only correct value for MEM_RELEASE:
@@ -197,23 +216,24 @@ elif defined(windows) and not defined(StandaloneHeapSize):
 elif hostOS == "standalone" or defined(StandaloneHeapSize):
   const StandaloneHeapSize {.intdefine.}: int = 1024 * PageSize
   var
-    theHeap: array[StandaloneHeapSize div sizeof(float64), float64] # 'float64' for alignment
+    theHeap: array[StandaloneHeapSize div sizeof(float64), float64]
+      # 'float64' for alignment
     bumpPointer = cast[int](addr theHeap)
 
   proc osAllocPages(size: int): pointer {.inline.} =
-    if size+bumpPointer < cast[int](addr theHeap) + sizeof(theHeap):
+    if size + bumpPointer < cast[int](addr theHeap) + sizeof(theHeap):
       result = cast[pointer](bumpPointer)
       inc bumpPointer, size
     else:
       raiseOutOfMem()
 
   proc osTryAllocPages(size: int): pointer {.inline.} =
-    if size+bumpPointer < cast[int](addr theHeap) + sizeof(theHeap):
+    if size + bumpPointer < cast[int](addr theHeap) + sizeof(theHeap):
       result = cast[pointer](bumpPointer)
       inc bumpPointer, size
 
   proc osDeallocPages(p: pointer, size: int) {.inline.} =
-    if bumpPointer-size == cast[int](p):
+    if bumpPointer - size == cast[int](p):
       dec bumpPointer, size
 
 else:

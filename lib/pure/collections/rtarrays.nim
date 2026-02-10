@@ -7,22 +7,20 @@
 #    distribution, for details about the copyright.
 #
 
-
 ## Module that implements a fixed length array whose size
 ## is determined at runtime. Note: This is not ready for other people to use!
 ##
 ## Unstable API.
 
-const
-  ArrayPartSize = 10
+const ArrayPartSize = 10
 
-type
-  RtArray*[T] = object ##
-    L: Natural
-    spart: seq[T]
-    apart: array[ArrayPartSize, T]
+type RtArray*[T] = object ##
+  L: Natural
+  spart: seq[T]
+  apart: array[ArrayPartSize, T]
 
-template usesSeqPart(x): untyped = x.L > ArrayPartSize
+template usesSeqPart(x): untyped =
+  x.L > ArrayPartSize
 
 proc initRtArray*[T](len: Natural): RtArray[T] =
   result.L = len
@@ -30,8 +28,9 @@ proc initRtArray*[T](len: Natural): RtArray[T] =
     newSeq(result.spart, len)
 
 proc getRawData*[T](x: var RtArray[T]): ptr UncheckedArray[T] =
-  if usesSeqPart(x): cast[ptr UncheckedArray[T]](addr(x.spart[0]))
-  else: cast[ptr UncheckedArray[T]](addr(x.apart[0]))
+  if usesSeqPart(x):
+    cast[ptr UncheckedArray[T]](addr(x.spart[0]))
+  else:
+    cast[ptr UncheckedArray[T]](addr(x.apart[0]))
 
 #proc len*[T](x: RtArray[T]): int = x.L
-

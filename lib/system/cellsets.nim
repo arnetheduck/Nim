@@ -7,7 +7,6 @@
 #    distribution, for details about the copyright.
 #
 
-
 #[
 
 Efficient set of pointers for the GC (and repr)
@@ -43,18 +42,16 @@ Complete traversal is done in this way::
 ]#
 
 when defined(gcOrc) or defined(gcArc) or defined(gcAtomicArc):
-  type
-    PCell = Cell
+  type PCell = Cell
 
   when not declaredInScope(PageShift):
     include bitmasks
-
 else:
   type
     RefCount = int
 
     Cell {.pure.} = object
-      refcount: RefCount  # the refcount and some flags
+      refcount: RefCount # the refcount and some flags
       typ: PNimType
       when trackAllocationSource:
         filename: cstring
@@ -66,10 +63,10 @@ else:
 
 type
   PPageDesc = ptr PageDesc
-  BitIndex = range[0..UnitsPerPage-1]
+  BitIndex = range[0 .. UnitsPerPage - 1]
   PageDesc {.final, pure.} = object
     next: PPageDesc # all nodes are connected with this pointer
-    key: uint   # start address at bit 0
+    key: uint # start address at bit 0
     bits: array[BitIndex, int] # a bit vector
 
   PPageDescArray = ptr UncheckedArray[PPageDesc]
@@ -85,12 +82,11 @@ else:
 
 # ------------------- cell set handling ---------------------------------------
 
-const
-  InitCellSetSize = 1024 # must be a power of two!
+const InitCellSetSize = 1024 # must be a power of two!
 
 proc init(s: var CellSet) =
   s.data = cast[PPageDescArray](alloc0(InitCellSetSize * sizeof(PPageDesc)))
-  s.max = InitCellSetSize-1
+  s.max = InitCellSetSize - 1
   s.counter = 0
   s.head = nil
 
@@ -106,7 +102,7 @@ proc deinit(s: var CellSet) =
   s.counter = 0
 
 proc nextTry(h, maxHash: int): int {.inline.} =
-  result = ((5*h) + 1) and maxHash
+  result = ((5 * h) + 1) and maxHash
   # For any initial h in range(maxHash), repeating that maxHash times
   # generates each int in range(maxHash) exactly once (see any text on
   # random-number generation for proof).
@@ -114,7 +110,8 @@ proc nextTry(h, maxHash: int): int {.inline.} =
 proc cellSetGet(t: CellSet, key: uint): PPageDesc =
   var h = cast[int](key) and t.max
   while t.data[h] != nil:
-    if t.data[h].key == key: return t.data[h]
+    if t.data[h].key == key:
+      return t.data[h]
     h = nextTry(h, t.max)
   return nil
 
@@ -128,7 +125,7 @@ proc cellSetRawInsert(t: CellSet, data: PPageDescArray, desc: PPageDesc) =
 
 proc cellSetEnlarge(t: var CellSet) =
   var oldMax = t.max
-  t.max = ((t.max+1)*2)-1
+  t.max = ((t.max + 1) * 2) - 1
   var n = cast[PPageDescArray](alloc0((t.max + 1) * sizeof(PPageDesc)))
   for i in 0 .. oldMax:
     if t.data[i] != nil:
@@ -140,15 +137,18 @@ proc cellSetPut(t: var CellSet, key: uint): PPageDesc =
   var h = cast[int](key) and t.max
   while true:
     var x = t.data[h]
-    if x == nil: break
-    if x.key == key: return x
+    if x == nil:
+      break
+    if x.key == key:
+      return x
     h = nextTry(h, t.max)
 
-  if ((t.max+1) < t.counter div 2 + t.counter) or ((t.max+1)-t.counter < 4):
+  if ((t.max + 1) < t.counter div 2 + t.counter) or ((t.max + 1) - t.counter < 4):
     cellSetEnlarge(t)
   inc(t.counter)
   h = cast[int](key) and t.max
-  while t.data[h] != nil: h = nextTry(h, t.max)
+  while t.data[h] != nil:
+    h = nextTry(h, t.max)
   sysAssert(t.data[h] == nil, "CellSetPut")
   # the new page descriptor goes into result
   result = cast[PPageDesc](alloc0(sizeof(PageDesc)))
@@ -179,8 +179,7 @@ proc excl(s: var CellSet, cell: PCell) =
   var t = cellSetGet(s, u shr PageShift)
   if t != nil:
     u = (u mod PageSize) div MemAlign
-    t.bits[u shr IntShift] = (t.bits[u shr IntShift] and
-                              not (1 shl (u and IntMask)))
+    t.bits[u shr IntShift] = (t.bits[u shr IntShift] and not (1 shl (u and IntMask)))
 
 proc containsOrIncl(s: var CellSet, cell: PCell): bool =
   var u = cast[uint](cell)
@@ -189,8 +188,7 @@ proc containsOrIncl(s: var CellSet, cell: PCell): bool =
     u = (u mod PageSize) div MemAlign
     result = (t.bits[u shr IntShift] and (1 shl (u and IntMask))) != 0
     if not result:
-      t.bits[u shr IntShift] = t.bits[u shr IntShift] or
-          (1 shl (u and IntMask))
+      t.bits[u shr IntShift] = t.bits[u shr IntShift] or (1 shl (u and IntMask))
   else:
     incl(s, cell)
     result = false
@@ -204,27 +202,25 @@ iterator elements(t: CellSet): PCell {.inline.} =
       var w = r.bits[i] # taking a copy of r.bits[i] here is correct, because
       # modifying operations are not allowed during traversation
       var j: uint = 0
-      while w != 0:         # test all remaining bits for zero
-        if (w and 1) != 0:  # the bit is set!
-          yield cast[PCell]((r.key shl PageShift) or
-                              (i shl IntShift + j) * MemAlign)
+      while w != 0: # test all remaining bits for zero
+        if (w and 1) != 0: # the bit is set!
+          yield cast[PCell]((r.key shl PageShift) or (i shl IntShift + j) * MemAlign)
         inc(j)
         w = w shr 1
       inc(i)
     r = r.next
 
 when false:
-  type
-    CellSetIter = object
-      p: PPageDesc
-      i, w, j: int
+  type CellSetIter = object
+    p: PPageDesc
+    i, w, j: int
 
   proc next(it: var CellSetIter): PCell =
     while true:
-      while it.w != 0:         # test all remaining bits for zero
-        if (it.w and 1) != 0:  # the bit is set!
+      while it.w != 0: # test all remaining bits for zero
+        if (it.w and 1) != 0: # the bit is set!
           result = cast[PCell]((it.p.key shl PageShift) or
-                               (it.i shl IntShift +% it.j) *% MemAlign)
+            (it.i shl IntShift +% it.j) *% MemAlign)
 
           inc(it.j)
           it.w = it.w shr 1
@@ -237,12 +233,13 @@ when false:
         it.i = 0
         it.j = 0
         it.p = it.p.next
-        if it.p == nil: return nil
+        if it.p == nil:
+          return nil
       else:
         inc it.i
       it.w = it.p.bits[i]
 
-  proc init(it: var CellSetIter; t: CellSet): PCell =
+  proc init(it: var CellSetIter, t: CellSet): PCell =
     it.p = t.head
     it.i = -1
     it.w = 0
@@ -260,8 +257,7 @@ iterator elementsExcept(t, s: CellSet): PCell {.inline.} =
       var j = 0'u
       while w != 0:
         if (w and 1) != 0:
-          yield cast[PCell]((r.key shl PageShift) or
-                              (i shl IntShift + j) * MemAlign)
+          yield cast[PCell]((r.key shl PageShift) or (i shl IntShift + j) * MemAlign)
         inc(j)
         w = w shr 1
       inc(i)

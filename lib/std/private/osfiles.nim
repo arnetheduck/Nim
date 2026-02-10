@@ -22,41 +22,43 @@ elif defined(posix):
   proc toTime(ts: Timespec): times.Time {.inline.} =
     result = initTime(ts.tv_sec.int64, ts.tv_nsec.int)
 
-
 when weirdTarget:
-  {.pragma: noWeirdTarget, error: "this proc is not available on the NimScript/js target".}
+  {.
+    pragma: noWeirdTarget,
+    error: "this proc is not available on the NimScript/js target"
+  .}
 else:
   {.pragma: noWeirdTarget.}
 
-
 when defined(nimscript):
   # for procs already defined in scriptconfig.nim
-  template noNimJs(body): untyped = discard
+  template noNimJs(body): untyped =
+    discard
+
 elif defined(js):
   {.pragma: noNimJs, error: "this proc is not available on the js target".}
 else:
   {.pragma: noNimJs.}
 
+type FilePermission* = enum ## File access permission, modelled after UNIX.
+  ##
+  ## See also:
+  ## * `getFilePermissions`_
+  ## * `setFilePermissions`_
+  ## * `FileInfo object`_
+  fpUserExec ## execute access for the file owner
+  fpUserWrite ## write access for the file owner
+  fpUserRead ## read access for the file owner
+  fpGroupExec ## execute access for the group
+  fpGroupWrite ## write access for the group
+  fpGroupRead ## read access for the group
+  fpOthersExec ## execute access for others
+  fpOthersWrite ## write access for others
+  fpOthersRead ## read access for others
 
-type
-  FilePermission* = enum   ## File access permission, modelled after UNIX.
-    ##
-    ## See also:
-    ## * `getFilePermissions`_
-    ## * `setFilePermissions`_
-    ## * `FileInfo object`_
-    fpUserExec,            ## execute access for the file owner
-    fpUserWrite,           ## write access for the file owner
-    fpUserRead,            ## read access for the file owner
-    fpGroupExec,           ## execute access for the group
-    fpGroupWrite,          ## write access for the group
-    fpGroupRead,           ## read access for the group
-    fpOthersExec,          ## execute access for others
-    fpOthersWrite,         ## write access for others
-    fpOthersRead           ## read access for others
-
-proc getFilePermissions*(filename: string): set[FilePermission] {.
-  rtl, extern: "nos$1", tags: [ReadDirEffect], noWeirdTarget.} =
+proc getFilePermissions*(
+    filename: string
+): set[FilePermission] {.rtl, extern: "nos$1", tags: [ReadDirEffect], noWeirdTarget.} =
   ## Retrieves file permissions for `filename`.
   ##
   ## `OSError` is raised in case of an error.
@@ -68,32 +70,42 @@ proc getFilePermissions*(filename: string): set[FilePermission] {.
   ## * `FilePermission enum`_
   when defined(posix):
     var a: Stat
-    if stat(filename, a) < 0'i32: raiseOSError(osLastError(), filename)
+    if stat(filename, a) < 0'i32:
+      raiseOSError(osLastError(), filename)
     result = {}
-    if (a.st_mode and S_IRUSR.Mode) != 0.Mode: result.incl(fpUserRead)
-    if (a.st_mode and S_IWUSR.Mode) != 0.Mode: result.incl(fpUserWrite)
-    if (a.st_mode and S_IXUSR.Mode) != 0.Mode: result.incl(fpUserExec)
+    if (a.st_mode and S_IRUSR.Mode) != 0.Mode:
+      result.incl(fpUserRead)
+    if (a.st_mode and S_IWUSR.Mode) != 0.Mode:
+      result.incl(fpUserWrite)
+    if (a.st_mode and S_IXUSR.Mode) != 0.Mode:
+      result.incl(fpUserExec)
 
-    if (a.st_mode and S_IRGRP.Mode) != 0.Mode: result.incl(fpGroupRead)
-    if (a.st_mode and S_IWGRP.Mode) != 0.Mode: result.incl(fpGroupWrite)
-    if (a.st_mode and S_IXGRP.Mode) != 0.Mode: result.incl(fpGroupExec)
+    if (a.st_mode and S_IRGRP.Mode) != 0.Mode:
+      result.incl(fpGroupRead)
+    if (a.st_mode and S_IWGRP.Mode) != 0.Mode:
+      result.incl(fpGroupWrite)
+    if (a.st_mode and S_IXGRP.Mode) != 0.Mode:
+      result.incl(fpGroupExec)
 
-    if (a.st_mode and S_IROTH.Mode) != 0.Mode: result.incl(fpOthersRead)
-    if (a.st_mode and S_IWOTH.Mode) != 0.Mode: result.incl(fpOthersWrite)
-    if (a.st_mode and S_IXOTH.Mode) != 0.Mode: result.incl(fpOthersExec)
+    if (a.st_mode and S_IROTH.Mode) != 0.Mode:
+      result.incl(fpOthersRead)
+    if (a.st_mode and S_IWOTH.Mode) != 0.Mode:
+      result.incl(fpOthersWrite)
+    if (a.st_mode and S_IXOTH.Mode) != 0.Mode:
+      result.incl(fpOthersExec)
   else:
     wrapUnary(res, getFileAttributesW, filename)
-    if res == -1'i32: raiseOSError(osLastError(), filename)
+    if res == -1'i32:
+      raiseOSError(osLastError(), filename)
     if (res and FILE_ATTRIBUTE_READONLY) != 0'i32:
-      result = {fpUserExec, fpUserRead, fpGroupExec, fpGroupRead,
-                fpOthersExec, fpOthersRead}
+      result =
+        {fpUserExec, fpUserRead, fpGroupExec, fpGroupRead, fpOthersExec, fpOthersRead}
     else:
-      result = {fpUserExec..fpOthersRead}
+      result = {fpUserExec .. fpOthersRead}
 
-proc setFilePermissions*(filename: string, permissions: set[FilePermission],
-                         followSymlinks = true)
-  {.rtl, extern: "nos$1", tags: [ReadDirEffect, WriteDirEffect],
-   noWeirdTarget.} =
+proc setFilePermissions*(
+    filename: string, permissions: set[FilePermission], followSymlinks = true
+) {.rtl, extern: "nos$1", tags: [ReadDirEffect, WriteDirEffect], noWeirdTarget.} =
   ## Sets the file permissions for `filename`.
   ##
   ## If `followSymlinks` set to true (default) and ``filename`` points to a
@@ -111,17 +123,26 @@ proc setFilePermissions*(filename: string, permissions: set[FilePermission],
   ## * `FilePermission enum`_
   when defined(posix):
     var p = 0.Mode
-    if fpUserRead in permissions: p = p or S_IRUSR.Mode
-    if fpUserWrite in permissions: p = p or S_IWUSR.Mode
-    if fpUserExec in permissions: p = p or S_IXUSR.Mode
+    if fpUserRead in permissions:
+      p = p or S_IRUSR.Mode
+    if fpUserWrite in permissions:
+      p = p or S_IWUSR.Mode
+    if fpUserExec in permissions:
+      p = p or S_IXUSR.Mode
 
-    if fpGroupRead in permissions: p = p or S_IRGRP.Mode
-    if fpGroupWrite in permissions: p = p or S_IWGRP.Mode
-    if fpGroupExec in permissions: p = p or S_IXGRP.Mode
+    if fpGroupRead in permissions:
+      p = p or S_IRGRP.Mode
+    if fpGroupWrite in permissions:
+      p = p or S_IWGRP.Mode
+    if fpGroupExec in permissions:
+      p = p or S_IXGRP.Mode
 
-    if fpOthersRead in permissions: p = p or S_IROTH.Mode
-    if fpOthersWrite in permissions: p = p or S_IWOTH.Mode
-    if fpOthersExec in permissions: p = p or S_IXOTH.Mode
+    if fpOthersRead in permissions:
+      p = p or S_IROTH.Mode
+    if fpOthersWrite in permissions:
+      p = p or S_IWOTH.Mode
+    if fpOthersExec in permissions:
+      p = p or S_IXOTH.Mode
 
     if not followSymlinks and filename.symlinkExists:
       when declared(lchmod):
@@ -132,14 +153,15 @@ proc setFilePermissions*(filename: string, permissions: set[FilePermission],
         raiseOSError(osLastError(), $(filename, permissions))
   else:
     wrapUnary(res, getFileAttributesW, filename)
-    if res == -1'i32: raiseOSError(osLastError(), filename)
+    if res == -1'i32:
+      raiseOSError(osLastError(), filename)
     if fpUserWrite in permissions:
       res = res and not FILE_ATTRIBUTE_READONLY
     else:
       res = res or FILE_ATTRIBUTE_READONLY
     wrapBinary(res2, setFileAttributesW, filename, res)
-    if res2 == - 1'i32: raiseOSError(osLastError(), $(filename, permissions))
-
+    if res2 == -1'i32:
+      raiseOSError(osLastError(), $(filename, permissions))
 
 const hasCCopyfile = defined(osx) and not defined(nimLegacyCopyFile)
   # xxx instead of `nimLegacyCopyFile`, support something like: `when osxVersion >= (10, 5)`
@@ -150,9 +172,13 @@ when hasCCopyfile:
   type
     copyfile_state_t {.nodecl.} = pointer
     copyfile_flags_t = cint
+
   proc copyfile_state_alloc(): copyfile_state_t
   proc copyfile_state_free(state: copyfile_state_t): cint
-  proc c_copyfile(src, dst: cstring,  state: copyfile_state_t, flags: copyfile_flags_t): cint {.importc: "copyfile".}
+  proc c_copyfile(
+    src, dst: cstring, state: copyfile_state_t, flags: copyfile_flags_t
+  ): cint {.importc: "copyfile".}
+
   when (NimMajor, NimMinor) >= (1, 4):
     let
       COPYFILE_DATA {.nodecl.}: copyfile_flags_t
@@ -163,17 +189,21 @@ when hasCCopyfile:
       COPYFILE_XATTR {.nodecl.}: copyfile_flags_t
   {.pop.}
 
-type
-  CopyFlag* = enum    ## Copy options.
-    cfSymlinkAsIs,    ## Copy symlinks as symlinks
-    cfSymlinkFollow,  ## Copy the files symlinks point to
-    cfSymlinkIgnore   ## Ignore symlinks
+type CopyFlag* = enum ## Copy options.
+  cfSymlinkAsIs ## Copy symlinks as symlinks
+  cfSymlinkFollow ## Copy the files symlinks point to
+  cfSymlinkIgnore ## Ignore symlinks
 
 const copyFlagSymlink = {cfSymlinkAsIs, cfSymlinkFollow, cfSymlinkIgnore}
 
-proc copyFile*(source, dest: string, options = {cfSymlinkFollow}; bufferSize = 16_384) {.rtl,
-  extern: "nos$1", tags: [ReadDirEffect, ReadIOEffect, WriteIOEffect],
-  noWeirdTarget.} =
+proc copyFile*(
+    source, dest: string, options = {cfSymlinkFollow}, bufferSize = 16_384
+) {.
+    rtl,
+    extern: "nos$1",
+    tags: [ReadDirEffect, ReadIOEffect, WriteIOEffect],
+    noWeirdTarget
+.} =
   ## Copies a file from `source` to `dest`, where `dest.parentDir` must exist.
   ##
   ## On non-Windows OSes, `options` specify the way file is copied; by default,
@@ -210,7 +240,8 @@ proc copyFile*(source, dest: string, options = {cfSymlinkFollow}; bufferSize = 1
   ## * `removeFile proc`_
   ## * `moveFile proc`_
 
-  doAssert card(copyFlagSymlink * options) == 1, "There should be exactly one cfSymlink* in options"
+  doAssert card(copyFlagSymlink * options) == 1,
+    "There should be exactly one cfSymlink* in options"
   let isSymlink = source.symlinkExists
   if isSymlink and (cfSymlinkIgnore in options or defined(windows)):
     return
@@ -227,18 +258,19 @@ proc copyFile*(source, dest: string, options = {cfSymlinkFollow}; bufferSize = 1
         let state = copyfile_state_alloc()
         # xxx `COPYFILE_STAT` could be used for one-shot
         # `copyFileWithPermissions`.
-        let status = c_copyfile(source.cstring, dest.cstring, state,
-                                COPYFILE_DATA)
+        let status = c_copyfile(source.cstring, dest.cstring, state, COPYFILE_DATA)
         if status != 0:
           let err = osLastError()
           discard copyfile_state_free(state)
           raiseOSError(err, $(source, dest))
         let status2 = copyfile_state_free(state)
-        if status2 != 0: raiseOSError(osLastError(), $(source, dest))
+        if status2 != 0:
+          raiseOSError(osLastError(), $(source, dest))
       else:
         # generic version of copyFile which works for any platform:
         var d, s: File
-        if not open(s, source): raiseOSError(osLastError(), source)
+        if not open(s, source):
+          raiseOSError(osLastError(), source)
         if not open(d, dest, fmWrite):
           close(s)
           raiseOSError(osLastError(), dest)
@@ -259,14 +291,16 @@ proc copyFile*(source, dest: string, options = {cfSymlinkFollow}; bufferSize = 1
               close(s)
               close(d)
               raiseOSError(osLastError(), dest)
-          if bytesread != bufferSize: break
+          if bytesread != bufferSize:
+            break
         dealloc(buf)
         close(s)
         flushFile(d)
         close(d)
 
-proc copyFileToDir*(source, dir: string, options = {cfSymlinkFollow}; bufferSize = 16_384)
-  {.noWeirdTarget, since: (1,3,7).} =
+proc copyFileToDir*(
+    source, dir: string, options = {cfSymlinkFollow}, bufferSize = 16_384
+) {.noWeirdTarget, since: (1, 3, 7).} =
   ## Copies a file `source` into directory `dir`, which must exist.
   ##
   ## On non-Windows OSes, `options` specify the way file is copied; by default,
@@ -282,10 +316,9 @@ proc copyFileToDir*(source, dir: string, options = {cfSymlinkFollow}; bufferSize
     raise newException(ValueError, "dest is empty")
   copyFile(source, dir / source.lastPathPart, options, bufferSize)
 
-
-proc copyFileWithPermissions*(source, dest: string,
-                              ignorePermissionErrors = true,
-                              options = {cfSymlinkFollow}) {.noWeirdTarget.} =
+proc copyFileWithPermissions*(
+    source, dest: string, ignorePermissionErrors = true, options = {cfSymlinkFollow}
+) {.noWeirdTarget.} =
   ## Copies a file from `source` to `dest` preserving file permissions.
   ##
   ## On non-Windows OSes, `options` specify the way file is copied; by default,
@@ -316,8 +349,9 @@ proc copyFileWithPermissions*(source, dest: string,
   copyFile(source, dest, options)
   when not defined(windows):
     try:
-      setFilePermissions(dest, getFilePermissions(source), followSymlinks =
-                         (cfSymlinkFollow in options))
+      setFilePermissions(
+        dest, getFilePermissions(source), followSymlinks = (cfSymlinkFollow in options)
+      )
     except:
       if not ignorePermissionErrors:
         raise
@@ -332,11 +366,15 @@ when not declared(ENOENT) and not defined(windows):
     var ENOENT {.importc, header: "<errno.h>".}: cint
 
 when defined(windows) and not weirdTarget:
-  template deleteFile(file: untyped): untyped  = deleteFileW(file)
+  template deleteFile(file: untyped): untyped =
+    deleteFileW(file)
+
   template setFileAttributes(file, attrs: untyped): untyped =
     setFileAttributesW(file, attrs)
 
-proc tryRemoveFile*(file: string): bool {.rtl, extern: "nos$1", tags: [WriteDirEffect], noWeirdTarget.} =
+proc tryRemoveFile*(
+    file: string
+): bool {.rtl, extern: "nos$1", tags: [WriteDirEffect], noWeirdTarget.} =
   ## Removes the `file`.
   ##
   ## If this fails, returns `false`. This does not fail
@@ -358,14 +396,15 @@ proc tryRemoveFile*(file: string): bool {.rtl, extern: "nos$1", tags: [WriteDirE
       if err == ERROR_FILE_NOT_FOUND or err == ERROR_PATH_NOT_FOUND:
         result = true
       elif err == ERROR_ACCESS_DENIED and
-         setFileAttributes(f, FILE_ATTRIBUTE_NORMAL) != 0 and
-         deleteFile(f) != 0:
+          setFileAttributes(f, FILE_ATTRIBUTE_NORMAL) != 0 and deleteFile(f) != 0:
         result = true
   else:
     if unlink(file) != 0'i32 and errno != ENOENT:
       result = false
 
-proc removeFile*(file: string) {.rtl, extern: "nos$1", tags: [WriteDirEffect], noWeirdTarget.} =
+proc removeFile*(
+    file: string
+) {.rtl, extern: "nos$1", tags: [WriteDirEffect], noWeirdTarget.} =
   ## Removes the `file`.
   ##
   ## If this fails, `OSError` is raised. This does not fail
@@ -382,8 +421,14 @@ proc removeFile*(file: string) {.rtl, extern: "nos$1", tags: [WriteDirEffect], n
   if not tryRemoveFile(file):
     raiseOSError(osLastError(), file)
 
-proc moveFile*(source, dest: string) {.rtl, extern: "nos$1",
-  tags: [ReadDirEffect, ReadIOEffect, WriteIOEffect], noWeirdTarget.} =
+proc moveFile*(
+    source, dest: string
+) {.
+    rtl,
+    extern: "nos$1",
+    tags: [ReadDirEffect, ReadIOEffect, WriteIOEffect],
+    noWeirdTarget
+.} =
   ## Moves a file from `source` to `dest`.
   ##
   ## Symlinks are not followed: if `source` is a symlink, it is itself moved,
@@ -406,7 +451,7 @@ proc moveFile*(source, dest: string) {.rtl, extern: "nos$1",
       raiseAssert "unreachable"
     else:
       # Fallback to copy & del
-      copyFileWithPermissions(source, dest, options={cfSymlinkAsIs})
+      copyFileWithPermissions(source, dest, options = {cfSymlinkAsIs})
       try:
         removeFile(source)
       except:

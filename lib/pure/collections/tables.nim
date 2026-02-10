@@ -29,7 +29,7 @@
 
 runnableExamples:
   var
-    a = {1: "one", 2: "two"}.toTable  # creates a Table
+    a = {1: "one", 2: "two"}.toTable # creates a Table
     b = a
 
   assert a == b
@@ -44,7 +44,7 @@ runnableExamples:
 
 runnableExamples:
   var
-    a = {1: "one", 2: "two"}.newTable  # creates a TableRef
+    a = {1: "one", 2: "two"}.newTable # creates a TableRef
     b = a
 
   assert a == b
@@ -60,7 +60,6 @@ runnableExamples:
 ##
 
 ## # Basic usage
-
 
 ## ## Table
 runnableExamples:
@@ -78,7 +77,6 @@ runnableExamples:
 
   assert beatles == {"George": 1943, "Ringo": 1940, "Paul": 1942, "John": 1940}.toTable
 
-
   var beatlesByYear = initTable[int, seq[string]]()
 
   for pairs in zip(years, names):
@@ -89,7 +87,8 @@ runnableExamples:
       beatlesByYear[birthYear] = @[]
     beatlesByYear[birthYear].add(name)
 
-  assert beatlesByYear == {1940: @["John", "Ringo"], 1942: @["Paul"], 1943: @["George"]}.toTable
+  assert beatlesByYear ==
+    {1940: @["John", "Ringo"], 1942: @["Paul"], 1943: @["George"]}.toTable
 
 ## ## OrderedTable
 ## `OrderedTable<#OrderedTable>`_ is used when it is important to preserve
@@ -98,7 +97,7 @@ runnableExamples:
 runnableExamples:
   let
     a = [('z', 1), ('y', 2), ('x', 3)]
-    ot = a.toOrderedTable  # ordered tables
+    ot = a.toOrderedTable # ordered tables
 
   assert $ot == """{'z': 1, 'y': 2, 'x': 3}"""
 
@@ -157,9 +156,8 @@ runnableExamples:
 runnableExamples:
   import std/hashes
 
-  type
-    Person = object
-      firstName, lastName: string
+  type Person = object
+    firstName, lastName: string
 
   proc hash(x: Person): Hash =
     ## Piggyback on the already available string hash proc.
@@ -192,10 +190,8 @@ runnableExamples:
 ##   mapping from strings to strings
 ## * `hashes module<hashes.html>`_ for helper functions for hashing
 
-
 import std/private/since
 import std/[hashes, math, algorithm]
-
 
 when not defined(nimHasEffectsOf):
   {.pragma: effectsOf.}
@@ -212,18 +208,22 @@ type
     ## For creating an empty Table, use `initTable proc<#initTable>`_.
     data: KeyValuePairSeq[A, B]
     counter: int
-  TableRef*[A, B] = ref Table[A, B] ## Ref version of `Table<#Table>`_.
+
+  TableRef*[A, B] = ref Table[A, B]
+    ## Ref version of `Table<#Table>`_.
     ##
     ## For creating a new empty TableRef, use `newTable proc
     ## <#newTable>`_.
-
 
 # ------------------------------ helpers ---------------------------------
 
 # Do NOT move these to tableimpl.nim, because sharedtables uses that
 # file and has its own implementation.
-template maxHash(t): untyped = high(t.data)
-template dataLen(t): untyped = len(t.data)
+template maxHash(t): untyped =
+  high(t.data)
+
+template dataLen(t): untyped =
+  len(t.data)
 
 include tableimpl
 
@@ -239,7 +239,8 @@ template get(t, key): untyped =
   mixin rawGet
   var hc: Hash
   var index = rawGet(t, key, hc)
-  if index >= 0: result = t.data[index].val
+  if index >= 0:
+    result = t.data[index].val
   else:
     raiseKeyError(key)
 
@@ -257,9 +258,6 @@ proc enlarge[A, B](t: var Table[A, B]) =
         rawInsert(t, t.data, n[i].key, n[i].val, eh, j)
       else:
         rawInsert(t, t.data, move n[i].key, move n[i].val, eh, j)
-
-
-
 
 # -------------------------------------------------------------------
 # ------------------------------ Table ------------------------------
@@ -311,7 +309,8 @@ proc toTable*[A, B](pairs: openArray[(A, B)]): Table[A, B] =
     assert b == {'a': 5, 'b': 9}.toTable
 
   result = initTable[A, B](pairs.len)
-  for key, val in items(pairs): result[key] = val
+  for key, val in items(pairs):
+    result[key] = val
 
 proc `[]`*[A, B](t: Table[A, B], key: A): lent B =
   ## Retrieves the value at `t[key]`.
@@ -494,8 +493,9 @@ proc len*[A, B](t: Table[A, B]): int =
 
   result = t.counter
 
-proc add*[A, B](t: var Table[A, B], key: A, val: sink B) {.deprecated:
-    "Deprecated since v1.4; it was more confusing than useful, use `[]=`".} =
+proc add*[A, B](
+    t: var Table[A, B], key: A, val: sink B
+) {.deprecated: "Deprecated since v1.4; it was more confusing than useful, use `[]=`".} =
   ## Puts a new `(key, value)` pair into `t` even if `t[key]` already exists.
   ##
   ## **This can introduce duplicate keys into the table!**
@@ -504,9 +504,14 @@ proc add*[A, B](t: var Table[A, B], key: A, val: sink B) {.deprecated:
   ## (key, value) pair in the table without introducing duplicates.
   addImpl(enlarge)
 
-template tabMakeEmpty(i) = t.data[i].hcode = 0
-template tabCellEmpty(i) = isEmpty(t.data[i].hcode)
-template tabCellHash(i)  = t.data[i].hcode
+template tabMakeEmpty(i) =
+  t.data[i].hcode = 0
+
+template tabCellEmpty(i) =
+  isEmpty(t.data[i].hcode)
+
+template tabCellHash(i) =
+  t.data[i].hcode
 
 proc del*[A, B](t: var Table[A, B], key: A) =
   ## Deletes `key` from hash table `t`. Does nothing if the key does not exist.
@@ -599,17 +604,14 @@ proc indexBy*[A, B, C](collection: A, index: proc(x: B): C): Table[C, B] =
   for item in collection:
     result[index(item)] = item
 
-
-
 template withValue*[A, B](t: var Table[A, B], key: A, value, body: untyped) =
   ## Retrieves the value at `t[key]`.
   ##
   ## `value` can be modified in the scope of the `withValue` call.
   runnableExamples:
-    type
-      User = object
-        name: string
-        uid: int
+    type User = object
+      name: string
+      uid: int
 
     var t = initTable[int, User]()
     let u = User(name: "Hello", uid: 99)
@@ -635,16 +637,14 @@ template withValue*[A, B](t: var Table[A, B], key: A, value, body: untyped) =
     var value {.inject.} = addr(t.data[index].val)
     body
 
-template withValue*[A, B](t: var Table[A, B], key: A,
-                          value, body1, body2: untyped) =
+template withValue*[A, B](t: var Table[A, B], key: A, value, body1, body2: untyped) =
   ## Retrieves the value at `t[key]`.
   ##
   ## `value` can be modified in the scope of the `withValue` call.
   runnableExamples:
-    type
-      User = object
-        name: string
-        uid: int
+    type User = object
+      name: string
+      uid: int
 
     var t = initTable[int, User]()
     let u = User(name: "Hello", uid: 99)
@@ -676,14 +676,12 @@ template withValue*[A, B](t: var Table[A, B], key: A,
   else:
     body2
 
-template withValue*[A, B](t: Table[A, B], key: A,
-                          value, body1, body2: untyped) =
+template withValue*[A, B](t: Table[A, B], key: A, value, body1, body2: untyped) =
   ## Retrieves the value at `t[key]` if it exists, assigns
   ## it to the variable `value` and executes `body`
   runnableExamples:
-    type
-      User = object
-        name: string
+    type User = object
+      name: string
 
     proc `=copy`(dest: var User, source: User) {.error.}
 
@@ -713,14 +711,12 @@ template withValue*[A, B](t: Table[A, B], key: A,
   else:
     body2
 
-template withValue*[A, B](t: Table[A, B], key: A,
-                          value, body: untyped) =
+template withValue*[A, B](t: Table[A, B], key: A, value, body: untyped) =
   ## Retrieves the value at `t[key]` if it exists, assigns
   ## it to the variable `value` and executes `body`
   runnableExamples:
-    type
-      User = object
-        name: string
+    type User = object
+      name: string
 
     proc `=copy`(dest: var User, source: User) {.error.}
 
@@ -737,7 +733,6 @@ template withValue*[A, B](t: Table[A, B], key: A,
 
   withValue(t, key, value, body):
     discard
-
 
 iterator pairs*[A, B](t: Table[A, B]): (A, B) =
   ## Iterates over any `(key, value)` pair in the table `t`.
@@ -778,10 +773,7 @@ iterator mpairs*[A, B](t: var Table[A, B]): (A, var B) =
   ## * `pairs iterator<#pairs.i,Table[A,B]>`_
   ## * `mvalues iterator<#mvalues.i,Table[A,B]>`_
   runnableExamples:
-    var a = {
-      'o': @[1, 5, 7, 9],
-      'e': @[2, 4, 6, 8]
-      }.toTable
+    var a = {'o': @[1, 5, 7, 9], 'e': @[2, 4, 6, 8]}.toTable
     for k, v in a.mpairs:
       v.add(v[0] + 10)
     doAssert a == {'e': @[2, 4, 6, 8, 12], 'o': @[1, 5, 7, 9, 11]}.toTable
@@ -799,10 +791,7 @@ iterator keys*[A, B](t: Table[A, B]): lent A =
   ## * `pairs iterator<#pairs.i,Table[A,B]>`_
   ## * `values iterator<#values.i,Table[A,B]>`_
   runnableExamples:
-    var a = {
-      'o': @[1, 5, 7, 9],
-      'e': @[2, 4, 6, 8]
-      }.toTable
+    var a = {'o': @[1, 5, 7, 9], 'e': @[2, 4, 6, 8]}.toTable
     for k in a.keys:
       a[k].add(99)
     doAssert a == {'e': @[2, 4, 6, 8, 99], 'o': @[1, 5, 7, 9, 99]}.toTable
@@ -821,10 +810,7 @@ iterator values*[A, B](t: Table[A, B]): lent B =
   ## * `keys iterator<#keys.i,Table[A,B]>`_
   ## * `mvalues iterator<#mvalues.i,Table[A,B]>`_
   runnableExamples:
-    let a = {
-      'o': @[1, 5, 7, 9],
-      'e': @[2, 4, 6, 8]
-      }.toTable
+    let a = {'o': @[1, 5, 7, 9], 'e': @[2, 4, 6, 8]}.toTable
     for v in a.values:
       doAssert v.len == 4
 
@@ -842,10 +828,7 @@ iterator mvalues*[A, B](t: var Table[A, B]): var B =
   ## * `mpairs iterator<#mpairs.i,Table[A,B]>`_
   ## * `values iterator<#values.i,Table[A,B]>`_
   runnableExamples:
-    var a = {
-      'o': @[1, 5, 7, 9],
-      'e': @[2, 4, 6, 8]
-      }.toTable
+    var a = {'o': @[1, 5, 7, 9], 'e': @[2, 4, 6, 8]}.toTable
     for v in a.mvalues:
       v.add(99)
     doAssert a == {'e': @[2, 4, 6, 8, 99], 'o': @[1, 5, 7, 9, 99]}.toTable
@@ -856,8 +839,9 @@ iterator mvalues*[A, B](t: var Table[A, B]): var B =
       yield t.data[h].val
       assert(len(t) == L, "the length of the table changed while iterating over it")
 
-iterator allValues*[A, B](t: Table[A, B]; key: A): B {.deprecated:
-    "Deprecated since v1.4; tables with duplicated keys are deprecated".} =
+iterator allValues*[A, B](
+    t: Table[A, B], key: A
+): B {.deprecated: "Deprecated since v1.4; tables with duplicated keys are deprecated".} =
   ## Iterates over any value in the table `t` that belongs to the given `key`.
   ##
   ## Used if you have a table with duplicate keys (as a result of using
@@ -867,8 +851,10 @@ iterator allValues*[A, B](t: Table[A, B]; key: A): B {.deprecated:
     import std/[sequtils, algorithm]
 
     var a = {'a': 3, 'b': 5}.toTable
-    for i in 1..3: a.add('z', 10*i)
-    doAssert toSeq(a.pairs).sorted == @[('a', 3), ('b', 5), ('z', 10), ('z', 20), ('z', 30)]
+    for i in 1 .. 3:
+      a.add('z', 10 * i)
+    doAssert toSeq(a.pairs).sorted ==
+      @[('a', 3), ('b', 5), ('z', 10), ('z', 20), ('z', 30)]
     doAssert sorted(toSeq(a.allValues('z'))) == @[10, 20, 30]
   var h: Hash = genHash(key) and high(t.data)
   let L = len(t)
@@ -878,12 +864,9 @@ iterator allValues*[A, B](t: Table[A, B]; key: A): B {.deprecated:
       assert(len(t) == L, "the length of the table changed while iterating over it")
     h = nextTry(h, high(t.data))
 
-
-
 # -------------------------------------------------------------------
 # ---------------------------- TableRef -----------------------------
 # -------------------------------------------------------------------
-
 
 proc newTable*[A, B](initialSize = defaultInitialSize): TableRef[A, B] =
   ## Creates a new ref hash table that is empty.
@@ -1107,8 +1090,9 @@ proc len*[A, B](t: TableRef[A, B]): int =
 
   result = t.counter
 
-proc add*[A, B](t: TableRef[A, B], key: A, val: sink B) {.deprecated:
-    "Deprecated since v1.4; it was more confusing than useful, use `[]=`".} =
+proc add*[A, B](
+    t: TableRef[A, B], key: A, val: sink B
+) {.deprecated: "Deprecated since v1.4; it was more confusing than useful, use `[]=`".} =
   ## Puts a new `(key, value)` pair into `t` even if `t[key]` already exists.
   ##
   ## **This can introduce duplicate keys into the table!**
@@ -1195,11 +1179,12 @@ proc `==`*[A, B](s, t: TableRef[A, B]): bool =
       b = {'b': 9, 'c': 13, 'a': 5}.newTable
     doAssert a == b
 
-  if isNil(s): result = isNil(t)
-  elif isNil(t): result = false
-  else: equalsImpl(s[], t[])
-
-
+  if isNil(s):
+    result = isNil(t)
+  elif isNil(t):
+    result = false
+  else:
+    equalsImpl(s[], t[])
 
 iterator pairs*[A, B](t: TableRef[A, B]): (A, B) =
   ## Iterates over any `(key, value)` pair in the table `t`.
@@ -1240,10 +1225,7 @@ iterator mpairs*[A, B](t: TableRef[A, B]): (A, var B) =
   ## * `pairs iterator<#pairs.i,TableRef[A,B]>`_
   ## * `mvalues iterator<#mvalues.i,TableRef[A,B]>`_
   runnableExamples:
-    let a = {
-      'o': @[1, 5, 7, 9],
-      'e': @[2, 4, 6, 8]
-      }.newTable
+    let a = {'o': @[1, 5, 7, 9], 'e': @[2, 4, 6, 8]}.newTable
     for k, v in a.mpairs:
       v.add(v[0] + 10)
     doAssert a == {'e': @[2, 4, 6, 8, 12], 'o': @[1, 5, 7, 9, 11]}.newTable
@@ -1261,10 +1243,7 @@ iterator keys*[A, B](t: TableRef[A, B]): lent A =
   ## * `pairs iterator<#pairs.i,TableRef[A,B]>`_
   ## * `values iterator<#values.i,TableRef[A,B]>`_
   runnableExamples:
-    let a = {
-      'o': @[1, 5, 7, 9],
-      'e': @[2, 4, 6, 8]
-      }.newTable
+    let a = {'o': @[1, 5, 7, 9], 'e': @[2, 4, 6, 8]}.newTable
     for k in a.keys:
       a[k].add(99)
     doAssert a == {'e': @[2, 4, 6, 8, 99], 'o': @[1, 5, 7, 9, 99]}.newTable
@@ -1283,10 +1262,7 @@ iterator values*[A, B](t: TableRef[A, B]): lent B =
   ## * `keys iterator<#keys.i,TableRef[A,B]>`_
   ## * `mvalues iterator<#mvalues.i,TableRef[A,B]>`_
   runnableExamples:
-    let a = {
-      'o': @[1, 5, 7, 9],
-      'e': @[2, 4, 6, 8]
-      }.newTable
+    let a = {'o': @[1, 5, 7, 9], 'e': @[2, 4, 6, 8]}.newTable
     for v in a.values:
       doAssert v.len == 4
 
@@ -1303,10 +1279,7 @@ iterator mvalues*[A, B](t: TableRef[A, B]): var B =
   ## * `mpairs iterator<#mpairs.i,TableRef[A,B]>`_
   ## * `values iterator<#values.i,TableRef[A,B]>`_
   runnableExamples:
-    let a = {
-      'o': @[1, 5, 7, 9],
-      'e': @[2, 4, 6, 8]
-      }.newTable
+    let a = {'o': @[1, 5, 7, 9], 'e': @[2, 4, 6, 8]}.newTable
     for v in a.mvalues:
       v.add(99)
     doAssert a == {'e': @[2, 4, 6, 8, 99], 'o': @[1, 5, 7, 9, 99]}.newTable
@@ -1317,20 +1290,12 @@ iterator mvalues*[A, B](t: TableRef[A, B]): var B =
       yield t.data[h].val
       assert(len(t) == L, "the length of the table changed while iterating over it")
 
-
-
-
-
-
-
-
 # ---------------------------------------------------------------------------
 # ------------------------------ OrderedTable -------------------------------
 # ---------------------------------------------------------------------------
 
 type
-  OrderedKeyValuePair[A, B] = tuple[
-    hcode: Hash, next: int, key: A, val: B]
+  OrderedKeyValuePair[A, B] = tuple[hcode: Hash, next: int, key: A, val: B]
   OrderedKeyValuePairSeq[A, B] = seq[OrderedKeyValuePair[A, B]]
   OrderedTable*[A, B] = object
     ## Hash table that remembers insertion order.
@@ -1339,12 +1304,13 @@ type
     ## <#initOrderedTable>`_.
     data: OrderedKeyValuePairSeq[A, B]
     counter, first, last: int
-  OrderedTableRef*[A, B] = ref OrderedTable[A, B] ## Ref version of
+
+  OrderedTableRef*[A, B] = ref OrderedTable[A, B]
+    ## Ref version of
     ## `OrderedTable<#OrderedTable>`_.
     ##
     ## For creating a new empty OrderedTableRef, use `newOrderedTable proc
     ## <#newOrderedTable>`_.
-
 
 # ------------------------------ helpers ---------------------------------
 
@@ -1357,13 +1323,20 @@ proc rawGetDeep[A, B](t: OrderedTable[A, B], key: A, hc: var Hash): int {.inline
 proc rawGet[A, B](t: OrderedTable[A, B], key: A, hc: var Hash): int =
   rawGetImpl()
 
-proc rawInsert[A, B](t: var OrderedTable[A, B],
-                     data: var OrderedKeyValuePairSeq[A, B],
-                     key: A, val: sink B, hc: Hash, h: Hash) =
+proc rawInsert[A, B](
+    t: var OrderedTable[A, B],
+    data: var OrderedKeyValuePairSeq[A, B],
+    key: A,
+    val: sink B,
+    hc: Hash,
+    h: Hash,
+) =
   rawInsertImpl()
   data[h].next = -1
-  if t.first < 0: t.first = h
-  if t.last >= 0: data[t.last].next = h
+  if t.first < 0:
+    t.first = h
+  if t.last >= 0:
+    data[t.last].next = h
   t.last = h
 
 proc enlarge[A, B](t: var OrderedTable[A, B]) =
@@ -1442,7 +1415,8 @@ proc toOrderedTable*[A, B](pairs: openArray[(A, B)]): OrderedTable[A, B] =
     assert b == {'a': 5, 'b': 9}.toOrderedTable
 
   result = initOrderedTable[A, B](pairs.len)
-  for key, val in items(pairs): result[key] = val
+  for key, val in items(pairs):
+    result[key] = val
 
 proc `[]`*[A, B](t: OrderedTable[A, B], key: A): lent B =
   ## Retrieves the value at `t[key]`.
@@ -1609,8 +1583,9 @@ proc len*[A, B](t: OrderedTable[A, B]): int {.inline.} =
 
   result = t.counter
 
-proc add*[A, B](t: var OrderedTable[A, B], key: A, val: sink B) {.deprecated:
-    "Deprecated since v1.4; it was more confusing than useful, use `[]=`".} =
+proc add*[A, B](
+    t: var OrderedTable[A, B], key: A, val: sink B
+) {.deprecated: "Deprecated since v1.4; it was more confusing than useful, use `[]=`".} =
   ## Puts a new `(key, value)` pair into `t` even if `t[key]` already exists.
   ##
   ## **This can introduce duplicate keys into the table!**
@@ -1634,7 +1609,8 @@ proc del*[A, B](t: var OrderedTable[A, B], key: A) =
     a.del('z')
     doAssert a == {'b': 9, 'c': 13}.toOrderedTable
 
-  if t.counter == 0: return
+  if t.counter == 0:
+    return
   var n: OrderedKeyValuePairSeq[A, B]
   newSeq(n, len(t.data))
   var h = t.first
@@ -1698,8 +1674,9 @@ proc clear*[A, B](t: var OrderedTable[A, B]) =
   t.first = -1
   t.last = -1
 
-proc sort*[A, B](t: var OrderedTable[A, B], cmp: proc (x, y: (A, B)): int,
-    order = SortOrder.Ascending) {.effectsOf: cmp.} =
+proc sort*[A, B](
+    t: var OrderedTable[A, B], cmp: proc(x, y: (A, B)): int, order = SortOrder.Ascending
+) {.effectsOf: cmp.} =
   ## Sorts `t` according to the function `cmp`.
   ##
   ## This modifies the internal list
@@ -1710,7 +1687,7 @@ proc sort*[A, B](t: var OrderedTable[A, B], cmp: proc (x, y: (A, B)): int,
     import std/[algorithm]
     var a = initOrderedTable[char, int]()
     for i, c in "cab":
-      a[c] = 10*i
+      a[c] = 10 * i
     doAssert a == {'c': 0, 'a': 10, 'b': 20}.toOrderedTable
     a.sort(system.cmp)
     doAssert a == {'a': 10, 'b': 20, 'c': 0}.toOrderedTable
@@ -1721,11 +1698,15 @@ proc sort*[A, B](t: var OrderedTable[A, B], cmp: proc (x, y: (A, B)): int,
   var
     p, q, e, tail, oldhead: int
     nmerges, psize, qsize, i: int
-  if t.counter == 0: return
+  if t.counter == 0:
+    return
   var insize = 1
   while true:
-    p = list; oldhead = list
-    list = -1; tail = -1; nmerges = 0
+    p = list
+    oldhead = list
+    list = -1
+    tail = -1
+    nmerges = 0
     while p >= 0:
       inc(nmerges)
       q = p
@@ -1734,25 +1715,37 @@ proc sort*[A, B](t: var OrderedTable[A, B], cmp: proc (x, y: (A, B)): int,
       while i < insize:
         inc(psize)
         q = t.data[q].next
-        if q < 0: break
+        if q < 0:
+          break
         inc(i)
       qsize = insize
       while psize > 0 or (qsize > 0 and q >= 0):
         if psize == 0:
-          e = q; q = t.data[q].next; dec(qsize)
+          e = q
+          q = t.data[q].next
+          dec(qsize)
         elif qsize == 0 or q < 0:
-          e = p; p = t.data[p].next; dec(psize)
-        elif cmp((t.data[p].key, t.data[p].val),
-                 (t.data[q].key, t.data[q].val)) * order <= 0:
-          e = p; p = t.data[p].next; dec(psize)
+          e = p
+          p = t.data[p].next
+          dec(psize)
+        elif cmp((t.data[p].key, t.data[p].val), (t.data[q].key, t.data[q].val)) * order <=
+            0:
+          e = p
+          p = t.data[p].next
+          dec(psize)
         else:
-          e = q; q = t.data[q].next; dec(qsize)
-        if tail >= 0: t.data[tail].next = e
-        else: list = e
+          e = q
+          q = t.data[q].next
+          dec(qsize)
+        if tail >= 0:
+          t.data[tail].next = e
+        else:
+          list = e
         tail = e
       p = q
     t.data[tail].next = -1
-    if nmerges <= 1: break
+    if nmerges <= 1:
+      break
     insize = insize * 2
   t.first = list
   t.last = tail
@@ -1786,8 +1779,6 @@ proc `==`*[A, B](s, t: OrderedTable[A, B]): bool =
     ht = nxtt
     hs = nxts
   return true
-
-
 
 iterator pairs*[A, B](t: OrderedTable[A, B]): (A, B) =
   ## Iterates over any `(key, value)` pair in the table `t` in insertion
@@ -1829,14 +1820,10 @@ iterator mpairs*[A, B](t: var OrderedTable[A, B]): (A, var B) =
   ## * `pairs iterator<#pairs.i,OrderedTable[A,B]>`_
   ## * `mvalues iterator<#mvalues.i,OrderedTable[A,B]>`_
   runnableExamples:
-    var a = {
-      'o': @[1, 5, 7, 9],
-      'e': @[2, 4, 6, 8]
-      }.toOrderedTable
+    var a = {'o': @[1, 5, 7, 9], 'e': @[2, 4, 6, 8]}.toOrderedTable
     for k, v in a.mpairs:
       v.add(v[0] + 10)
-    doAssert a == {'o': @[1, 5, 7, 9, 11],
-                   'e': @[2, 4, 6, 8, 12]}.toOrderedTable
+    doAssert a == {'o': @[1, 5, 7, 9, 11], 'e': @[2, 4, 6, 8, 12]}.toOrderedTable
 
   let L = len(t)
   forAllOrderedPairs:
@@ -1850,14 +1837,10 @@ iterator keys*[A, B](t: OrderedTable[A, B]): lent A =
   ## * `pairs iterator<#pairs.i,OrderedTable[A,B]>`_
   ## * `values iterator<#values.i,OrderedTable[A,B]>`_
   runnableExamples:
-    var a = {
-      'o': @[1, 5, 7, 9],
-      'e': @[2, 4, 6, 8]
-      }.toOrderedTable
+    var a = {'o': @[1, 5, 7, 9], 'e': @[2, 4, 6, 8]}.toOrderedTable
     for k in a.keys:
       a[k].add(99)
-    doAssert a == {'o': @[1, 5, 7, 9, 99],
-                   'e': @[2, 4, 6, 8, 99]}.toOrderedTable
+    doAssert a == {'o': @[1, 5, 7, 9, 99], 'e': @[2, 4, 6, 8, 99]}.toOrderedTable
 
   let L = len(t)
   forAllOrderedPairs:
@@ -1872,10 +1855,7 @@ iterator values*[A, B](t: OrderedTable[A, B]): lent B =
   ## * `keys iterator<#keys.i,OrderedTable[A,B]>`_
   ## * `mvalues iterator<#mvalues.i,OrderedTable[A,B]>`_
   runnableExamples:
-    let a = {
-      'o': @[1, 5, 7, 9],
-      'e': @[2, 4, 6, 8]
-      }.toOrderedTable
+    let a = {'o': @[1, 5, 7, 9], 'e': @[2, 4, 6, 8]}.toOrderedTable
     for v in a.values:
       doAssert v.len == 4
 
@@ -1893,14 +1873,10 @@ iterator mvalues*[A, B](t: var OrderedTable[A, B]): var B =
   ## * `mpairs iterator<#mpairs.i,OrderedTable[A,B]>`_
   ## * `values iterator<#values.i,OrderedTable[A,B]>`_
   runnableExamples:
-    var a = {
-      'o': @[1, 5, 7, 9],
-      'e': @[2, 4, 6, 8]
-      }.toOrderedTable
+    var a = {'o': @[1, 5, 7, 9], 'e': @[2, 4, 6, 8]}.toOrderedTable
     for v in a.mvalues:
       v.add(99)
-    doAssert a == {'o': @[1, 5, 7, 9, 99],
-                   'e': @[2, 4, 6, 8, 99]}.toOrderedTable
+    doAssert a == {'o': @[1, 5, 7, 9, 99], 'e': @[2, 4, 6, 8, 99]}.toOrderedTable
 
   let L = len(t)
   forAllOrderedPairs:
@@ -1943,8 +1919,8 @@ proc newOrderedTable*[A, B](pairs: openArray[(A, B)]): OrderedTableRef[A, B] =
 
   result = newOrderedTable[A, B](pairs.len)
   {.noSideEffect.}:
-    for key, val in items(pairs): result[key] = val
-
+    for key, val in items(pairs):
+      result[key] = val
 
 proc `[]`*[A, B](t: OrderedTableRef[A, B], key: A): var B =
   ## Retrieves the value at `t[key]`.
@@ -2110,8 +2086,9 @@ proc len*[A, B](t: OrderedTableRef[A, B]): int {.inline.} =
 
   result = t.counter
 
-proc add*[A, B](t: OrderedTableRef[A, B], key: A, val: sink B) {.deprecated:
-    "Deprecated since v1.4; it was more confusing than useful, use `[]=`".} =
+proc add*[A, B](
+    t: OrderedTableRef[A, B], key: A, val: sink B
+) {.deprecated: "Deprecated since v1.4; it was more confusing than useful, use `[]=`".} =
   ## Puts a new `(key, value)` pair into `t` even if `t[key]` already exists.
   ##
   ## **This can introduce duplicate keys into the table!**
@@ -2170,8 +2147,9 @@ proc clear*[A, B](t: OrderedTableRef[A, B]) =
 
   clear(t[])
 
-proc sort*[A, B](t: OrderedTableRef[A, B], cmp: proc (x, y: (A, B)): int,
-    order = SortOrder.Ascending) {.effectsOf: cmp.} =
+proc sort*[A, B](
+    t: OrderedTableRef[A, B], cmp: proc(x, y: (A, B)): int, order = SortOrder.Ascending
+) {.effectsOf: cmp.} =
   ## Sorts `t` according to the function `cmp`.
   ##
   ## This modifies the internal list
@@ -2182,7 +2160,7 @@ proc sort*[A, B](t: OrderedTableRef[A, B], cmp: proc (x, y: (A, B)): int,
     import std/[algorithm]
     var a = newOrderedTable[char, int]()
     for i, c in "cab":
-      a[c] = 10*i
+      a[c] = 10 * i
     doAssert a == {'c': 0, 'a': 10, 'b': 20}.newOrderedTable
     a.sort(system.cmp)
     doAssert a == {'a': 10, 'b': 20, 'c': 0}.newOrderedTable
@@ -2206,11 +2184,12 @@ proc `==`*[A, B](s, t: OrderedTableRef[A, B]): bool =
       b = {'b': 9, 'c': 13, 'a': 5}.newOrderedTable
     doAssert a != b
 
-  if isNil(s): result = isNil(t)
-  elif isNil(t): result = false
-  else: result = s[] == t[]
-
-
+  if isNil(s):
+    result = isNil(t)
+  elif isNil(t):
+    result = false
+  else:
+    result = s[] == t[]
 
 iterator pairs*[A, B](t: OrderedTableRef[A, B]): (A, B) =
   ## Iterates over any `(key, value)` pair in the table `t` in insertion
@@ -2252,14 +2231,10 @@ iterator mpairs*[A, B](t: OrderedTableRef[A, B]): (A, var B) =
   ## * `pairs iterator<#pairs.i,OrderedTableRef[A,B]>`_
   ## * `mvalues iterator<#mvalues.i,OrderedTableRef[A,B]>`_
   runnableExamples:
-    let a = {
-      'o': @[1, 5, 7, 9],
-      'e': @[2, 4, 6, 8]
-      }.newOrderedTable
+    let a = {'o': @[1, 5, 7, 9], 'e': @[2, 4, 6, 8]}.newOrderedTable
     for k, v in a.mpairs:
       v.add(v[0] + 10)
-    doAssert a == {'o': @[1, 5, 7, 9, 11],
-                   'e': @[2, 4, 6, 8, 12]}.newOrderedTable
+    doAssert a == {'o': @[1, 5, 7, 9, 11], 'e': @[2, 4, 6, 8, 12]}.newOrderedTable
 
   let L = len(t)
   forAllOrderedPairs:
@@ -2273,14 +2248,10 @@ iterator keys*[A, B](t: OrderedTableRef[A, B]): lent A =
   ## * `pairs iterator<#pairs.i,OrderedTableRef[A,B]>`_
   ## * `values iterator<#values.i,OrderedTableRef[A,B]>`_
   runnableExamples:
-    let a = {
-      'o': @[1, 5, 7, 9],
-      'e': @[2, 4, 6, 8]
-      }.newOrderedTable
+    let a = {'o': @[1, 5, 7, 9], 'e': @[2, 4, 6, 8]}.newOrderedTable
     for k in a.keys:
       a[k].add(99)
-    doAssert a == {'o': @[1, 5, 7, 9, 99], 'e': @[2, 4, 6, 8,
-        99]}.newOrderedTable
+    doAssert a == {'o': @[1, 5, 7, 9, 99], 'e': @[2, 4, 6, 8, 99]}.newOrderedTable
 
   let L = len(t)
   forAllOrderedPairs:
@@ -2295,10 +2266,7 @@ iterator values*[A, B](t: OrderedTableRef[A, B]): lent B =
   ## * `keys iterator<#keys.i,OrderedTableRef[A,B]>`_
   ## * `mvalues iterator<#mvalues.i,OrderedTableRef[A,B]>`_
   runnableExamples:
-    let a = {
-      'o': @[1, 5, 7, 9],
-      'e': @[2, 4, 6, 8]
-      }.newOrderedTable
+    let a = {'o': @[1, 5, 7, 9], 'e': @[2, 4, 6, 8]}.newOrderedTable
     for v in a.values:
       doAssert v.len == 4
 
@@ -2315,14 +2283,10 @@ iterator mvalues*[A, B](t: OrderedTableRef[A, B]): var B =
   ## * `mpairs iterator<#mpairs.i,OrderedTableRef[A,B]>`_
   ## * `values iterator<#values.i,OrderedTableRef[A,B]>`_
   runnableExamples:
-    let a = {
-      'o': @[1, 5, 7, 9],
-      'e': @[2, 4, 6, 8]
-      }.newOrderedTable
+    let a = {'o': @[1, 5, 7, 9], 'e': @[2, 4, 6, 8]}.newOrderedTable
     for v in a.mvalues:
       v.add(99)
-    doAssert a == {'o': @[1, 5, 7, 9, 99],
-                   'e': @[2, 4, 6, 8, 99]}.newOrderedTable
+    doAssert a == {'o': @[1, 5, 7, 9, 99], 'e': @[2, 4, 6, 8, 99]}.newOrderedTable
 
   let L = len(t)
   forAllOrderedPairs:
@@ -2344,19 +2308,22 @@ type
     data: seq[tuple[key: A, val: int]]
     counter: int
     isSorted: bool
-  CountTableRef*[A] = ref CountTable[A] ## Ref version of
+
+  CountTableRef*[A] = ref CountTable[A]
+    ## Ref version of
     ## `CountTable<#CountTable>`_.
     ##
     ## For creating a new empty CountTableRef, use `newCountTable proc
     ## <#newCountTable>`_.
 
-
 # ------------------------------ helpers ---------------------------------
 
-proc ctRawInsert[A](t: CountTable[A], data: var seq[tuple[key: A, val: int]],
-                  key: A, val: int) =
+proc ctRawInsert[A](
+    t: CountTable[A], data: var seq[tuple[key: A, val: int]], key: A, val: int
+) =
   var h: Hash = hash(key) and high(data)
-  while data[h].val != 0: h = nextTry(h, high(data))
+  while data[h].val != 0:
+    h = nextTry(h, high(data))
   data[h].key = key
   data[h].val = val
 
@@ -2364,7 +2331,8 @@ proc enlarge[A](t: var CountTable[A]) =
   var n: seq[tuple[key: A, val: int]]
   newSeq(n, len(t.data) * growthFactor)
   for i in countup(0, high(t.data)):
-    if t.data[i].val != 0: ctRawInsert(t, n, move t.data[i].key, move t.data[i].val)
+    if t.data[i].val != 0:
+      ctRawInsert(t, n, move t.data[i].key, move t.data[i].val)
   swap(t.data, n)
 
 proc rawGet[A](t: CountTable[A], key: A): int =
@@ -2372,13 +2340,18 @@ proc rawGet[A](t: CountTable[A], key: A): int =
     return -1
   var h: Hash = hash(key) and high(t.data) # start with real hash value
   while t.data[h].val != 0:
-    if t.data[h].key == key: return h
+    if t.data[h].key == key:
+      return h
     h = nextTry(h, high(t.data))
   result = -1 - h # < 0 => MISSING; insert idx = -1 - result
 
 template ctget(t, key, def: untyped): untyped =
   var index = rawGet(t, key)
-  result = if index >= 0: t.data[index].val else: def
+  result =
+    if index >= 0:
+      t.data[index].val
+    else:
+      def
 
 proc inc*[A](t: var CountTable[A], key: A, val = 1)
 
@@ -2401,7 +2374,8 @@ proc toCountTable*[A](keys: openArray[A]): CountTable[A] =
   ## Creates a new count table with every member of a container `keys`
   ## having a count of how many times it occurs in that container.
   result = initCountTable[A](keys.len)
-  for key in items(keys): result.inc(key)
+  for key in items(keys):
+    result.inc(key)
 
 proc `[]`*[A](t: CountTable[A], key: A): int =
   ## Retrieves the value at `t[key]` if `key` is in `t`.
@@ -2417,9 +2391,14 @@ proc `[]`*[A](t: CountTable[A], key: A): int =
   assert(not t.isSorted, "CountTable must not be used after sorting")
   ctget(t, key, 0)
 
-template cntMakeEmpty(i) = t.data[i].val = 0
-template cntCellEmpty(i) = t.data[i].val == 0
-template cntCellHash(i)  = hash(t.data[i].key)
+template cntMakeEmpty(i) =
+  t.data[i].val = 0
+
+template cntCellEmpty(i) =
+  t.data[i].val == 0
+
+template cntCellHash(i) =
+  hash(t.data[i].key)
 
 proc `[]=`*[A](t: var CountTable[A], key: A, val: int) =
   ## Inserts a `(key, value)` pair into `t`.
@@ -2482,7 +2461,8 @@ proc largest*[A](t: CountTable[A]): tuple[key: A, val: int] =
   assert t.len > 0, "counttable is empty"
   var maxIdx = 0
   for h in 1 .. high(t.data):
-    if t.data[maxIdx].val < t.data[h].val: maxIdx = h
+    if t.data[maxIdx].val < t.data[h].val:
+      maxIdx = h
   result.key = t.data[maxIdx].key
   result.val = t.data[maxIdx].val
 
@@ -2503,7 +2483,7 @@ proc contains*[A](t: CountTable[A], key: A): bool =
   ## the `in` operator.
   return hasKey[A](t, key)
 
-proc getOrDefault*[A](t: CountTable[A], key: A; def: int = 0): int =
+proc getOrDefault*[A](t: CountTable[A], key: A, def: int = 0): int =
   ## Retrieves the value at `t[key]` if `key` is in `t`. Otherwise, the
   ## integer value of `def` is returned.
   ##
@@ -2623,7 +2603,6 @@ proc `==`*[A](s, t: CountTable[A]): bool =
   ## contain the same keys with the same count. Insert order does not matter.
   equalsImpl(s, t)
 
-
 iterator pairs*[A](t: CountTable[A]): (A, int) =
   ## Iterates over any `(key, value)` pair in the table `t`.
   ##
@@ -2732,8 +2711,6 @@ iterator mvalues*[A](t: var CountTable[A]): var int =
       yield t.data[h].val
       assert(len(t) == L, "the length of the table changed while iterating over it")
 
-
-
 # ---------------------------------------------------------------------------
 # ---------------------------- CountTableRef --------------------------------
 # ---------------------------------------------------------------------------
@@ -2757,7 +2734,8 @@ proc newCountTable*[A](keys: openArray[A]): CountTableRef[A] =
   ## having a count of how many times it occurs in that container.
   result = newCountTable[A](keys.len)
   {.noSideEffect.}:
-    for key in items(keys): result.inc(key)
+    for key in items(keys):
+      result.inc(key)
 
 proc `[]`*[A](t: CountTableRef[A], key: A): int =
   ## Retrieves the value at `t[key]` if `key` is in `t`.
@@ -2896,10 +2874,12 @@ proc `==`*[A](s, t: CountTableRef[A]): bool =
   ## The `==` operator for count tables. Returns `true` if either both tables
   ## are `nil`, or neither is `nil` and both contain the same keys with the same
   ## count. Insert order does not matter.
-  if isNil(s): result = isNil(t)
-  elif isNil(t): result = false
-  else: result = s[] == t[]
-
+  if isNil(s):
+    result = isNil(t)
+  elif isNil(t):
+    result = false
+  else:
+    result = s[] == t[]
 
 iterator pairs*[A](t: CountTableRef[A]): (A, int) =
   ## Iterates over any `(key, value)` pair in the table `t`.
@@ -3008,12 +2988,12 @@ iterator mvalues*[A](t: CountTableRef[A]): var int =
       yield t.data[h].val
       assert(len(t) == L, "the length of the table changed while iterating over it")
 
-proc hash*[K,V](s: Table[K,V]): Hash =
+proc hash*[K, V](s: Table[K, V]): Hash =
   for p in pairs(s):
     result = result xor hash(p)
   result = !$result
 
-proc hash*[K,V](s: OrderedTable[K,V]): Hash =
+proc hash*[K, V](s: OrderedTable[K, V]): Hash =
   for p in pairs(s):
     result = result !& hash(p)
   result = !$result

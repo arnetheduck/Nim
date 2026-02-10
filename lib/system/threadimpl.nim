@@ -1,6 +1,7 @@
-var
-  nimThreadDestructionHandlers* {.rtlThreadVar.}: seq[proc () {.closure, gcsafe, raises: [].}]
-when not defined(boehmgc) and not hasSharedHeap and not defined(gogc) and not defined(gcRegions):
+var nimThreadDestructionHandlers* {.rtlThreadVar.}:
+  seq[proc() {.closure, gcsafe, raises: [].}]
+when not defined(boehmgc) and not hasSharedHeap and not defined(gogc) and
+    not defined(gcRegions):
   proc deallocOsPages() {.rtl, raises: [].}
 
 # create for the main thread. Note: do not insert this data into the list
@@ -11,24 +12,27 @@ when not defined(useNimRtl):
     initGC()
     when not emulatedThreadVars:
       type ThreadType {.pure.} = enum
-        None = 0,
-        NimThread = 1,
+        None = 0
+        NimThread = 1
         ForeignThread = 2
-      var
-        threadType {.rtlThreadVar.}: ThreadType
+
+      var threadType {.rtlThreadVar.}: ThreadType
 
       threadType = ThreadType.NimThread
 
 when defined(gcDestructors):
-  proc deallocThreadStorage(p: pointer) = c_free(p)
+  proc deallocThreadStorage(p: pointer) =
+    c_free(p)
+
 else:
-  template deallocThreadStorage(p: pointer) = deallocShared(p)
+  template deallocThreadStorage(p: pointer) =
+    deallocShared(p)
 
 template afterThreadRuns() =
-  for i in countdown(nimThreadDestructionHandlers.len-1, 0):
+  for i in countdown(nimThreadDestructionHandlers.len - 1, 0):
     nimThreadDestructionHandlers[i]()
 
-proc onThreadDestruction*(handler: proc () {.closure, gcsafe, raises: [].}) =
+proc onThreadDestruction*(handler: proc() {.closure, gcsafe, raises: [].}) =
   ## Registers a *thread local* handler that is called at the thread's
   ## destruction.
   ##
@@ -39,12 +43,15 @@ proc onThreadDestruction*(handler: proc () {.closure, gcsafe, raises: [].}) =
 
 when defined(boehmgc):
   type GCStackBaseProc = proc(sb: pointer, t: pointer) {.noconv.}
-  proc boehmGC_call_with_stack_base(sbp: GCStackBaseProc, p: pointer)
-    {.importc: "GC_call_with_stack_base", boehmGC.}
-  proc boehmGC_register_my_thread(sb: pointer)
-    {.importc: "GC_register_my_thread", boehmGC.}
-  proc boehmGC_unregister_my_thread()
-    {.importc: "GC_unregister_my_thread", boehmGC.}
+  proc boehmGC_call_with_stack_base(
+    sbp: GCStackBaseProc, p: pointer
+  ) {.importc: "GC_call_with_stack_base", boehmGC.}
+
+  proc boehmGC_register_my_thread(
+    sb: pointer
+  ) {.importc: "GC_register_my_thread", boehmGC.}
+
+  proc boehmGC_unregister_my_thread() {.importc: "GC_unregister_my_thread", boehmGC.}
 
   proc threadProcWrapDispatch[TArg](sb: pointer, thrd: pointer) {.noconv, raises: [].} =
     boehmGC_register_my_thread(sb)
@@ -59,6 +66,7 @@ when defined(boehmgc):
     finally:
       afterThreadRuns()
     boehmGC_unregister_my_thread()
+
 else:
   proc threadProcWrapDispatch[TArg](thrd: ptr Thread[TArg]) {.raises: [].} =
     try:
@@ -81,7 +89,8 @@ else:
 proc threadProcWrapStackFrame[TArg](thrd: ptr Thread[TArg]) {.raises: [].} =
   when defined(boehmgc):
     boehmGC_call_with_stack_base(threadProcWrapDispatch[TArg], thrd)
-  elif not defined(nogc) and not defined(gogc) and not defined(gcRegions) and not usesDestructors:
+  elif not defined(nogc) and not defined(gogc) and not defined(gcRegions) and
+      not usesDestructors:
     var p {.volatile.}: pointer
     # init the GC for refc/markandsweep
     nimGC_setStackBottom(addr(p))
@@ -90,14 +99,16 @@ proc threadProcWrapStackFrame[TArg](thrd: ptr Thread[TArg]) {.raises: [].} =
     when declared(threadType):
       threadType = ThreadType.NimThread
     threadProcWrapDispatch[TArg](thrd)
-    when declared(deallocOsPages): deallocOsPages()
+    when declared(deallocOsPages):
+      deallocOsPages()
   else:
     threadProcWrapDispatch(thrd)
 
 template nimThreadProcWrapperBody*(closure: untyped): untyped =
   var thrd = cast[ptr Thread[TArg]](closure)
   var core = thrd.core
-  when declared(globalsSlot): threadVarSetValue(globalsSlot, thrd.core)
+  when declared(globalsSlot):
+    threadVarSetValue(globalsSlot, thrd.core)
   threadProcWrapStackFrame(thrd)
   # Since an unhandled exception terminates the whole process (!), there is
   # no need for a ``try finally`` here, nor would it be correct: The current

@@ -10,11 +10,11 @@
 # Integer arithmetic with overflow checking. Uses
 # intrinsics or inline assembler.
 
-proc raiseOverflow {.compilerproc, noinline.} =
+proc raiseOverflow() {.compilerproc, noinline.} =
   # a single proc to reduce code size to a minimum
   sysFatal(OverflowDefect, "over- or underflow")
 
-proc raiseDivByZero {.compilerproc, noinline.} =
+proc raiseDivByZero() {.compilerproc, noinline.} =
   sysFatal(DivByZeroDefect, "division by zero")
 
 {.pragma: nimbaseH, importc, nodecl, noSideEffect, compilerproc.}
@@ -26,23 +26,23 @@ when not defined(nimEmulateOverflowChecks):
   proc nimSubInt(a, b: int, res: ptr int): bool {.nimbaseH.}
   proc nimMulInt(a, b: int, res: ptr int): bool {.nimbaseH.}
 
-  proc nimAddInt64(a, b: int64; res: ptr int64): bool {.nimbaseH.}
-  proc nimSubInt64(a, b: int64; res: ptr int64): bool {.nimbaseH.}
-  proc nimMulInt64(a, b: int64; res: ptr int64): bool {.nimbaseH.}
+  proc nimAddInt64(a, b: int64, res: ptr int64): bool {.nimbaseH.}
+  proc nimSubInt64(a, b: int64, res: ptr int64): bool {.nimbaseH.}
+  proc nimMulInt64(a, b: int64, res: ptr int64): bool {.nimbaseH.}
 
 # unary minus and 'abs' not required here anymore and are directly handled
 # in the code generator.
 # 'nimModInt' does exist in nimbase.h without check as we moved the
 # check for 0 to the codgen.
-proc nimModInt(a, b: int; res: ptr int): bool {.nimbaseH.}
+proc nimModInt(a, b: int, res: ptr int): bool {.nimbaseH.}
 
-proc nimModInt64(a, b: int64; res: ptr int64): bool {.nimbaseH.}
+proc nimModInt64(a, b: int64, res: ptr int64): bool {.nimbaseH.}
 
 # Platform independent versions.
 
 template addImplFallback(name, T, U) {.dirty.} =
   when not declared(name):
-    proc name(a, b: T; res: ptr T): bool {.compilerproc, inline.} =
+    proc name(a, b: T, res: ptr T): bool {.compilerproc, inline.} =
       let r = cast[T](cast[U](a) + cast[U](b))
       if (r xor a) >= T(0) or (r xor b) >= T(0):
         res[] = r
@@ -54,7 +54,7 @@ addImplFallback(nimAddInt64, int64, uint64)
 
 template subImplFallback(name, T, U) {.dirty.} =
   when not declared(name):
-    proc name(a, b: T; res: ptr T): bool {.compilerproc, inline.} =
+    proc name(a, b: T, res: ptr T): bool {.compilerproc, inline.} =
       let r = cast[T](cast[U](a) - cast[U](b))
       if (r xor a) >= 0 or (r xor not b) >= 0:
         res[] = r
@@ -86,7 +86,7 @@ template mulImplFallback(name, T, U, conv) {.dirty.} =
   # native int product that must have overflowed.
   #
   when not declared(name):
-    proc name(a, b: T; res: ptr T): bool {.compilerproc, inline.} =
+    proc name(a, b: T, res: ptr T): bool {.compilerproc, inline.} =
       let r = cast[T](cast[U](a) * cast[U](b))
       let floatProd = conv(a) * conv(b)
       let resAsFloat = conv(r)
@@ -110,9 +110,8 @@ template mulImplFallback(name, T, U, conv) {.dirty.} =
 mulImplFallback(nimMulInt, int, uint, toFloat)
 mulImplFallback(nimMulInt64, int64, uint64, toBiggestFloat)
 
-
 template divImplFallback(name, T) {.dirty.} =
-  proc name(a, b: T; res: ptr T): bool {.compilerproc, inline.} =
+  proc name(a, b: T, res: ptr T): bool {.compilerproc, inline.} =
     # we moved the b == 0 case out into the codegen.
     if a == low(T) and b == T(-1):
       result = true
@@ -123,7 +122,7 @@ template divImplFallback(name, T) {.dirty.} =
 divImplFallback(nimDivInt, int)
 divImplFallback(nimDivInt64, int64)
 
-proc raiseFloatInvalidOp {.compilerproc, noinline.} =
+proc raiseFloatInvalidOp() {.compilerproc, noinline.} =
   sysFatal(FloatInvalidOpDefect, "FPU operation caused a NaN result")
 
 proc raiseFloatOverflow(x: float64) {.compilerproc, noinline.} =

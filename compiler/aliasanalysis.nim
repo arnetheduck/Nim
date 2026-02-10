@@ -1,13 +1,12 @@
-
 import ast
 
-import std / assertions
+import std/assertions
 
 const
-  PathKinds0* = {nkDotExpr, nkCheckedFieldExpr,
-                 nkBracketExpr, nkDerefExpr, nkHiddenDeref,
-                 nkAddr, nkHiddenAddr,
-                 nkObjDownConv, nkObjUpConv}
+  PathKinds0* = {
+    nkDotExpr, nkCheckedFieldExpr, nkBracketExpr, nkDerefExpr, nkHiddenDeref, nkAddr,
+    nkHiddenAddr, nkObjDownConv, nkObjUpConv,
+  }
   PathKinds1* = {nkHiddenStdConv, nkHiddenSubConv}
 
 proc skipConvDfa*(n: PNode): PNode =
@@ -18,9 +17,10 @@ proc skipConvDfa*(n: PNode): PNode =
       result = result[0]
     of PathKinds1:
       result = result[1]
-    else: break
+    else:
+      break
 
-proc isAnalysableFieldAccess*(orig: PNode; owner: PSym): bool =
+proc isAnalysableFieldAccess*(orig: PNode, owner: PSym): bool =
   var n = orig
   while true:
     case n.kind
@@ -34,12 +34,15 @@ proc isAnalysableFieldAccess*(orig: PNode; owner: PSym): bool =
       # bug #14159, we cannot reason about sinkParam[].location as it can
       # still be shared for tyRef.
       n = n[0]
-      return n.kind == nkSym and n.sym.owner == owner and
-         (n.sym.typ.skipTypes(abstractInst-{tyOwned}).kind in {tyOwned})
-    else: break
+      return
+        n.kind == nkSym and n.sym.owner == owner and
+        (n.sym.typ.skipTypes(abstractInst - {tyOwned}).kind in {tyOwned})
+    else:
+      break
   # XXX Allow closure deref operations here if we know
   # the owner controlled the closure allocation?
-  result = n.kind == nkSym and n.sym.owner == owner and
+  result =
+    n.kind == nkSym and n.sym.owner == owner and
     {sfGlobal, sfThread, sfCursor} * n.sym.flags == {} and
     (n.sym.kind != skParam or isSinkParam(n.sym)) # or n.sym.typ.kind == tyVar)
   # Note: There is a different move analyzer possible that checks for
@@ -54,7 +57,9 @@ proc isAnalysableFieldAccess*(orig: PNode; owner: PSym): bool =
   # lower level C++ optimizer to specialize this code.
 
 type AliasKind* = enum
-  yes, no, maybe
+  yes
+  no
+  maybe
 
 proc aliases*(obj, field: PNode): AliasKind =
   # obj -> field:
@@ -88,16 +93,18 @@ proc aliases*(obj, field: PNode): AliasKind =
       of nkSym:
         result.add n
         break
-      else: return no
+      else:
+        return no
 
   collectImportantNodes(objImportantNodes, obj)
   collectImportantNodes(fieldImportantNodes, field)
 
   # If field is less nested than obj, then it cannot be part of/aliased by obj
-  if fieldImportantNodes.len < objImportantNodes.len: return no
+  if fieldImportantNodes.len < objImportantNodes.len:
+    return no
 
   result = yes
-  for i in 1..objImportantNodes.len:
+  for i in 1 .. objImportantNodes.len:
     # We compare the nodes leading to the location of obj and field
     # with each other.
     # We continue until they diverge, in which case we return no, or
@@ -113,9 +120,11 @@ proc aliases*(obj, field: PNode): AliasKind =
 
     case currFieldPath.kind
     of nkSym:
-      if currFieldPath.sym != currObjPath.sym: return no
+      if currFieldPath.sym != currObjPath.sym:
+        return no
     of nkDotExpr:
-      if currFieldPath[1].sym != currObjPath[1].sym: return no
+      if currFieldPath[1].sym != currObjPath[1].sym:
+        return no
     of nkDerefExpr, nkHiddenDeref:
       discard
     of nkBracketExpr:
@@ -124,5 +133,6 @@ proc aliases*(obj, field: PNode): AliasKind =
           return no
       else:
         result = maybe
-    else: assert false # unreachable
-
+    else:
+      assert false
+      # unreachable

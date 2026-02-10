@@ -33,7 +33,7 @@ runnableExamples:
   # you can scope it as follows:
   assert ?.(f2.x2.x2).x3[] == 0
 
-  assert (?.f2.x2.x2).x3 == nil  # this terminates ?. early
+  assert (?.f2.x2.x2).x3 == nil # this terminates ?. early
 
 runnableExamples:
   # ?. also allows case object
@@ -45,20 +45,24 @@ runnableExamples:
       b1: float
 
   var b = B(cond: false, b0: 3)
-  doAssertRaises(FieldDefect): discard b.b1 # wrong discriminant
+  doAssertRaises(FieldDefect):
+    discard b.b1 # wrong discriminant
   doAssert ?.b.b1 == 0.0 # safe
   b = B(cond: true, b1: 4.5)
   doAssert ?.b.b1 == 4.5
 
   # lvalue semantics are preserved:
-  if (let p = ?.b.b1.addr; p != nil): p[] = 4.7
+  if (let p = ?.b.b1.addr; p != nil):
+    p[] = 4.7
   doAssert b.b1 == 4.7
 
 proc finalize(n: NimNode, lhs: NimNode, level: int): NimNode =
   if level == 0:
-    result = quote: `lhs` = `n`
+    result = quote:
+      `lhs` = `n`
   else:
-    result = quote: (let `lhs` = `n`)
+    result = quote:
+      (let `lhs` = `n`)
 
 proc process(n: NimNode, lhs: NimNode, label: NimNode, level: int): NimNode =
   result = nil
@@ -73,8 +77,8 @@ proc process(n: NimNode, lhs: NimNode, label: NimNode, level: int): NimNode =
     elif it.kind == nnkCheckedFieldExpr:
       let dot = it[0]
       let obj = dot[0]
-      let objRef = quote do: `addr2`(`obj`)
-        # avoids a copy and preserves lvalue semantics, see tests
+      let objRef = quote:
+        `addr2`(`obj`) # avoids a copy and preserves lvalue semantics, see tests
       let check = it[1]
       let okSet = check[1]
       let kind1 = check[2]
@@ -83,12 +87,15 @@ proc process(n: NimNode, lhs: NimNode, label: NimNode, level: int): NimNode =
       let tmp3 = nnkDerefExpr.newTree(tmp)
       it[0][0] = tmp3
       let dot2 = nnkDotExpr.newTree(@[tmp, dot[1]])
-      if old.n != nil: old.n[old.index] = dot2
-      else: n = dot2
+      if old.n != nil:
+        old.n[old.index] = dot2
+      else:
+        n = dot2
       let assgn = finalize(n, lhs, level)
-      result = quote do:
+      result = quote:
         `body`
-        if `tmp3`.`kind1` notin `okSet`: break `label`
+        if `tmp3`.`kind1` notin `okSet`:
+          break `label`
         `assgn`
       break
     elif it.kind in {nnkHiddenDeref, nnkDerefExpr}:
@@ -96,9 +103,10 @@ proc process(n: NimNode, lhs: NimNode, label: NimNode, level: int): NimNode =
       let body = process(it[0], tmp, label, level + 1)
       it[0] = tmp
       let assgn = finalize(n, lhs, level)
-      result = quote do:
+      result = quote:
         `body`
-        if `tmp` == nil: break `label`
+        if `tmp` == nil:
+          break `label`
         `assgn`
       break
     elif it.kind == nnkCall: # consider extending to `nnkCallKinds`
@@ -116,7 +124,7 @@ macro `?.`*(a: typed): auto =
   let lhs = genSym(nskVar, "lhs")
   let label = genSym(nskLabel, "label")
   let body = process(a, lhs, label, 0)
-  result = quote do:
+  result = quote:
     var `lhs`: type(`a`)
     block `label`:
       `body`
@@ -132,6 +140,7 @@ macro `??.`*(a: typed): Option =
     type Foo = ref object
       x1: ref int
       x2: int
+
     # `?.` can't distinguish between a valid vs invalid default value, but `??.` can:
     var f1 = Foo(x1: int.new, x2: 2)
     doAssert (??.f1.x1[]).get == 0 # not enough to tell when the chain was valid.
@@ -141,14 +150,15 @@ macro `??.`*(a: typed): Option =
     var f2: Foo
     doAssert not (??.f2.x1[]).isSome # f2 was nil
 
-    doAssertRaises(UnpackDefect): discard (??.f2.x1[]).get
+    doAssertRaises(UnpackDefect):
+      discard (??.f2.x1[]).get
     doAssert ?.f2.x1[] == 0 # in contrast, this returns default(int)
 
   let lhs = genSym(nskVar, "lhs")
   let lhs2 = genSym(nskVar, "lhs")
   let label = genSym(nskLabel, "label")
   let body = process(a, lhs2, label, 0)
-  result = quote do:
+  result = quote:
     var `lhs`: Option[type(`a`)]
     block `label`:
       var `lhs2`: type(`a`)
@@ -162,7 +172,7 @@ template fakeDot*(a: Option, b): untyped =
   type T = Option[typeof(unsafeGet(a1).b)]
   if isSome(a1):
     let a2 = unsafeGet(a1)
-    when typeof(a2) is ref|ptr:
+    when typeof(a2) is ref | ptr:
       if a2 == nil:
         default(T)
       else:

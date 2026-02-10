@@ -30,7 +30,8 @@ else:
     import std/osproc
 
 const osOpenCmd* =
-  when defined(macos) or defined(macosx) or defined(windows): "open" else: "xdg-open" ## \
+  when defined(macos) or defined(macosx) or defined(windows): "open" else: "xdg-open"
+  ## \
   ## Alias for the operating system specific *"open"* command,
   ## `"open"` on OSX, MacOS and Windows, `"xdg-open"` on Linux, BSD, etc.
 
@@ -51,7 +52,8 @@ proc openDefaultBrowserRaw(url: string) =
     discard execShellCmd(osOpenCmd & " " & quoteShell(url))
   else:
     var u = quoteShell(url)
-    if execShellCmd(osOpenCmd & " " & u) == 0: return
+    if execShellCmd(osOpenCmd & " " & u) == 0:
+      return
     for b in getEnv("BROWSER").split(PathSep):
       try:
         # we use `startProcess` here because we don't want to block!
@@ -77,8 +79,10 @@ proc openDefaultBrowser*(url: string) =
   doAssert url.len > 0, "URL must not be empty string"
   openDefaultBrowserRaw(url)
 
-proc openDefaultBrowser*() {.since: (1, 1), deprecated: 
-  "not implemented, please open with a specific url instead".} =
+proc openDefaultBrowser*() {.
+    since: (1, 1),
+    deprecated: "not implemented, please open with a specific url instead"
+.} =
   ## Intends to open the user's default browser without any `url` (blank page).
   ## This does not block.
   ## Intends to implement IETF RFC-6694 Section 3,
@@ -109,4 +113,4 @@ proc openDefaultBrowser*() {.since: (1, 1), deprecated:
   ## **See also:**
   ##
   ## * https://tools.ietf.org/html/rfc6694#section-3
-  openDefaultBrowserRaw("about:blank")  # See IETF RFC-6694 Section 3.
+  openDefaultBrowserRaw("about:blank") # See IETF RFC-6694 Section 3.

@@ -23,8 +23,17 @@
 runnableExamples("-r:off"):
   import std/[os, strutils]
 
-  for i in 0..100:
-    stdout.styledWriteLine(fgRed, "0% ", fgWhite, '#'.repeat i, if i > 50: fgGreen else: fgYellow, "\t", $i , "%")
+  for i in 0 .. 100:
+    stdout.styledWriteLine(
+      fgRed,
+      "0% ",
+      fgWhite,
+      '#'.repeat i,
+      if i > 50: fgGreen else: fgYellow,
+      "\t",
+      $i,
+      "%",
+    )
     sleep 42
     cursorUp 1
     eraseLine()
@@ -56,7 +65,9 @@ runnableExamples("-r:off"):
   # only affect the text parameter right after them.
   styledEcho styleBright, fgGreen, "[PASS]", resetStyle, fgGreen, " Yay!"
 
-  stdout.styledWriteLine(fgRed, "red text ", styleBright, "bold red", fgDefault, " bold text")
+  stdout.styledWriteLine(
+    fgRed, "red text ", styleBright, "bold red", fgDefault, " bold text"
+  )
 
 import std/macros
 import std/strformat
@@ -69,16 +80,15 @@ when defined(windows):
 when defined(nimPreviewSlimSystem):
   import std/[syncio, assertions]
 
-type
-  PTerminal = ref object
-    trueColorIsSupported: bool
-    trueColorIsEnabled: bool
-    fgSetColor: bool
-    when defined(windows):
-      hStdout: Handle
-      hStderr: Handle
-      oldStdoutAttr: int16
-      oldStderrAttr: int16
+type PTerminal = ref object
+  trueColorIsSupported: bool
+  trueColorIsEnabled: bool
+  fgSetColor: bool
+  when defined(windows):
+    hStdout: Handle
+    hStderr: Handle
+    oldStdoutAttr: int16
+    oldStderrAttr: int16
 
 var gTerm {.threadvar.}: owned(PTerminal)
 
@@ -140,24 +150,31 @@ when defined(windows):
       dwSize: DWORD
       bVisible: WINBOOL
 
-  proc duplicateHandle(hSourceProcessHandle: Handle, hSourceHandle: Handle,
-                       hTargetProcessHandle: Handle, lpTargetHandle: ptr Handle,
-                       dwDesiredAccess: DWORD, bInheritHandle: WINBOOL,
-                       dwOptions: DWORD): WINBOOL{.stdcall, dynlib: "kernel32",
-      importc: "DuplicateHandle".}
-  proc getCurrentProcess(): Handle{.stdcall, dynlib: "kernel32",
-                                     importc: "GetCurrentProcess".}
-  proc getConsoleScreenBufferInfo(hConsoleOutput: Handle,
-    lpConsoleScreenBufferInfo: ptr CONSOLE_SCREEN_BUFFER_INFO): WINBOOL{.stdcall,
-    dynlib: "kernel32", importc: "GetConsoleScreenBufferInfo".}
+  proc duplicateHandle(
+    hSourceProcessHandle: Handle,
+    hSourceHandle: Handle,
+    hTargetProcessHandle: Handle,
+    lpTargetHandle: ptr Handle,
+    dwDesiredAccess: DWORD,
+    bInheritHandle: WINBOOL,
+    dwOptions: DWORD,
+  ): WINBOOL {.stdcall, dynlib: "kernel32", importc: "DuplicateHandle".}
 
-  proc getConsoleCursorInfo(hConsoleOutput: Handle,
-      lpConsoleCursorInfo: ptr CONSOLE_CURSOR_INFO): WINBOOL{.
-      stdcall, dynlib: "kernel32", importc: "GetConsoleCursorInfo".}
+  proc getCurrentProcess(): Handle {.
+    stdcall, dynlib: "kernel32", importc: "GetCurrentProcess"
+  .}
 
-  proc setConsoleCursorInfo(hConsoleOutput: Handle,
-      lpConsoleCursorInfo: ptr CONSOLE_CURSOR_INFO): WINBOOL{.
-      stdcall, dynlib: "kernel32", importc: "SetConsoleCursorInfo".}
+  proc getConsoleScreenBufferInfo(
+    hConsoleOutput: Handle, lpConsoleScreenBufferInfo: ptr CONSOLE_SCREEN_BUFFER_INFO
+  ): WINBOOL {.stdcall, dynlib: "kernel32", importc: "GetConsoleScreenBufferInfo".}
+
+  proc getConsoleCursorInfo(
+    hConsoleOutput: Handle, lpConsoleCursorInfo: ptr CONSOLE_CURSOR_INFO
+  ): WINBOOL {.stdcall, dynlib: "kernel32", importc: "GetConsoleCursorInfo".}
+
+  proc setConsoleCursorInfo(
+    hConsoleOutput: Handle, lpConsoleCursorInfo: ptr CONSOLE_CURSOR_INFO
+  ): WINBOOL {.stdcall, dynlib: "kernel32", importc: "SetConsoleCursorInfo".}
 
   proc terminalWidthIoctl*(handles: openArray[Handle]): int =
     var csbi: CONSOLE_SCREEN_BUFFER_INFO
@@ -176,52 +193,70 @@ when defined(windows):
   proc terminalWidth*(): int =
     ## Returns the terminal width in columns.
     var w: int = 0
-    w = terminalWidthIoctl([getStdHandle(STD_INPUT_HANDLE),
-                             getStdHandle(STD_OUTPUT_HANDLE),
-                             getStdHandle(STD_ERROR_HANDLE)])
-    if w > 0: return w
+    w = terminalWidthIoctl(
+      [
+        getStdHandle(STD_INPUT_HANDLE),
+        getStdHandle(STD_OUTPUT_HANDLE),
+        getStdHandle(STD_ERROR_HANDLE),
+      ]
+    )
+    if w > 0:
+      return w
     return 80
 
   proc terminalHeight*(): int =
     ## Returns the terminal height in rows.
     var h: int = 0
-    h = terminalHeightIoctl([getStdHandle(STD_INPUT_HANDLE),
-                              getStdHandle(STD_OUTPUT_HANDLE),
-                              getStdHandle(STD_ERROR_HANDLE)])
-    if h > 0: return h
+    h = terminalHeightIoctl(
+      [
+        getStdHandle(STD_INPUT_HANDLE),
+        getStdHandle(STD_OUTPUT_HANDLE),
+        getStdHandle(STD_ERROR_HANDLE),
+      ]
+    )
+    if h > 0:
+      return h
     return 0
 
-  proc setConsoleCursorPosition(hConsoleOutput: Handle,
-                                dwCursorPosition: COORD): WINBOOL{.
-      stdcall, dynlib: "kernel32", importc: "SetConsoleCursorPosition".}
+  proc setConsoleCursorPosition(
+    hConsoleOutput: Handle, dwCursorPosition: COORD
+  ): WINBOOL {.stdcall, dynlib: "kernel32", importc: "SetConsoleCursorPosition".}
 
-  proc fillConsoleOutputCharacter(hConsoleOutput: Handle, cCharacter: char,
-                                  nLength: DWORD, dwWriteCoord: COORD,
-                                  lpNumberOfCharsWritten: ptr DWORD): WINBOOL{.
-      stdcall, dynlib: "kernel32", importc: "FillConsoleOutputCharacterA".}
+  proc fillConsoleOutputCharacter(
+    hConsoleOutput: Handle,
+    cCharacter: char,
+    nLength: DWORD,
+    dwWriteCoord: COORD,
+    lpNumberOfCharsWritten: ptr DWORD,
+  ): WINBOOL {.stdcall, dynlib: "kernel32", importc: "FillConsoleOutputCharacterA".}
 
-  proc fillConsoleOutputAttribute(hConsoleOutput: Handle, wAttribute: int16,
-                                  nLength: DWORD, dwWriteCoord: COORD,
-                                  lpNumberOfAttrsWritten: ptr DWORD): WINBOOL{.
-      stdcall, dynlib: "kernel32", importc: "FillConsoleOutputAttribute".}
+  proc fillConsoleOutputAttribute(
+    hConsoleOutput: Handle,
+    wAttribute: int16,
+    nLength: DWORD,
+    dwWriteCoord: COORD,
+    lpNumberOfAttrsWritten: ptr DWORD,
+  ): WINBOOL {.stdcall, dynlib: "kernel32", importc: "FillConsoleOutputAttribute".}
 
-  proc setConsoleTextAttribute(hConsoleOutput: Handle,
-                               wAttributes: int16): WINBOOL{.
-      stdcall, dynlib: "kernel32", importc: "SetConsoleTextAttribute".}
+  proc setConsoleTextAttribute(
+    hConsoleOutput: Handle, wAttributes: int16
+  ): WINBOOL {.stdcall, dynlib: "kernel32", importc: "SetConsoleTextAttribute".}
 
-  proc getConsoleMode(hConsoleHandle: Handle, dwMode: ptr DWORD): WINBOOL{.
-      stdcall, dynlib: "kernel32", importc: "GetConsoleMode".}
+  proc getConsoleMode(
+    hConsoleHandle: Handle, dwMode: ptr DWORD
+  ): WINBOOL {.stdcall, dynlib: "kernel32", importc: "GetConsoleMode".}
 
-  proc setConsoleMode(hConsoleHandle: Handle, dwMode: DWORD): WINBOOL{.
-      stdcall, dynlib: "kernel32", importc: "SetConsoleMode".}
+  proc setConsoleMode(
+    hConsoleHandle: Handle, dwMode: DWORD
+  ): WINBOOL {.stdcall, dynlib: "kernel32", importc: "SetConsoleMode".}
 
-  proc getCursorPos(h: Handle): tuple [x, y: int] =
+  proc getCursorPos(h: Handle): tuple[x, y: int] =
     var c: CONSOLE_SCREEN_BUFFER_INFO
     if getConsoleScreenBufferInfo(h, addr(c)) == 0:
       raiseOSError(osLastError())
     return (int(c.dwCursorPosition.x), int(c.dwCursorPosition.y))
 
-  proc getCursorPos*(): tuple [x, y: int] {.raises: [ValueError, IOError, OSError].} =
+  proc getCursorPos*(): tuple[x, y: int] {.raises: [ValueError, IOError, OSError].} =
     return getCursorPos(getStdHandle(STD_OUTPUT_HANDLE))
 
   proc setCursorPos(h: Handle, x, y: int) =
@@ -240,13 +275,27 @@ when defined(windows):
 
   proc initTerminal(term: PTerminal) =
     var hStdoutTemp = getStdHandle(STD_OUTPUT_HANDLE)
-    if duplicateHandle(getCurrentProcess(), hStdoutTemp, getCurrentProcess(),
-                       addr(term.hStdout), 0, 1, DUPLICATE_SAME_ACCESS) == 0:
+    if duplicateHandle(
+      getCurrentProcess(),
+      hStdoutTemp,
+      getCurrentProcess(),
+      addr(term.hStdout),
+      0,
+      1,
+      DUPLICATE_SAME_ACCESS,
+    ) == 0:
       when defined(consoleapp):
         raiseOSError(osLastError())
     var hStderrTemp = getStdHandle(STD_ERROR_HANDLE)
-    if duplicateHandle(getCurrentProcess(), hStderrTemp, getCurrentProcess(),
-                       addr(term.hStderr), 0, 1, DUPLICATE_SAME_ACCESS) == 0:
+    if duplicateHandle(
+      getCurrentProcess(),
+      hStderrTemp,
+      getCurrentProcess(),
+      addr(term.hStderr),
+      0,
+      1,
+      DUPLICATE_SAME_ACCESS,
+    ) == 0:
       when defined(consoleapp):
         raiseOSError(osLastError())
     term.oldStdoutAttr = getAttributes(term.hStdout)
@@ -262,8 +311,8 @@ else:
   proc setRaw(fd: FileHandle, time: cint = TCSAFLUSH) =
     var mode: Termios = default(Termios)
     discard fd.tcGetAttr(addr mode)
-    mode.c_iflag = mode.c_iflag and not Cflag(BRKINT or ICRNL or INPCK or
-      ISTRIP or IXON)
+    mode.c_iflag =
+      mode.c_iflag and not Cflag(BRKINT or ICRNL or INPCK or ISTRIP or IXON)
     mode.c_oflag = mode.c_oflag and not Cflag(OPOST)
     mode.c_cflag = (mode.c_cflag and not Cflag(CSIZE or PARENB)) or CS8
     mode.c_lflag = mode.c_lflag and not Cflag(ECHO or ICANON or IEXTEN or ISIG)
@@ -271,7 +320,7 @@ else:
     mode.c_cc[VTIME] = 0.cuchar
     discard fd.tcSetAttr(time, addr mode)
 
-  proc getCursorPos*(): tuple [x, y: int] {.raises: [ValueError, IOError].} =
+  proc getCursorPos*(): tuple[x, y: int] {.raises: [ValueError, IOError].} =
     ## Returns cursor position (x, y)
     ## writes to stdout and expects the terminal to respond via stdin
     var
@@ -295,14 +344,18 @@ else:
         let n = readBuffer(stdin, addr ch, 1)
         if n == 0 or ch == 'R':
           if xStr == "" or yStr == "":
-            raise newException(ValueError, "Got character position message that was missing data")
+            raise newException(
+              ValueError, "Got character position message that was missing data"
+            )
           break
         ct += 1
         if ct > 16:
-          raise newException(ValueError, "Got unterminated character position message from terminal")
+          raise newException(
+            ValueError, "Got unterminated character position message from terminal"
+          )
         if ch == ';':
           readX = true
-        elif ch in {'0'..'9'}:
+        elif ch in {'0' .. '9'}:
           if readX:
             xStr.add(ch)
           else:
@@ -331,7 +384,7 @@ else:
         return int(win.ws_row)
     return 0
 
-  var L_ctermid{.importc, header: "<stdio.h>".}: cint
+  var L_ctermid {.importc, header: "<stdio.h>".}: cint
 
   proc terminalWidth*(): int =
     ## Returns some reasonable terminal width from either standard file
@@ -354,13 +407,15 @@ else:
     if len(s) > 0 and parseSaturatedNatural(s, w) > 0 and w > 0:
       return w
     w = terminalWidthIoctl([0, 1, 2]) # Try standard file descriptors
-    if w > 0: return w
+    if w > 0:
+      return w
     var cterm = newString(L_ctermid) # Try controlling tty
     var fd = open(ctermid(cstring(cterm)), O_RDONLY)
     if fd != -1:
       w = terminalWidthIoctl([int(fd)])
     discard close(fd)
-    if w > 0: return w
+    if w > 0:
+      return w
     return 80 # Finally default to venerable value
 
   proc terminalHeight*(): int =
@@ -388,13 +443,15 @@ else:
     if len(s) > 0 and parseSaturatedNatural(s, h) > 0 and h > 0:
       return h
     h = terminalHeightIoctl([0, 1, 2]) # Try standard file descriptors
-    if h > 0: return h
+    if h > 0:
+      return h
     var cterm = newString(L_ctermid) # Try controlling tty
     var fd = open(ctermid(cstring(cterm)), O_RDONLY)
     if fd != -1:
       h = terminalHeightIoctl([int(fd)])
     discard close(fd)
-    if h > 0: return h
+    if h > 0:
+      return h
     return 0 # Could not determine height
 
 proc terminalSize*(): tuple[w, h: int] =
@@ -471,7 +528,8 @@ proc cursorUp*(f: File, count = 1) =
   ## Moves the cursor up by `count` rows.
   runnableExamples("-r:off"):
     stdout.cursorUp(2)
-    write(stdout, "Hello World!") # anything written at that location will be erased/replaced with this
+    write(stdout, "Hello World!")
+      # anything written at that location will be erased/replaced with this
   when defined(windows):
     let h = conHandle(f)
     var p = getCursorPos(h)
@@ -484,7 +542,8 @@ proc cursorDown*(f: File, count = 1) =
   ## Moves the cursor down by `count` rows.
   runnableExamples("-r:off"):
     stdout.cursorDown(2)
-    write(stdout, "Hello World!") # anything written at that location will be erased/replaced with this
+    write(stdout, "Hello World!")
+      # anything written at that location will be erased/replaced with this
   when defined(windows):
     let h = conHandle(f)
     var p = getCursorPos(h)
@@ -497,7 +556,8 @@ proc cursorForward*(f: File, count = 1) =
   ## Moves the cursor forward by `count` columns.
   runnableExamples("-r:off"):
     stdout.cursorForward(2)
-    write(stdout, "Hello World!") # anything written at that location will be erased/replaced with this
+    write(stdout, "Hello World!")
+      # anything written at that location will be erased/replaced with this
   when defined(windows):
     let h = conHandle(f)
     var p = getCursorPos(h)
@@ -510,7 +570,8 @@ proc cursorBackward*(f: File, count = 1) =
   ## Moves the cursor backward by `count` columns.
   runnableExamples("-r:off"):
     stdout.cursorBackward(2)
-    write(stdout, "Hello World!") # anything written at that location will be erased/replaced with this
+    write(stdout, "Hello World!")
+      # anything written at that location will be erased/replaced with this
   when defined(windows):
     let h = conHandle(f)
     var p = getCursorPos(h)
@@ -566,11 +627,11 @@ proc eraseLine*(f: File) =
     if setConsoleCursorPosition(h, origin) == 0:
       raiseOSError(osLastError())
     var wt: DWORD = scrbuf.dwSize.x - origin.x
-    if fillConsoleOutputCharacter(h, ' ', wt,
-                                  origin, addr(numwrote)) == 0:
+    if fillConsoleOutputCharacter(h, ' ', wt, origin, addr(numwrote)) == 0:
       raiseOSError(osLastError())
-    if fillConsoleOutputAttribute(h, scrbuf.wAttributes, wt,
-                                  scrbuf.dwCursorPosition, addr(numwrote)) == 0:
+    if fillConsoleOutputAttribute(
+      h, scrbuf.wAttributes, wt, scrbuf.dwCursorPosition, addr(numwrote)
+    ) == 0:
       raiseOSError(osLastError())
   else:
     f.write("\e[2K")
@@ -586,13 +647,13 @@ proc eraseScreen*(f: File) =
 
     if getConsoleScreenBufferInfo(h, addr(scrbuf)) == 0:
       raiseOSError(osLastError())
-    let numChars = int32(scrbuf.dwSize.x)*int32(scrbuf.dwSize.y)
+    let numChars = int32(scrbuf.dwSize.x) * int32(scrbuf.dwSize.y)
 
-    if fillConsoleOutputCharacter(h, ' ', numChars,
-                                  origin, addr(numwrote)) == 0:
+    if fillConsoleOutputCharacter(h, ' ', numChars, origin, addr(numwrote)) == 0:
       raiseOSError(osLastError())
-    if fillConsoleOutputAttribute(h, scrbuf.wAttributes, numChars,
-                                  origin, addr(numwrote)) == 0:
+    if fillConsoleOutputAttribute(
+      h, scrbuf.wAttributes, numChars, origin, addr(numwrote)
+    ) == 0:
       raiseOSError(osLastError())
     setCursorXPos(f, 0)
   else:
@@ -616,17 +677,16 @@ proc resetAttributes*(f: File) =
     gFG = 0
     gBG = 0
 
-type
-  Style* = enum        ## Different styles for text output.
-    styleBright = 1,   ## bright text
-    styleDim,          ## dim text
-    styleItalic,       ## italic (or reverse on terminals not supporting)
-    styleUnderscore,   ## underscored text
-    styleBlink,        ## blinking/bold text
-    styleBlinkRapid,   ## rapid blinking/bold text (not widely supported)
-    styleReverse,      ## reverse
-    styleHidden,       ## hidden text
-    styleStrikethrough ## strikethrough
+type Style* = enum ## Different styles for text output.
+  styleBright = 1 ## bright text
+  styleDim ## dim text
+  styleItalic ## italic (or reverse on terminals not supporting)
+  styleUnderscore ## underscored text
+  styleBlink ## blinking/bold text
+  styleBlinkRapid ## rapid blinking/bold text (not widely supported)
+  styleReverse ## reverse
+  styleHidden ## hidden text
+  styleStrikethrough ## strikethrough
 
 proc ansiStyleCode*(style: int): string =
   result = fmt"{stylePrefix}{style}m"
@@ -644,10 +704,14 @@ proc setStyle*(f: File, style: set[Style]) =
     let h = conHandle(f)
     var old = getAttributes(h) and (FOREGROUND_RGB or BACKGROUND_RGB)
     var a = 0'i16
-    if styleBright in style: a = a or int16(FOREGROUND_INTENSITY)
-    if styleBlink in style: a = a or int16(BACKGROUND_INTENSITY)
-    if styleReverse in style: a = a or 0x4000'i16 # COMMON_LVB_REVERSE_VIDEO
-    if styleUnderscore in style: a = a or 0x8000'i16 # COMMON_LVB_UNDERSCORE
+    if styleBright in style:
+      a = a or int16(FOREGROUND_INTENSITY)
+    if styleBlink in style:
+      a = a or int16(BACKGROUND_INTENSITY)
+    if styleReverse in style:
+      a = a or 0x4000'i16 # COMMON_LVB_REVERSE_VIDEO
+    if styleUnderscore in style:
+      a = a or 0x8000'i16 # COMMON_LVB_UNDERSCORE
     discard setConsoleTextAttribute(h, old or a)
   else:
     for s in items(style):
@@ -672,31 +736,32 @@ proc writeStyled*(txt: string, style: set[Style] = {styleBright}) =
 
 type
   ForegroundColor* = enum ## Terminal's foreground colors.
-    fgBlack = 30,         ## black
-    fgRed,                ## red
-    fgGreen,              ## green
-    fgYellow,             ## yellow
-    fgBlue,               ## blue
-    fgMagenta,            ## magenta
-    fgCyan,               ## cyan
-    fgWhite,              ## white
-    fg8Bit,               ## 256-color (not supported, see `enableTrueColors` instead.)
-    fgDefault             ## default terminal foreground color
+    fgBlack = 30 ## black
+    fgRed ## red
+    fgGreen ## green
+    fgYellow ## yellow
+    fgBlue ## blue
+    fgMagenta ## magenta
+    fgCyan ## cyan
+    fgWhite ## white
+    fg8Bit ## 256-color (not supported, see `enableTrueColors` instead.)
+    fgDefault ## default terminal foreground color
 
   BackgroundColor* = enum ## Terminal's background colors.
-    bgBlack = 40,         ## black
-    bgRed,                ## red
-    bgGreen,              ## green
-    bgYellow,             ## yellow
-    bgBlue,               ## blue
-    bgMagenta,            ## magenta
-    bgCyan,               ## cyan
-    bgWhite,              ## white
-    bg8Bit,               ## 256-color (not supported, see `enableTrueColors` instead.)
-    bgDefault             ## default terminal background color
+    bgBlack = 40 ## black
+    bgRed ## red
+    bgGreen ## green
+    bgYellow ## yellow
+    bgBlue ## blue
+    bgMagenta ## magenta
+    bgCyan ## cyan
+    bgWhite ## white
+    bg8Bit ## 256-color (not supported, see `enableTrueColors` instead.)
+    bgDefault ## default terminal background color
 
 when defined(windows):
-  var defaultForegroundColor, defaultBackgroundColor: int16 = 0xFFFF'i16 # Default to an invalid value 0xFFFF
+  var defaultForegroundColor, defaultBackgroundColor: int16 = 0xFFFF'i16
+    # Default to an invalid value 0xFFFF
 
 proc setForegroundColor*(f: File, fg: ForegroundColor, bright = false) =
   ## Sets the terminal's foreground color.
@@ -705,8 +770,11 @@ proc setForegroundColor*(f: File, fg: ForegroundColor, bright = false) =
     var old = getAttributes(h) and not FOREGROUND_RGB
     if defaultForegroundColor == 0xFFFF'i16:
       defaultForegroundColor = old
-    old = if bright: old or FOREGROUND_INTENSITY
-          else: old and not(FOREGROUND_INTENSITY)
+    old =
+      if bright:
+        old or FOREGROUND_INTENSITY
+      else:
+        old and not (FOREGROUND_INTENSITY)
     const lookup: array[ForegroundColor, int] = [
       0, # ForegroundColor enum with ordinal 30
       (FOREGROUND_RED),
@@ -717,14 +785,20 @@ proc setForegroundColor*(f: File, fg: ForegroundColor, bright = false) =
       (FOREGROUND_BLUE or FOREGROUND_GREEN),
       (FOREGROUND_BLUE or FOREGROUND_GREEN or FOREGROUND_RED),
       0, # fg8Bit not supported, see `enableTrueColors` instead.
-      0] # unused
+      0,
+    ] # unused
     if fg == fgDefault:
-      discard setConsoleTextAttribute(h, cast[int16](cast[uint16](old) or cast[uint16](defaultForegroundColor)))
+      discard setConsoleTextAttribute(
+        h, cast[int16](cast[uint16](old) or cast[uint16](defaultForegroundColor))
+      )
     else:
-      discard setConsoleTextAttribute(h, cast[int16](cast[uint16](old) or cast[uint16](lookup[fg])))
+      discard setConsoleTextAttribute(
+        h, cast[int16](cast[uint16](old) or cast[uint16](lookup[fg]))
+      )
   else:
     gFG = ord(fg)
-    if bright: inc(gFG, 60)
+    if bright:
+      inc(gFG, 60)
     f.write(ansiStyleCode(gFG))
 
 proc setBackgroundColor*(f: File, bg: BackgroundColor, bright = false) =
@@ -734,8 +808,11 @@ proc setBackgroundColor*(f: File, bg: BackgroundColor, bright = false) =
     var old = getAttributes(h) and not BACKGROUND_RGB
     if defaultBackgroundColor == 0xFFFF'i16:
       defaultBackgroundColor = old
-    old = if bright: old or BACKGROUND_INTENSITY
-          else: old and not(BACKGROUND_INTENSITY)
+    old =
+      if bright:
+        old or BACKGROUND_INTENSITY
+      else:
+        old and not (BACKGROUND_INTENSITY)
     const lookup: array[BackgroundColor, int] = [
       0, # BackgroundColor enum with ordinal 40
       (BACKGROUND_RED),
@@ -746,23 +823,31 @@ proc setBackgroundColor*(f: File, bg: BackgroundColor, bright = false) =
       (BACKGROUND_BLUE or BACKGROUND_GREEN),
       (BACKGROUND_BLUE or BACKGROUND_GREEN or BACKGROUND_RED),
       0, # bg8Bit not supported, see `enableTrueColors` instead.
-      0] # unused
+      0,
+    ] # unused
     if bg == bgDefault:
-      discard setConsoleTextAttribute(h, cast[int16](cast[uint16](old) or cast[uint16](defaultBackgroundColor)))
+      discard setConsoleTextAttribute(
+        h, cast[int16](cast[uint16](old) or cast[uint16](defaultBackgroundColor))
+      )
     else:
-      discard setConsoleTextAttribute(h, cast[int16](cast[uint16](old) or cast[uint16](lookup[bg])))
+      discard setConsoleTextAttribute(
+        h, cast[int16](cast[uint16](old) or cast[uint16](lookup[bg]))
+      )
   else:
     gBG = ord(bg)
-    if bright: inc(gBG, 60)
+    if bright:
+      inc(gBG, 60)
     f.write(ansiStyleCode(gBG))
 
 proc ansiForegroundColorCode*(fg: ForegroundColor, bright = false): string =
   var style = ord(fg)
-  if bright: inc(style, 60)
+  if bright:
+    inc(style, 60)
   return ansiStyleCode(style)
 
-template ansiForegroundColorCode*(fg: static[ForegroundColor],
-                                  bright: static[bool] = false): string =
+template ansiForegroundColorCode*(
+    fg: static[ForegroundColor], bright: static[bool] = false
+): string =
   ansiStyleCode(fg.int + bright.int * 60)
 
 proc ansiForegroundColorCode*(color: Color): string =
@@ -803,33 +888,40 @@ proc setTrueColor(f: File, color: Color) =
 proc isatty*(f: File): bool =
   ## Returns true if `f` is associated with a terminal device.
   when defined(posix):
-    proc isatty(fildes: FileHandle): cint {.
-      importc: "isatty", header: "<unistd.h>".}
+    proc isatty(fildes: FileHandle): cint {.importc: "isatty", header: "<unistd.h>".}
   elif defined(windows):
-    proc c_isatty(fildes: cint): cint {.
-      importc: "_isatty", header: "<io.h>".}
+    proc c_isatty(fildes: cint): cint {.importc: "_isatty", header: "<io.h>".}
     proc isatty(fildes: FileHandle): cint =
       c_isatty(cint(fildes))
+
   else:
     {.error: "isatty is not supported on your operating system!".}
 
   result = isatty(getFileHandle(f)) != 0'i32
 
-type
-  TerminalCmd* = enum ## commands that can be expressed as arguments
-    resetStyle,       ## reset attributes
-    fgColor,          ## set foreground's true color
-    bgColor           ## set background's true color
+type TerminalCmd* = enum ## commands that can be expressed as arguments
+  resetStyle ## reset attributes
+  fgColor ## set foreground's true color
+  bgColor ## set background's true color
 
-template styledEchoProcessArg(f: File, s: string) = write f, s
-template styledEchoProcessArg(f: File, style: Style) = setStyle(f, {style})
-template styledEchoProcessArg(f: File, style: set[Style]) = setStyle f, style
+template styledEchoProcessArg(f: File, s: string) =
+  write f, s
+
+template styledEchoProcessArg(f: File, style: Style) =
+  setStyle(f, {style})
+
+template styledEchoProcessArg(f: File, style: set[Style]) =
+  setStyle f, style
+
 template styledEchoProcessArg(f: File, color: ForegroundColor) =
   setForegroundColor f, color
+
 template styledEchoProcessArg(f: File, color: BackgroundColor) =
   setBackgroundColor f, color
+
 template styledEchoProcessArg(f: File, color: Color) =
   setTrueColor f, color
+
 template styledEchoProcessArg(f: File, cmd: TerminalCmd) =
   when cmd == resetStyle:
     resetAttributes(f)
@@ -852,11 +944,12 @@ macro styledWrite*(f: File, m: varargs[typed]): untyped =
   for i in countup(0, m.len - 1):
     let item = m[i]
     case item.kind
-    of nnkStrLit..nnkTripleStrLit:
+    of nnkStrLit .. nnkTripleStrLit:
       if i == m.len - 1:
         # optimize if string literal is last, just call write
         result.add(newCall(bindSym"write", f, item))
-        if reset: result.add(newCall(bindSym"resetAttributes", f))
+        if reset:
+          result.add(newCall(bindSym"resetAttributes", f))
         return
       else:
         # if it is string literal just call write, do not enable reset
@@ -864,7 +957,8 @@ macro styledWrite*(f: File, m: varargs[typed]): untyped =
     else:
       result.add(newCall(bindSym"styledEchoProcessArg", f, item))
       reset = true
-  if reset: result.add(newCall(bindSym"resetAttributes", f))
+  if reset:
+    result.add(newCall(bindSym"resetAttributes", f))
 
 template styledWriteLine*(f: File, args: varargs[untyped]) =
   ## Calls `styledWrite` and appends a newline at the end.
@@ -902,16 +996,17 @@ proc getch*(): char =
     discard fd.tcSetAttr(TCSADRAIN, addr oldMode)
 
 when defined(windows):
-  proc readPasswordFromStdin*(prompt: string, password: var string):
-                              bool {.tags: [ReadIOEffect, WriteIOEffect].} =
+  proc readPasswordFromStdin*(
+      prompt: string, password: var string
+  ): bool {.tags: [ReadIOEffect, WriteIOEffect].} =
     ## Reads a `password` from stdin without printing it. `password` must not
     ## be `nil`! Returns `false` if the end of the file has been reached,
     ## `true` otherwise.
     password.setLen(0)
     stdout.write(prompt)
     stdout.flushFile()
-    let hi = createFileA("CONIN$",
-      GENERIC_READ or GENERIC_WRITE, 0, nil, OPEN_EXISTING, 0, 0)
+    let hi =
+      createFileA("CONIN$", GENERIC_READ or GENERIC_WRITE, 0, nil, OPEN_EXISTING, 0, 0)
     var mode = DWORD 0
     discard getConsoleMode(hi, addr mode)
     let origMode = mode
@@ -927,8 +1022,9 @@ when defined(windows):
     stdout.write "\n"
 
 else:
-  proc readPasswordFromStdin*(prompt: string, password: var string):
-                            bool {.tags: [ReadIOEffect, WriteIOEffect].} =
+  proc readPasswordFromStdin*(
+      prompt: string, password: var string
+  ): bool {.tags: [ReadIOEffect, WriteIOEffect].} =
     password.setLen(0)
     let fd = stdin.getFileHandle()
     var cur, old: Termios = default(Termios)
@@ -947,30 +1043,56 @@ proc readPasswordFromStdin*(prompt = "password: "): string =
   result = ""
   discard readPasswordFromStdin(prompt, result)
 
-
 # Wrappers assuming output to stdout:
-template hideCursor*() = hideCursor(stdout)
-template showCursor*() = showCursor(stdout)
-template setCursorPos*(x, y: int) = setCursorPos(stdout, x, y)
-template setCursorXPos*(x: int) = setCursorXPos(stdout, x)
+template hideCursor*() =
+  hideCursor(stdout)
+
+template showCursor*() =
+  showCursor(stdout)
+
+template setCursorPos*(x, y: int) =
+  setCursorPos(stdout, x, y)
+
+template setCursorXPos*(x: int) =
+  setCursorXPos(stdout, x)
+
 when defined(windows):
-  template setCursorYPos*(x: int) = setCursorYPos(stdout, x)
-template cursorUp*(count = 1) = cursorUp(stdout, count)
-template cursorDown*(count = 1) = cursorDown(stdout, count)
-template cursorForward*(count = 1) = cursorForward(stdout, count)
-template cursorBackward*(count = 1) = cursorBackward(stdout, count)
-template eraseLine*() = eraseLine(stdout)
-template eraseScreen*() = eraseScreen(stdout)
+  template setCursorYPos*(x: int) =
+    setCursorYPos(stdout, x)
+
+template cursorUp*(count = 1) =
+  cursorUp(stdout, count)
+
+template cursorDown*(count = 1) =
+  cursorDown(stdout, count)
+
+template cursorForward*(count = 1) =
+  cursorForward(stdout, count)
+
+template cursorBackward*(count = 1) =
+  cursorBackward(stdout, count)
+
+template eraseLine*() =
+  eraseLine(stdout)
+
+template eraseScreen*() =
+  eraseScreen(stdout)
+
 template setStyle*(style: set[Style]) =
   setStyle(stdout, style)
+
 template setForegroundColor*(fg: ForegroundColor, bright = false) =
   setForegroundColor(stdout, fg, bright)
+
 template setBackgroundColor*(bg: BackgroundColor, bright = false) =
   setBackgroundColor(stdout, bg, bright)
+
 template setForegroundColor*(color: Color) =
   setForegroundColor(stdout, color)
+
 template setBackgroundColor*(color: Color) =
   setBackgroundColor(stdout, color)
+
 proc resetAttributes*() {.noconv.} =
   ## Resets all attributes on stdout.
   ## It is advisable to register this as a quit proc with
@@ -985,16 +1107,19 @@ proc enableTrueColors*() =
   ## Enables true color.
   var term = getTerminal()
   when defined(windows):
-    var
-      ver: OSVERSIONINFO
+    var ver: OSVERSIONINFO
     ver.dwOSVersionInfoSize = sizeof(ver).DWORD
     let res = getVersionExW(addr ver)
     if res == 0:
       term.trueColorIsSupported = false
     else:
-      term.trueColorIsSupported = ver.dwMajorVersion > 10 or
-        (ver.dwMajorVersion == 10 and (ver.dwMinorVersion > 0 or
-        (ver.dwMinorVersion == 0 and ver.dwBuildNumber >= 10586)))
+      term.trueColorIsSupported =
+        ver.dwMajorVersion > 10 or (
+          ver.dwMajorVersion == 10 and (
+            ver.dwMinorVersion > 0 or
+            (ver.dwMinorVersion == 0 and ver.dwBuildNumber >= 10586)
+          )
+        )
     if not term.trueColorIsSupported:
       term.trueColorIsSupported = getEnv("ANSICON_DEF").len > 0
 
@@ -1010,8 +1135,8 @@ proc enableTrueColors*() =
       else:
         term.trueColorIsEnabled = true
   else:
-    term.trueColorIsSupported = getEnv("COLORTERM").toLowerAscii() in [
-        "truecolor", "24bit"]
+    term.trueColorIsSupported =
+      getEnv("COLORTERM").toLowerAscii() in ["truecolor", "24bit"]
     term.trueColorIsEnabled = term.trueColorIsSupported
 
 proc disableTrueColors*() =

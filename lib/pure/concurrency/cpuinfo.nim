@@ -12,7 +12,6 @@
 runnableExamples:
   doAssert countProcessors() > 0
 
-
 include "system/inclrtl"
 
 when defined(js):
@@ -24,9 +23,10 @@ when defined(js):
     else:
       # `navigator.hardwareConcurrency`
       # works on browser as well as deno.
-      let navigator{.importcpp.}: JsObject
+      let navigator {.importcpp.}: JsObject
       let jsObj = navigator.hardwareConcurrency
     result = jsObj.to int
+
 else:
   when defined(posix) and not (defined(macosx) or defined(bsd)):
     import std/posix
@@ -46,35 +46,46 @@ else:
     {.emit: "#include <sys/sysctl.h>".}
     {.push nodecl.}
     when defined(macosx):
-      proc sysctlbyname(name: cstring,
-        oldp: pointer, oldlenp: var csize_t,
-        newp: pointer, newlen: csize_t): cint {.importc.}
+      proc sysctlbyname(
+        name: cstring,
+        oldp: pointer,
+        oldlenp: var csize_t,
+        newp: pointer,
+        newlen: csize_t,
+      ): cint {.importc.}
+
     let
-      CTL_HW{.importc.}: cint
-      HW_NCPU{.importc.}: cint
-    proc sysctl[I: static[int]](name: var array[I, cint], namelen: cuint,
-      oldp: pointer, oldlenp: var csize_t,
-      newp: pointer, newlen: csize_t): cint {.importc.}
+      CTL_HW {.importc.}: cint
+      HW_NCPU {.importc.}: cint
+    proc sysctl[I: static[int]](
+      name: var array[I, cint],
+      namelen: cuint,
+      oldp: pointer,
+      oldlenp: var csize_t,
+      newp: pointer,
+      newlen: csize_t,
+    ): cint {.importc.}
+
     {.pop.}
 
   when defined(genode):
     import genode/env
 
-    proc affinitySpaceTotal(env: GenodeEnvPtr): cuint {.
-      importcpp: "@->cpu().affinity_space().total()".}
+    proc affinitySpaceTotal(
+      env: GenodeEnvPtr
+    ): cuint {.importcpp: "@->cpu().affinity_space().total()".}
 
   when defined(haiku):
-    type
-      SystemInfo {.importc: "system_info", header: "<OS.h>".} = object
-        cpuCount {.importc: "cpu_count".}: uint32
+    type SystemInfo {.importc: "system_info", header: "<OS.h>".} = object
+      cpuCount {.importc: "cpu_count".}: uint32
 
-    proc getSystemInfo(info: ptr SystemInfo): int32 {.importc: "get_system_info",
-                                                      header: "<OS.h>".}
+    proc getSystemInfo(
+      info: ptr SystemInfo
+    ): int32 {.importc: "get_system_info", header: "<OS.h>".}
 
   proc countProcessorsImpl(): int {.inline.} =
     when defined(windows):
-      var
-        si: SystemInfo
+      var si: SystemInfo
       getSystemInfo(addr si)
       result = int(si.dwNumberOfProcessors)
     elif defined(macosx) or defined(bsd):
@@ -100,9 +111,8 @@ else:
         result = sysinfo.cpuCount.int
     else:
       result = sysconf(SC_NPROCESSORS_ONLN)
-    if result < 0: result = 0
-
-
+    if result < 0:
+      result = 0
 
 proc countProcessors*(): int {.rtl, extern: "ncpi$1".} =
   ## Returns the number of the processors/cores the machine has.

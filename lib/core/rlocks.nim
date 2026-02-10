@@ -9,7 +9,6 @@
 
 ## This module contains Nim's support for reentrant locks.
 
-
 when not compileOption("threads") and not defined(nimdoc):
   when false:
     # make rlocks modlue consistent with locks module,
@@ -18,8 +17,7 @@ when not compileOption("threads") and not defined(nimdoc):
 
 import std/private/syslocks
 
-type
-  RLock* = SysLock ## Nim lock, re-entrant
+type RLock* = SysLock ## Nim lock, re-entrant
 
 proc initRLock*(lock: var RLock) {.inline.} =
   ## Initializes the given lock.

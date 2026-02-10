@@ -31,7 +31,6 @@ proc `$`(info: InstantiationInfo): string =
 
 # ---------------------------------------------------------------------------
 
-
 proc raiseAssert*(msg: string) {.noinline, noreturn, nosinks.} =
   ## Raises an `AssertionDefect` with `msg`.
   when defined(nimPreviewSlimSystem):
@@ -63,16 +62,20 @@ template assert*(cond: untyped, msg = "") =
   ##
   ## No code will be generated for `assert` when passing `-d:danger` (implied by `--assertions:off`).
   ## See `command line switches <nimc.html#compiler-usage-commandminusline-switches>`_.
-  runnableExamples: assert 1 == 1
+  runnableExamples:
+    assert 1 == 1
   runnableExamples("--assertions:off"):
     assert 1 == 2 # no code generated, no failure here
-  runnableExamples("-d:danger"): assert 1 == 2 # ditto
+  runnableExamples("-d:danger"):
+    assert 1 == 2
+    # ditto
   assertImpl(cond, msg, astToStr(cond), compileOption("assertions"))
 
 template doAssert*(cond: untyped, msg = "") =
   ## Similar to `assert <#assert.t,untyped,string>`_ but is always turned on regardless of `--assertions`.
   runnableExamples:
-    doAssert 1 == 1 # generates code even when built with `-d:danger` or `--assertions:off`
+    doAssert 1 == 1
+      # generates code even when built with `-d:danger` or `--assertions:off`
   assertImpl(cond, msg, astToStr(cond), true)
 
 template onFailedAssert*(msg, code: untyped): untyped {.dirty.} =
@@ -81,11 +84,13 @@ template onFailedAssert*(msg, code: untyped): untyped {.dirty.} =
   runnableExamples:
     type MyError = object of CatchableError
       lineinfo: tuple[filename: string, line: int, column: int]
+
     # block-wide policy to change the failed assert exception type in order to
     # include a lineinfo
     onFailedAssert(msg):
       raise (ref MyError)(msg: msg, lineinfo: instantiationInfo(-2))
-    doAssertRaises(MyError): doAssert false
+    doAssertRaises(MyError):
+      doAssert false
   when not defined(nimHasTemplateRedefinitionPragma):
     {.pragma: redefine.}
   template failedAssertImpl(msgIMPL: string): untyped {.dirty, redefine.} =
@@ -95,21 +100,28 @@ template onFailedAssert*(msg, code: untyped): untyped {.dirty.} =
 template doAssertRaises*(exception: typedesc, code: untyped) =
   ## Raises `AssertionDefect` if specified `code` does not raise `exception`.
   runnableExamples:
-    doAssertRaises(ValueError): raise newException(ValueError, "Hello World")
-    doAssertRaises(CatchableError): raise newException(ValueError, "Hello World")
-    doAssertRaises(AssertionDefect): doAssert false
+    doAssertRaises(ValueError):
+      raise newException(ValueError, "Hello World")
+    doAssertRaises(CatchableError):
+      raise newException(ValueError, "Hello World")
+    doAssertRaises(AssertionDefect):
+      doAssert false
   var wrong = false
   const begin = "expected raising '" & astToStr(exception) & "', instead"
   const msgEnd = " by: " & astToStr(code)
-  template raisedForeign {.gensym.} = raiseAssert(begin & " raised foreign exception" & msgEnd)
-  {.push warning[BareExcept]:off.}
+  template raisedForeign() {.gensym.} =
+    raiseAssert(begin & " raised foreign exception" & msgEnd)
+
+  {.push warning[BareExcept]: off.}
   when Exception is exception:
     try:
       if true:
         code
       wrong = true
-    except Exception as e: discard
-    except: raisedForeign()
+    except Exception as e:
+      discard
+    except:
+      raisedForeign()
   else:
     try:
       if true:
@@ -120,7 +132,8 @@ template doAssertRaises*(exception: typedesc, code: untyped) =
     except Exception as e:
       mixin `$` # alternatively, we could define $cstring in this module
       raiseAssert(begin & " raised '" & $e.name & "'" & msgEnd)
-    except: raisedForeign()
+    except:
+      raisedForeign()
   {.pop.}
   if wrong:
     raiseAssert(begin & " nothing was raised" & msgEnd)

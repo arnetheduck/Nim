@@ -153,48 +153,47 @@ when not defined(js):
 when defined(nimPreviewSlimSystem):
   import std/syncio
 
-type
-  Level* = enum ## \
-    ## Enumeration of logging levels.
-    ##
-    ## Debug messages represent the lowest logging level, and fatal error
-    ## messages represent the highest logging level. ``lvlAll`` can be used
-    ## to enable all messages, while ``lvlNone`` can be used to disable all
-    ## messages.
-    ##
-    ## Typical usage for each logging level, from lowest to highest, is
-    ## described below:
-    ##
-    ## * **Debug** - debugging information helpful only to developers
-    ## * **Info** - anything associated with normal operation and without
-    ##   any particular importance
-    ## * **Notice** - more important information that users should be
-    ##   notified about
-    ## * **Warn** - impending problems that require some attention
-    ## * **Error** - error conditions that the application can recover from
-    ## * **Fatal** - fatal errors that prevent the application from continuing
-    ##
-    ## It is completely up to the application how to utilize each level.
-    ##
-    ## Individual loggers have a ``levelThreshold`` field that filters out
-    ## any messages with a level lower than the threshold. There is also
-    ## a global filter that applies to all log messages, and it can be changed
-    ## using the `setLogFilter proc<#setLogFilter,Level>`_.
-    lvlAll,     ## All levels active
-    lvlDebug,   ## Debug level and above are active
-    lvlInfo,    ## Info level and above are active
-    lvlNotice,  ## Notice level and above are active
-    lvlWarn,    ## Warn level and above are active
-    lvlError,   ## Error level and above are active
-    lvlFatal,   ## Fatal level and above are active
-    lvlNone     ## No levels active; nothing is logged
+type Level* = enum ## \
+  ## Enumeration of logging levels.
+  ##
+  ## Debug messages represent the lowest logging level, and fatal error
+  ## messages represent the highest logging level. ``lvlAll`` can be used
+  ## to enable all messages, while ``lvlNone`` can be used to disable all
+  ## messages.
+  ##
+  ## Typical usage for each logging level, from lowest to highest, is
+  ## described below:
+  ##
+  ## * **Debug** - debugging information helpful only to developers
+  ## * **Info** - anything associated with normal operation and without
+  ##   any particular importance
+  ## * **Notice** - more important information that users should be
+  ##   notified about
+  ## * **Warn** - impending problems that require some attention
+  ## * **Error** - error conditions that the application can recover from
+  ## * **Fatal** - fatal errors that prevent the application from continuing
+  ##
+  ## It is completely up to the application how to utilize each level.
+  ##
+  ## Individual loggers have a ``levelThreshold`` field that filters out
+  ## any messages with a level lower than the threshold. There is also
+  ## a global filter that applies to all log messages, and it can be changed
+  ## using the `setLogFilter proc<#setLogFilter,Level>`_.
+  lvlAll ## All levels active
+  lvlDebug ## Debug level and above are active
+  lvlInfo ## Info level and above are active
+  lvlNotice ## Notice level and above are active
+  lvlWarn ## Warn level and above are active
+  lvlError ## Error level and above are active
+  lvlFatal ## Fatal level and above are active
+  lvlNone ## No levels active; nothing is logged
 
 const
-  LevelNames*: array[Level, string] = [
-    "DEBUG", "DEBUG", "INFO", "NOTICE", "WARN", "ERROR", "FATAL", "NONE"
-  ] ## Array of strings representing each logging level.
+  LevelNames*: array[Level, string] =
+    ["DEBUG", "DEBUG", "INFO", "NOTICE", "WARN", "ERROR", "FATAL", "NONE"]
+    ## Array of strings representing each logging level.
 
-  defaultFmtStr* = "$levelname "                         ## The default format string.
+  defaultFmtStr* = "$levelname " ## The default format string.
   verboseFmtStr* = "$levelid, [$datetime] -- $appname: " ## \
   ## A more verbose format string.
   ##
@@ -204,7 +203,8 @@ const
   ## If a different format string is preferred, refer to the
   ## `documentation about format strings<#basic-usage-format-strings>`_
   ## for more information, including a list of available variables.
-  defaultFlushThreshold = when NimMajor >= 2:
+  defaultFlushThreshold =
+    when NimMajor >= 2:
       when defined(nimV1LogFlushBehavior): lvlError else: lvlAll
     else:
       when defined(nimFlushAllLogs): lvlAll else: lvlError
@@ -226,10 +226,12 @@ type
     ## * `ConsoleLogger<#ConsoleLogger>`_
     ## * `FileLogger<#FileLogger>`_
     ## * `RollingFileLogger<#RollingFileLogger>`_
-    levelThreshold*: Level ## Only messages that are at or above this
-                           ## threshold will be logged
-    fmtStr*: string ## Format string to prepend to each log message;
-                    ## defaultFmtStr is the default
+    levelThreshold*: Level
+      ## Only messages that are at or above this
+      ## threshold will be logged
+    fmtStr*: string
+      ## Format string to prepend to each log message;
+      ## defaultFmtStr is the default
 
   ConsoleLogger* = ref object of Logger
     ## A logger that writes log messages to the console.
@@ -241,8 +243,9 @@ type
     ## * `FileLogger<#FileLogger>`_
     ## * `RollingFileLogger<#RollingFileLogger>`_
     useStderr*: bool ## If true, writes to stderr; otherwise, writes to stdout
-    flushThreshold*: Level ## Only messages that are at or above this
-                           ## threshold will be flushed immediately
+    flushThreshold*: Level
+      ## Only messages that are at or above this
+      ## threshold will be flushed immediately
 
 when not defined(js):
   type
@@ -258,8 +261,9 @@ when not defined(js):
       ## * `ConsoleLogger<#ConsoleLogger>`_
       ## * `RollingFileLogger<#RollingFileLogger>`_
       file*: File ## The wrapped file
-      flushThreshold*: Level ## Only messages that are at or above this
-                           ## threshold will be flushed immediately
+      flushThreshold*: Level
+        ## Only messages that are at or above this
+        ## threshold will be flushed immediately
 
     RollingFileLogger* = ref object of FileLogger
       ## A logger that writes log messages to a file while performing log
@@ -278,14 +282,14 @@ when not defined(js):
       baseName: string # initial filename
       baseMode: FileMode # initial file mode
       logFiles: int # how many log files already created, e.g. basename.1, basename.2...
-      bufSize: int # size of output buffer (-1: use system defaults, 0: unbuffered, >0: fixed buffer size)
+      bufSize: int
+        # size of output buffer (-1: use system defaults, 0: unbuffered, >0: fixed buffer size)
 
 var
-  level {.threadvar.}: Level          ## global log filter
+  level {.threadvar.}: Level ## global log filter
   handlers {.threadvar.}: seq[Logger] ## handlers with their own log levels
 
-proc substituteLog*(frmt: string, level: Level,
-                    args: varargs[string, `$`]): string =
+proc substituteLog*(frmt: string, level: Level, args: varargs[string, `$`]): string =
   ## Formats a log message at the specified level with the given format string.
   ##
   ## The `format variables<#basic-usage-format-strings>`_ present within
@@ -320,28 +324,41 @@ proc substituteLog*(frmt: string, level: Level,
     else:
       inc(i)
       var v = ""
-      let app = when defined(js): "" else: getAppFilename()
+      let app =
+        when defined(js):
+          ""
+        else:
+          getAppFilename()
       while i < frmt.len and frmt[i] in IdentChars:
         v.add(toLowerAscii(frmt[i]))
         inc(i)
       case v
-      of "date": result.add(getDateStr())
-      of "time": result.add(getClockStr())
-      of "datetime": result.add(getDateStr() & "T" & getClockStr())
-      of "app": result.add(app)
+      of "date":
+        result.add(getDateStr())
+      of "time":
+        result.add(getClockStr())
+      of "datetime":
+        result.add(getDateStr() & "T" & getClockStr())
+      of "app":
+        result.add(app)
       of "appdir":
-        when not defined(js): result.add(app.splitFile.dir)
+        when not defined(js):
+          result.add(app.splitFile.dir)
       of "appname":
-        when not defined(js): result.add(app.splitFile.name)
-      of "levelid": result.add(LevelNames[level][0])
-      of "levelname": result.add(LevelNames[level])
-      else: discard
+        when not defined(js):
+          result.add(app.splitFile.name)
+      of "levelid":
+        result.add(LevelNames[level][0])
+      of "levelname":
+        result.add(LevelNames[level])
+      else:
+        discard
   for arg in args:
     result.add(arg)
 
-method log*(logger: Logger, level: Level, args: varargs[string, `$`]) {.
-            raises: [Exception], gcsafe,
-            tags: [RootEffect], base.} =
+method log*(
+    logger: Logger, level: Level, args: varargs[string, `$`]
+) {.raises: [Exception], gcsafe, tags: [RootEffect], base.} =
   ## Override this method in custom loggers. The default implementation does
   ## nothing.
   ##
@@ -387,23 +404,33 @@ method log*(logger: ConsoleLogger, level: Level, args: varargs[string, `$`]) =
     when defined(js):
       let cln = ln.cstring
       case level
-      of lvlDebug: {.emit: "console.debug(`cln`);".}
-      of lvlInfo:  {.emit: "console.info(`cln`);".}
-      of lvlWarn:  {.emit: "console.warn(`cln`);".}
-      of lvlError: {.emit: "console.error(`cln`);".}
-      else:        {.emit: "console.log(`cln`);".}
+      of lvlDebug:
+        {.emit: "console.debug(`cln`);".}
+      of lvlInfo:
+        {.emit: "console.info(`cln`);".}
+      of lvlWarn:
+        {.emit: "console.warn(`cln`);".}
+      of lvlError:
+        {.emit: "console.error(`cln`);".}
+      else:
+        {.emit: "console.log(`cln`);".}
     else:
       try:
         var handle = stdout
         if logger.useStderr:
           handle = stderr
         writeLine(handle, ln)
-        if level >= logger.flushThreshold: flushFile(handle)
+        if level >= logger.flushThreshold:
+          flushFile(handle)
       except IOError:
         discard
 
-proc newConsoleLogger*(levelThreshold = lvlAll, fmtStr = defaultFmtStr,
-    useStderr = false, flushThreshold = defaultFlushThreshold): ConsoleLogger =
+proc newConsoleLogger*(
+    levelThreshold = lvlAll,
+    fmtStr = defaultFmtStr,
+    useStderr = false,
+    flushThreshold = defaultFlushThreshold,
+): ConsoleLogger =
   ## Creates a new `ConsoleLogger<#ConsoleLogger>`_.
   ##
   ## By default, log messages are written to ``stdout``. If ``useStderr`` is
@@ -464,7 +491,8 @@ when not defined(js):
     ##   ```
     if level >= logging.level and level >= logger.levelThreshold:
       writeLine(logger.file, substituteLog(logger.fmtStr, level, args))
-      if level >= logger.flushThreshold: flushFile(logger.file)
+      if level >= logger.flushThreshold:
+        flushFile(logger.file)
 
   proc defaultFilename*(): string =
     ## Returns the filename that is used by default when naming log files.
@@ -473,10 +501,12 @@ when not defined(js):
     var (path, name, _) = splitFile(getAppFilename())
     result = changeFileExt(path / name, "log")
 
-  proc newFileLogger*(file: File,
-                      levelThreshold = lvlAll,
-                      fmtStr = defaultFmtStr,
-                      flushThreshold = defaultFlushThreshold): FileLogger =
+  proc newFileLogger*(
+      file: File,
+      levelThreshold = lvlAll,
+      fmtStr = defaultFmtStr,
+      flushThreshold = defaultFlushThreshold,
+  ): FileLogger =
     ## Creates a new `FileLogger<#FileLogger>`_ that uses the given file handle.
     ##
     ## **Note:** This proc is not available for the JavaScript backend.
@@ -504,12 +534,14 @@ when not defined(js):
     result.flushThreshold = flushThreshold
     result.fmtStr = fmtStr
 
-  proc newFileLogger*(filename = defaultFilename(),
-                      mode: FileMode = fmAppend,
-                      levelThreshold = lvlAll,
-                      fmtStr = defaultFmtStr,
-                      bufSize: int = -1,
-                      flushThreshold = defaultFlushThreshold): FileLogger =
+  proc newFileLogger*(
+      filename = defaultFilename(),
+      mode: FileMode = fmAppend,
+      levelThreshold = lvlAll,
+      fmtStr = defaultFmtStr,
+      bufSize: int = -1,
+      flushThreshold = defaultFlushThreshold,
+  ): FileLogger =
     ## Creates a new `FileLogger<#FileLogger>`_ that logs to a file with the
     ## given filename.
     ##
@@ -560,15 +592,18 @@ when not defined(js):
             let num = parseInt(numS)
             if num > result:
               result = num
-          except ValueError: discard
+          except ValueError:
+            discard
 
-  proc newRollingFileLogger*(filename = defaultFilename(),
-                            mode: FileMode = fmReadWrite,
-                            levelThreshold = lvlAll,
-                            fmtStr = defaultFmtStr,
-                            maxLines: Positive = 1000,
-                            bufSize: int = -1,
-                            flushThreshold = defaultFlushThreshold): RollingFileLogger =
+  proc newRollingFileLogger*(
+      filename = defaultFilename(),
+      mode: FileMode = fmReadWrite,
+      levelThreshold = lvlAll,
+      fmtStr = defaultFmtStr,
+      maxLines: Positive = 1000,
+      bufSize: int = -1,
+      flushThreshold = defaultFlushThreshold,
+  ): RollingFileLogger =
     ## Creates a new `RollingFileLogger<#RollingFileLogger>`_.
     ##
     ## Once the current log file being written to contains ``maxLines`` lines,
@@ -616,9 +651,12 @@ when not defined(js):
   proc rotate(logger: RollingFileLogger) =
     let (dir, name, ext) = splitFile(logger.baseName)
     for i in countdown(logger.logFiles, 0):
-      let srcSuff = if i != 0: ExtSep & $i else: ""
-      moveFile(dir / (name & ext & srcSuff),
-              dir / (name & ext & ExtSep & $(i+1)))
+      let srcSuff =
+        if i != 0:
+          ExtSep & $i
+        else:
+          ""
+      moveFile(dir / (name & ext & srcSuff), dir / (name & ext & ExtSep & $(i + 1)))
 
   method log*(logger: RollingFileLogger, level: Level, args: varargs[string, `$`]) =
     ## Logs a message at the specified level using the given
@@ -656,11 +694,11 @@ when not defined(js):
         rotate(logger)
         logger.logFiles.inc
         logger.curLine = 0
-        logger.file = open(logger.baseName, logger.baseMode,
-            bufSize = logger.bufSize)
+        logger.file = open(logger.baseName, logger.baseMode, bufSize = logger.bufSize)
 
       writeLine(logger.file, substituteLog(logger.fmtStr, level, args))
-      if level >= logger.flushThreshold: flushFile(logger.file)
+      if level >= logger.flushThreshold:
+        flushFile(logger.file)
       logger.curLine.inc
 
 # --------

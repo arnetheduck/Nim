@@ -1,7 +1,7 @@
 ## `$` is Nim's general way of spelling `toString`:idx:.
 runnableExamples:
   assert $0.1 == "0.1"
-  assert $(-2*3) == "-6"
+  assert $(-2 * 3) == "-6"
 
 import std/private/[digitsutils, miscdollars]
 
@@ -39,10 +39,10 @@ template gen(T) =
   func `$`*(x: T{lit}): string {.compileTime.} =
     result = ""
     result.addInt(x)
+
 gen(int)
 gen(uint64)
 gen(int64)
-
 
 proc `$`*(x: bool): string {.magic: "BoolToStr", noSideEffect.}
   ## The stringify operator for a boolean argument. Returns `x`
@@ -141,7 +141,6 @@ proc `$`*[T, U](x: HSlice[T, U]): string =
   result = $x.a
   result.add(" .. ")
   result.add($x.b)
-
 
 when not defined(nimNoArrayToString):
   proc `$`*[T, IDX](x: array[IDX, T]): string =

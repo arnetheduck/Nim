@@ -203,17 +203,19 @@ batchable: false
 when defined(nimPreviewSlimSystem):
   import std/assertions
 
-when not defined(js) and (defined(hotcodereloading) or
-                          defined(createNimHcr) or
-                          defined(testNimHcr)):
-  const
-    dllExt = when defined(windows): "dll"
-             elif defined(macosx): "dylib"
-             else: "so"
+when not defined(js) and
+    (defined(hotcodereloading) or defined(createNimHcr) or defined(testNimHcr)):
+  const dllExt =
+    when defined(windows):
+      "dll"
+    elif defined(macosx):
+      "dylib"
+    else:
+      "so"
   type
-    HcrProcGetter* = proc (libHandle: pointer, procName: cstring): pointer {.nimcall.}
-    HcrGcMarkerProc = proc () {.nimcall, raises: [].}
-    HcrModuleInitializer* = proc () {.nimcall.}
+    HcrProcGetter* = proc(libHandle: pointer, procName: cstring): pointer {.nimcall.}
+    HcrGcMarkerProc = proc() {.nimcall, raises: [].}
+    HcrModuleInitializer* = proc() {.nimcall.}
 
 when defined(createNimHcr):
   when system.appType != "lib":
@@ -226,12 +228,16 @@ when defined(createNimHcr):
       echo args
 
   proc sanitize(arg: Time): string =
-    when defined(testNimHcr): return "<time>"
-    else: return $arg
+    when defined(testNimHcr):
+      return "<time>"
+    else:
+      return $arg
 
-  proc sanitize(arg: string|cstring): string =
-    when defined(testNimHcr): return ($arg).splitFile.name.splitFile.name
-    else: return $arg
+  proc sanitize(arg: string | cstring): string =
+    when defined(testNimHcr):
+      return ($arg).splitFile.name.splitFile.name
+    else:
+      return $arg
 
   {.pragma: nimhcr, compilerproc, exportc, dynlib.}
 
@@ -272,20 +278,25 @@ when defined(createNimHcr):
   elif hostCPU == "arm64":
     const jumpSize = 16
 
-  const defaultJumpTableSize = case hostCPU
-                               of "i386": 50
-                               of "amd64": 500
-                               else: 50
+  const defaultJumpTableSize =
+    case hostCPU
+    of "i386": 50
+    of "amd64": 500
+    else: 50
 
   let jumpTableSizeStr = getEnv("HOT_CODE_RELOADING_JUMP_TABLE_SIZE")
-  let jumpTableSize = if jumpTableSizeStr.len > 0: parseInt(jumpTableSizeStr)
-                      else: defaultJumpTableSize
+  let jumpTableSize =
+    if jumpTableSizeStr.len > 0:
+      parseInt(jumpTableSizeStr)
+    else:
+      defaultJumpTableSize
 
   # TODO: perhaps keep track of free slots due to removed procs using a free list
   var jumpTable = ReservedMemSeq[LongJumpInstruction].init(
     memStart = cast[pointer](0x10000000),
     maxLen = jumpTableSize * 1024 * 1024 div sizeof(LongJumpInstruction),
-    accessFlags = memExecReadWrite)
+    accessFlags = memExecReadWrite,
+  )
 
   type
     ProcSym = object
@@ -305,7 +316,7 @@ when defined(createNimHcr):
       hash: string
       gen: int
       lastModification: Time
-      handlers: seq[tuple[isBefore: bool, cb: proc () {.nimcall.}]]
+      handlers: seq[tuple[isBefore: bool, cb: proc() {.nimcall.}]]
 
   proc newModuleDesc(): ModuleDesc =
     result.procs = initTable[string, ProcSym]()
@@ -331,7 +342,9 @@ when defined(createNimHcr):
   var hcrDynlibHandle: pointer
   var getProcAddr: HcrProcGetter
 
-  proc hcrRegisterProc*(module: cstring, name: cstring, fn: pointer): pointer {.nimhcr.} =
+  proc hcrRegisterProc*(
+      module: cstring, name: cstring, fn: pointer
+  ): pointer {.nimhcr.} =
     trace "  register proc: ", module.sanitize, " ", name
     # Please note: We must allocate a local copy of the strings, because the supplied
     # `cstring` will reside in the data segment of a DLL that will be later unloaded.
@@ -357,11 +370,13 @@ when defined(createNimHcr):
     trace "  get proc: ", module.sanitize, " ", name
     return modules[$module].procs.getOrDefault($name, ProcSym()).jump
 
-  proc hcrRegisterGlobal*(module: cstring,
-                          name: cstring,
-                          size: Natural,
-                          gcMarker: HcrGcMarkerProc,
-                          outPtr: ptr pointer): bool {.nimhcr.} =
+  proc hcrRegisterGlobal*(
+      module: cstring,
+      name: cstring,
+      size: Natural,
+      gcMarker: HcrGcMarkerProc,
+      outPtr: ptr pointer,
+  ): bool {.nimhcr.} =
     trace "  register global: ", module.sanitize, " ", name
     # Please note: We must allocate local copies of the strings, because the supplied
     # `cstring` will reside in the data segment of a DLL that will be later unloaded.
@@ -380,9 +395,8 @@ when defined(createNimHcr):
       return false
     do:
       outPtr[] = alloc0(size)
-      modules[module].globals[name] = GlobalVarSym(p: outPtr[],
-                                                   gen: generation,
-                                                   markerProc: gcMarker)
+      modules[module].globals[name] =
+        GlobalVarSym(p: outPtr[], gen: generation, markerProc: gcMarker)
       return true
 
   proc hcrGetGlobal*(module: cstring, name: cstring): pointer {.nimhcr.} =
@@ -438,12 +452,13 @@ when defined(createNimHcr):
     modules[name].lastModification = getLastModificationTime(name)
 
     # update the list of imports by the module
-    let getImportsProc = cast[proc (): ptr pointer {.nimcall.}](
-      checkedSymAddr(lib, "HcrGetImportedModules"))
+    let getImportsProc = cast[proc(): ptr pointer {.nimcall.}](checkedSymAddr(
+      lib, "HcrGetImportedModules"
+    ))
     modules[name].imports = getListOfModules(getImportsProc())
     # get the hash of the module
-    let getHashProc = cast[proc (): cstring {.nimcall.}](
-      checkedSymAddr(lib, "HcrGetSigHash"))
+    let getHashProc =
+      cast[proc(): cstring {.nimcall.}](checkedSymAddr(lib, "HcrGetSigHash"))
     modules[name].hash = $getHashProc()
     hashToModuleMap[modules[name].hash] = name
 
@@ -454,12 +469,15 @@ when defined(createNimHcr):
 
   proc initHcrData(name: cstring) {.nimhcr.} =
     trace "HCR Hcr init: ", name.sanitize
-    cast[proc (h: pointer, gpa: HcrProcGetter) {.nimcall.}](
-      checkedSymAddr(modules[$name].handle, "HcrInit000"))(hcrDynlibHandle, getProcAddr)
+    cast[proc(h: pointer, gpa: HcrProcGetter) {.nimcall.}](checkedSymAddr(
+      modules[$name].handle, "HcrInit000"
+    ))(hcrDynlibHandle, getProcAddr)
 
   proc initTypeInfoGlobals(name: cstring) {.nimhcr.} =
     trace "HCR TypeInfo globals init: ", name.sanitize
-    cast[HcrModuleInitializer](checkedSymAddr(modules[$name].handle, "HcrCreateTypeInfos"))()
+    cast[HcrModuleInitializer](checkedSymAddr(
+      modules[$name].handle, "HcrCreateTypeInfos"
+    ))()
 
   proc initPointerData(name: cstring) {.nimhcr.} =
     trace "HCR Dat init: ", name.sanitize
@@ -483,7 +501,8 @@ when defined(createNimHcr):
           continue
         # skip updating an unmodified module but continue traversing its dependencies
         if modules[curr].lastModification >= getLastModificationTime(curr):
-          trace "HCR SKIP (not modified): ", curr.sanitize, " ", modules[curr].lastModification.sanitize
+          trace "HCR SKIP (not modified): ",
+            curr.sanitize, " ", modules[curr].lastModification.sanitize
           # update generation so module doesn't get collected
           modules[curr].gen = generation
           # recurse to imported modules - they might be changed
@@ -518,8 +537,13 @@ when defined(createNimHcr):
     for curr in modulesToInit:
       cleanupSymbols(curr)
 
-  proc hcrInit*(moduleList: ptr pointer, main, sys: cstring,
-                datInit: HcrModuleInitializer, handle: pointer, gpa: HcrProcGetter) {.nimhcr.} =
+  proc hcrInit*(
+      moduleList: ptr pointer,
+      main, sys: cstring,
+      datInit: HcrModuleInitializer,
+      handle: pointer,
+      gpa: HcrProcGetter,
+  ) {.nimhcr.} =
     trace "HCR INITING: ", main.sanitize, " gen: ", generation
     # initialize globals
     root = $main
@@ -559,10 +583,12 @@ when defined(createNimHcr):
     # can be manipulated from external programs without reloading.
     when declared(GC_disable):
       GC_disable()
-      defer: GC_enable()
+      defer:
+        GC_enable()
     elif declared(GC_disableOrc):
       GC_disableOrc()
-      defer: GC_enableOrc()
+      defer:
+        GC_enableOrc()
 
     inc(generation)
     trace "HCR RELOADING: ", generation
@@ -571,7 +597,8 @@ when defined(createNimHcr):
 
     proc recursiveExecuteHandlers(isBefore: bool, module: string) =
       # do not process an already traversed module
-      if traversedHandlerModules.containsOrIncl(module): return
+      if traversedHandlerModules.containsOrIncl(module):
+        return
       traversedHandlerModules.incl module
       # first recurse to do a DFS traversal
       for curr in modules[module].imports:
@@ -579,7 +606,7 @@ when defined(createNimHcr):
       # and then execute the handlers - from leaf modules all the way up to the root module
       for curr in modules[module].handlers:
         if curr.isBefore == isBefore:
-         curr.cb()
+          curr.cb()
 
     # first execute the before reload handlers
     traversedHandlerModules.clear()
@@ -602,9 +629,8 @@ when defined(createNimHcr):
       hashToModuleMap.del(modules[name].hash)
       modules.del(name)
 
-  proc hcrAddEventHandler*(isBefore: bool, cb: proc () {.nimcall.}) {.nimhcr.} =
-    modules[currentModule].handlers.add(
-      (isBefore: isBefore, cb: cb))
+  proc hcrAddEventHandler*(isBefore: bool, cb: proc() {.nimcall.}) {.nimhcr.} =
+    modules[currentModule].handlers.add((isBefore: isBefore, cb: cb))
 
   proc hcrAddModule*(module: cstring) {.nimhcr.} =
     if not modules.contains($module):
@@ -624,26 +650,39 @@ when defined(createNimHcr):
 
 elif defined(hotcodereloading) or defined(testNimHcr):
   when not defined(js):
-    const
-      nimhcrLibname = when defined(windows): "nimhcr." & dllExt
-                      elif defined(macosx): "libnimhcr." & dllExt
-                      else: "libnimhcr." & dllExt
+    const nimhcrLibname =
+      when defined(windows):
+        "nimhcr." & dllExt
+      elif defined(macosx):
+        "libnimhcr." & dllExt
+      else:
+        "libnimhcr." & dllExt
 
     {.pragma: nimhcr, compilerproc, importc, dynlib: nimhcrLibname.}
 
-    proc hcrRegisterProc*(module: cstring, name: cstring, fn: pointer): pointer {.nimhcr.}
+    proc hcrRegisterProc*(
+      module: cstring, name: cstring, fn: pointer
+    ): pointer {.nimhcr.}
 
     proc hcrGetProc*(module: cstring, name: cstring): pointer {.nimhcr.}
 
-    proc hcrRegisterGlobal*(module: cstring, name: cstring, size: Natural,
-                            gcMarker: HcrGcMarkerProc, outPtr: ptr pointer): bool {.nimhcr.}
+    proc hcrRegisterGlobal*(
+      module: cstring,
+      name: cstring,
+      size: Natural,
+      gcMarker: HcrGcMarkerProc,
+      outPtr: ptr pointer,
+    ): bool {.nimhcr.}
+
     proc hcrGetGlobal*(module: cstring, name: cstring): pointer {.nimhcr.}
 
-    proc hcrInit*(moduleList: ptr pointer,
-                  main, sys: cstring,
-                  datInit: HcrModuleInitializer,
-                  handle: pointer,
-                  gpa: HcrProcGetter) {.nimhcr.}
+    proc hcrInit*(
+      moduleList: ptr pointer,
+      main, sys: cstring,
+      datInit: HcrModuleInitializer,
+      handle: pointer,
+      gpa: HcrProcGetter,
+    ) {.nimhcr.}
 
     proc hcrAddModule*(module: cstring) {.nimhcr.}
 
@@ -653,19 +692,17 @@ elif defined(hotcodereloading) or defined(testNimHcr):
 
     proc hcrPerformCodeReload*() {.nimhcr.}
 
-    proc hcrAddEventHandler*(isBefore: bool, cb: proc () {.nimcall.}) {.nimhcr.}
+    proc hcrAddEventHandler*(isBefore: bool, cb: proc() {.nimcall.}) {.nimhcr.}
 
     proc hcrMarkGlobals*() {.raises: [], nimhcr, nimcall, gcsafe.}
 
     when declared(nimRegisterGlobalMarker):
       nimRegisterGlobalMarker(cast[GlobalMarkerProc](hcrMarkGlobals))
-
   else:
     proc hcrHasModuleChanged*(moduleHash: string): bool =
       # TODO
       false
 
-    proc hcrAddEventHandler*(isBefore: bool, cb: proc () {.nimcall.}) =
+    proc hcrAddEventHandler*(isBefore: bool, cb: proc() {.nimcall.}) =
       # TODO
       discard
-

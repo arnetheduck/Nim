@@ -22,7 +22,7 @@ runnableExamples("-r:off"):
   console.log "%c My Debug Message", "color: red" # Notice the "%c"
   console.log "%c My Debug %c Message", "color: red", "font-size: 2em"
 
-import std/private/since, std/private/miscdollars  # toLocation
+import std/private/since, std/private/miscdollars # toLocation
 
 when not defined(js):
   {.error: "This module only works on the JavaScript platform".}
@@ -84,14 +84,14 @@ proc table*(console: Console) {.importcpp, varargs.}
 since (1, 5):
   type InstantiationInfo = tuple[filename: string, line: int, column: int]
 
-  func getMsg(info: InstantiationInfo; msg: string): string =
+  func getMsg(info: InstantiationInfo, msg: string): string =
     var temp = ""
     temp.toLocation(info.filename, info.line, info.column + 1)
     result.addQuoted("[jsAssert] " & temp)
     result.add ','
     result.addQuoted(msg)
 
-  template jsAssert*(console: Console; assertion) =
+  template jsAssert*(console: Console, assertion) =
     ## JavaScript `console.assert`, for NodeJS this prints to stderr,
     ## assert failure just prints to console and do not quit the program,
     ## this is not meant to be better or even equal than normal assertions,
@@ -102,7 +102,7 @@ since (1, 5):
       console.jsAssert(42 == 42) # OK
       console.jsAssert(42 != 42) # Fail, prints "Assertion failed" and continues
       console.jsAssert('`' == '\n' and '\t' == '\0') # Message correctly formatted
-      assert 42 == 42  # Normal assertions keep working
+      assert 42 == 42 # Normal assertions keep working
 
     const
       loc = instantiationInfo(fullPaths = compileOption("excessiveStackTrace"))
@@ -110,16 +110,15 @@ since (1, 5):
     {.line: loc.}:
       {.emit: ["console.assert(", assertion, ", ", msg, ");"].}
 
-  func dir*(console: Console; obj: auto) {.importcpp.}
+  func dir*(console: Console, obj: auto) {.importcpp.}
     ## https://developer.mozilla.org/en-US/docs/Web/API/Console/dir
 
-  func dirxml*(console: Console; obj: auto) {.importcpp.}
+  func dirxml*(console: Console, obj: auto) {.importcpp.}
     ## https://developer.mozilla.org/en-US/docs/Web/API/Console/dirxml
 
-  func timeStamp*(console: Console; label: cstring) {.importcpp.}
+  func timeStamp*(console: Console, label: cstring) {.importcpp.}
     ## https://developer.mozilla.org/en-US/docs/Web/API/Console/timeStamp
     ##
     ## ..warning:: non-standard
-
 
 var console* {.importc, nodecl.}: Console

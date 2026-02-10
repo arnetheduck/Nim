@@ -15,21 +15,20 @@ import std/[sets, tables]
 when defined(nimPreviewSlimSystem):
   import std/assertions
 
-import ".." / [ast, modulegraphs]
+import ".."/[ast, modulegraphs]
 import packed_ast, bitabs, ic
 
-type
-  CheckedContext = object
-    g: ModuleGraph
-    thisModule: int32
-    checkedSyms: HashSet[ItemId]
-    checkedTypes: HashSet[ItemId]
+type CheckedContext = object
+  g: ModuleGraph
+  thisModule: int32
+  checkedSyms: HashSet[ItemId]
+  checkedTypes: HashSet[ItemId]
 
-proc checkType(c: var CheckedContext; typeId: PackedItemId)
-proc checkForeignSym(c: var CheckedContext; symId: PackedItemId)
-proc checkNode(c: var CheckedContext; tree: PackedTree; n: NodePos)
+proc checkType(c: var CheckedContext, typeId: PackedItemId)
+proc checkForeignSym(c: var CheckedContext, symId: PackedItemId)
+proc checkNode(c: var CheckedContext, tree: PackedTree, n: NodePos)
 
-proc checkTypeObj(c: var CheckedContext; typ: PackedType) =
+proc checkTypeObj(c: var CheckedContext, typ: PackedType) =
   for child in typ.types:
     checkType(c, child)
   if typ.n != emptyNodeId:
@@ -40,8 +39,9 @@ proc checkTypeObj(c: var CheckedContext; typ: PackedType) =
     checkForeignSym(c, typ.owner)
   checkType(c, typ.typeInst)
 
-proc checkType(c: var CheckedContext; typeId: PackedItemId) =
-  if typeId == nilItemId: return
+proc checkType(c: var CheckedContext, typeId: PackedItemId) =
+  if typeId == nilItemId:
+    return
   let itemId = translateId(typeId, c.g.packed, c.thisModule, c.g.config)
   if not c.checkedTypes.containsOrIncl(itemId):
     let oldThisModule = c.thisModule
@@ -49,7 +49,7 @@ proc checkType(c: var CheckedContext; typeId: PackedItemId) =
     checkTypeObj c, c.g.packed[itemId.module].fromDisk.types[itemId.item]
     c.thisModule = oldThisModule
 
-proc checkSym(c: var CheckedContext; s: PackedSym) =
+proc checkSym(c: var CheckedContext, s: PackedSym) =
   if s.name != LitId(0):
     assert c.g.packed[c.thisModule].fromDisk.strings.hasLitId s.name
   checkType c, s.typ
@@ -58,12 +58,12 @@ proc checkSym(c: var CheckedContext; s: PackedSym) =
   if s.owner != nilItemId:
     checkForeignSym(c, s.owner)
 
-proc checkLocalSym(c: var CheckedContext; item: int32) =
+proc checkLocalSym(c: var CheckedContext, item: int32) =
   let itemId = ItemId(module: c.thisModule, item: item)
   if not c.checkedSyms.containsOrIncl(itemId):
     checkSym c, c.g.packed[c.thisModule].fromDisk.syms[item]
 
-proc checkForeignSym(c: var CheckedContext; symId: PackedItemId) =
+proc checkForeignSym(c: var CheckedContext, symId: PackedItemId) =
   let itemId = translateId(symId, c.g.packed, c.thisModule, c.g.config)
   if not c.checkedSyms.containsOrIncl(itemId):
     let oldThisModule = c.thisModule
@@ -71,7 +71,7 @@ proc checkForeignSym(c: var CheckedContext; symId: PackedItemId) =
     checkSym c, c.g.packed[itemId.module].fromDisk.syms[itemId.item]
     c.thisModule = oldThisModule
 
-proc checkNode(c: var CheckedContext; tree: PackedTree; n: NodePos) =
+proc checkNode(c: var CheckedContext, tree: PackedTree, n: NodePos) =
   let t = findType(tree, n)
   if t != nilItemId:
     checkType(c, t)
@@ -84,9 +84,9 @@ proc checkNode(c: var CheckedContext; tree: PackedTree; n: NodePos) =
     checkLocalSym(c, tree[n].soperand)
   of directIntLit:
     discard
-  of externIntLit, nkFloatLit..nkFloat128Lit:
+  of externIntLit, nkFloatLit .. nkFloat128Lit:
     assert c.g.packed[c.thisModule].fromDisk.numbers.hasLitId n.litId
-  of nkStrLit..nkTripleStrLit:
+  of nkStrLit .. nkTripleStrLit:
     assert c.g.packed[c.thisModule].fromDisk.strings.hasLitId n.litId
   of nkModuleRef:
     let (n1, n2) = sons2(tree, n)
@@ -97,14 +97,15 @@ proc checkNode(c: var CheckedContext; tree: PackedTree; n: NodePos) =
     for n0 in sonsReadonly(tree, n):
       checkNode(c, tree, n0)
 
-proc checkTree(c: var CheckedContext; t: PackedTree) =
-  for p in allNodes(t): checkNode(c, t, p)
+proc checkTree(c: var CheckedContext, t: PackedTree) =
+  for p in allNodes(t):
+    checkNode(c, t, p)
 
-proc checkLocalSymIds(c: var CheckedContext; m: PackedModule; symIds: seq[int32]) =
+proc checkLocalSymIds(c: var CheckedContext, m: PackedModule, symIds: seq[int32]) =
   for symId in symIds:
     assert symId >= 0 and symId < m.syms.len, $symId & " " & $m.syms.len
 
-proc checkModule(c: var CheckedContext; m: PackedModule) =
+proc checkModule(c: var CheckedContext, m: PackedModule) =
   # We check that:
   # - Every symbol references existing types and symbols.
   # - Every tree node references existing types and symbols.
@@ -143,7 +144,7 @@ proc checkModule(c: var CheckedContext; m: PackedModule) =
 
 proc checkIntegrity*(g: ModuleGraph) =
   var c = CheckedContext(g: g)
-  for i in 0..<len(g.packed):
+  for i in 0 ..< len(g.packed):
     # case statement here to enforce exhaustive checks.
     case g.packed[i].status
     of undefined:

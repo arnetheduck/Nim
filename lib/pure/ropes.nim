@@ -22,21 +22,19 @@ import std/streams
 when defined(nimPreviewSlimSystem):
   import std/[syncio, formatfloat, assertions]
 
-{.push debugger: off.} # the user does not want to trace a part
-                       # of the standard library!
+{.push debugger: off.}
+  # the user does not want to trace a part
+  # of the standard library!
 
-const
-  countCacheMisses = false
+const countCacheMisses = false
 
-var
-  cacheEnabled = false
+var cacheEnabled = false
 
-type
-  Rope* {.acyclic.} = ref object
-    ## A rope data type. The empty rope is represented by `nil`.
-    left, right: Rope
-    length: int
-    data: string # not empty if a leaf
+type Rope* {.acyclic.} = ref object
+  ## A rope data type. The empty rope is represented by `nil`.
+  left, right: Rope
+  length: int
+  data: string # not empty if a leaf
 
 # Note that the left and right pointers are not needed for leafs.
 # Leaves have relatively high memory overhead (~30 bytes on a 32
@@ -50,7 +48,9 @@ proc len*(a: Rope): int {.rtl, extern: "nro$1".} =
   ## The rope's length.
   if a == nil: 0 else: a.length
 
-proc newRope(): Rope = new(result)
+proc newRope(): Rope =
+  new(result)
+
 proc newRope(data: string): Rope =
   new(result)
   result.length = len(data)
@@ -58,7 +58,7 @@ proc newRope(data: string): Rope =
 
 var
   cache {.threadvar.}: Rope # the root of the cache tree
-  N {.threadvar.}: Rope     # dummy rope needed for splay algorithm
+  N {.threadvar.}: Rope # dummy rope needed for splay algorithm
 
 when countCacheMisses:
   var misses, hits: int
@@ -78,7 +78,8 @@ proc splay(s: string, tree: Rope, cmpres: var int): Rope =
         t.left = y.right
         y.right = t
         t = y
-      if t.left == nil: break
+      if t.left == nil:
+        break
       r.left = t
       r = t
       t = t.left
@@ -88,7 +89,8 @@ proc splay(s: string, tree: Rope, cmpres: var int): Rope =
         t.right = y.left
         y.left = t
         t = y
-      if t.right == nil: break
+      if t.right == nil:
+        break
       le.right = t
       le = t
       t = t.right
@@ -105,7 +107,8 @@ proc insertInCache(s: string, tree: Rope): Rope =
   var t = tree
   if t == nil:
     result = newRope(s)
-    when countCacheMisses: inc(misses)
+    when countCacheMisses:
+      inc(misses)
     return
   var cmp: int = 0
   t = splay(s, t, cmp)
@@ -113,9 +116,11 @@ proc insertInCache(s: string, tree: Rope): Rope =
     # We get here if it's already in the Tree
     # Don't add it again
     result = t
-    when countCacheMisses: inc(hits)
+    when countCacheMisses:
+      inc(hits)
   else:
-    when countCacheMisses: inc(misses)
+    when countCacheMisses:
+      inc(misses)
     result = newRope(s)
     if cmp < 0:
       result.left = t.left
@@ -210,7 +215,8 @@ proc `&`*(a: openArray[Rope]): Rope {.rtl, extern: "nroConcOpenArray".} =
     let r = &[rope("Hello, "), rope("Nim"), rope("!")]
     doAssert $r == "Hello, Nim!"
   result = nil
-  for item in a: result = result & item
+  for item in a:
+    result = result & item
 
 proc add*(a: var Rope, b: Rope) {.rtl, extern: "nro$1Rope".} =
   ## Adds `b` to the rope `a`.
@@ -242,7 +248,8 @@ proc `[]`*(r: Rope, i: int): char {.rtl, extern: "nroCharAt".} =
   result = '\0'
   var x = r
   var j = i
-  if x == nil or i < 0 or i >= r.len: return
+  if x == nil or i < 0 or i >= r.len:
+    return
   while true:
     if x != nil and x.data.len > 0:
       # leaf
@@ -278,20 +285,24 @@ iterator leaves*(r: Rope): string =
 iterator items*(r: Rope): char =
   ## Iterates over any character in the rope `r`.
   for s in leaves(r):
-    for c in items(s): yield c
+    for c in items(s):
+      yield c
 
 proc write*(f: File, r: Rope) {.rtl, extern: "nro$1".} =
   ## Writes a rope to a file.
-  for s in leaves(r): write(f, s)
+  for s in leaves(r):
+    write(f, s)
 
 proc write*(s: Stream, r: Rope) {.rtl, extern: "nroWriteStream".} =
   ## Writes a rope to a stream.
-  for rs in leaves(r): write(s, rs)
+  for rs in leaves(r):
+    write(s, rs)
 
 proc `$`*(r: Rope): string {.rtl, extern: "nroToString".} =
   ## Converts a rope back to a string.
   result = newStringOfCap(r.len)
-  for s in leaves(r): add(result, s)
+  for s in leaves(r):
+    add(result, s)
 
 proc `%`*(frmt: string, args: openArray[Rope]): Rope {.rtl, extern: "nroFormat".} =
   ## `%` substitution operator for ropes. Does not support the `$identifier`
@@ -321,28 +332,34 @@ proc `%`*(frmt: string, args: openArray[Rope]): Rope {.rtl, extern: "nroFormat".
         inc(i)
         add(result, args[num])
         inc(num)
-      of '0'..'9':
+      of '0' .. '9':
         var j = 0
         while true:
           j = j * 10 + ord(frmt[i]) - ord('0')
           inc(i)
-          if i >= frmt.len or frmt[i] notin {'0'..'9'}: break
-        add(result, args[j-1])
+          if i >= frmt.len or frmt[i] notin {'0' .. '9'}:
+            break
+        add(result, args[j - 1])
       of '{':
         inc(i)
         var j = 0
-        while frmt[i] in {'0'..'9'}:
+        while frmt[i] in {'0' .. '9'}:
           j = j * 10 + ord(frmt[i]) - ord('0')
           inc(i)
-        if frmt[i] == '}': inc(i)
-        else: raise newException(ValueError, "invalid format string")
+        if frmt[i] == '}':
+          inc(i)
+        else:
+          raise newException(ValueError, "invalid format string")
 
-        add(result, args[j-1])
-      else: raise newException(ValueError, "invalid format string")
+        add(result, args[j - 1])
+      else:
+        raise newException(ValueError, "invalid format string")
     var start = i
     while i < length:
-      if frmt[i] != '$': inc(i)
-      else: break
+      if frmt[i] != '$':
+        inc(i)
+      else:
+        break
     if i - 1 >= start:
       add(result, substr(frmt, start, i - 1))
 
@@ -356,8 +373,7 @@ proc addf*(c: var Rope, frmt: string, args: openArray[Rope]) {.rtl, extern: "nro
   add(c, frmt % args)
 
 when not defined(js) and not defined(nimscript):
-  const
-    bufSize = 1024 # 1 KB is reasonable
+  const bufSize = 1024 # 1 KB is reasonable
 
   proc equalsFile*(r: Rope, f: File): bool {.rtl, extern: "nro$1File".} =
     ## Returns true if the contents of the file `f` equal `r`.
@@ -378,8 +394,7 @@ when not defined(js) and not defined(nimscript):
             return false
         let n = min(blen - bpos, slen - spos)
         # TODO: There's gotta be a better way of comparing here...
-        if not equalMem(addr(buf[bpos]),
-                        cast[pointer](cast[int](cstring(s)) + spos), n):
+        if not equalMem(addr(buf[bpos]), cast[pointer](cast[int](cstring(s)) + spos), n):
           return false
         spos += n
         bpos += n

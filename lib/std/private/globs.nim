@@ -11,19 +11,21 @@ when defined(windows):
 when defined(nimPreviewSlimSystem):
   import std/[assertions, objectdollar]
 
-
 when defined(nimHasEffectsOf):
   {.experimental: "strictEffects".}
 else:
   {.pragma: effectsOf.}
 
-type
-  PathEntry* = object
-    kind*: PathComponent
-    path*: string
+type PathEntry* = object
+  kind*: PathComponent
+  path*: string
 
-iterator walkDirRecFilter*(dir: string, follow: proc(entry: PathEntry): bool = nil,
-    relative = false, checkDir = true): PathEntry {.tags: [ReadDirEffect], effectsOf: follow.} =
+iterator walkDirRecFilter*(
+    dir: string,
+    follow: proc(entry: PathEntry): bool = nil,
+    relative = false,
+    checkDir = true,
+): PathEntry {.tags: [ReadDirEffect], effectsOf: follow.} =
   ## Improved `os.walkDirRec`.
   #[
   note: a yieldFilter isn't needed because caller can filter at call site, without
@@ -42,10 +44,13 @@ iterator walkDirRecFilter*(dir: string, follow: proc(entry: PathEntry): bool = n
     for k, p in walkDir(dir / d, relative = true, checkDir = checkDir):
       let rel = d / p
       entry.kind = k
-      if relative: entry.path = rel
-      else: entry.path = dir / rel
+      if relative:
+        entry.path = rel
+      else:
+        entry.path = dir / rel
       if k in {pcDir, pcLinkToDir}:
-        if follow == nil or follow(entry): stack.add rel
+        if follow == nil or follow(entry):
+          stack.add rel
       yield entry
     checkDir = false
       # We only check top-level dir, otherwise if a subdir is invalid (eg. wrong
@@ -56,7 +61,7 @@ proc nativeToUnixPath*(path: string): string =
   # pending https://github.com/nim-lang/Nim/pull/13265
   result = path
   when defined(windows):
-    if path.len >= 2 and path[0] in {'a'..'z', 'A'..'Z'} and path[1] == ':':
+    if path.len >= 2 and path[0] in {'a' .. 'z', 'A' .. 'Z'} and path[1] == ':':
       result[0] = '/'
       result[1] = path[0]
       if path.len > 2 and path[2] != '\\':
@@ -66,5 +71,10 @@ proc nativeToUnixPath*(path: string): string =
 
 when isMainModule:
   import std/sugar
-  for a in walkDirRecFilter(".", follow = a=>a.path.lastPathPart notin ["nimcache", ".git", "csources_v1", "csources", "bin"]):
+  for a in walkDirRecFilter(
+    ".",
+    follow =
+      a =>
+      a.path.lastPathPart notin ["nimcache", ".git", "csources_v1", "csources", "bin"],
+  ):
     echo a

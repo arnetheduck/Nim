@@ -74,13 +74,14 @@ when defined(nimPreviewSlimSystem):
 
 type
   CsvRow* = seq[string] ## A row in a CSV file.
-  CsvParser* = object of BaseLexer ## The parser object.
-                                   ##
-                                   ## It consists of two public fields:
-                                   ## * `row` is the current row
-                                   ## * `headers` are the columns that are defined in the csv file
-                                   ##   (read using `readHeaderRow <#readHeaderRow,CsvParser>`_).
-                                   ##   Used with `rowEntry <#rowEntry,CsvParser,string>`_).
+  CsvParser* = object of BaseLexer
+    ## The parser object.
+    ##
+    ## It consists of two public fields:
+    ## * `row` is the current row
+    ## * `headers` are the columns that are defined in the csv file
+    ##   (read using `readHeaderRow <#readHeaderRow,CsvParser>`_).
+    ##   Used with `rowEntry <#rowEntry,CsvParser,string>`_).
     row*: CsvRow
     filename: string
     sep, quote, esc: char
@@ -88,11 +89,11 @@ type
     currRow: int
     headers*: seq[string]
 
-  CsvError* = object of IOError ## An exception that is raised if
-                                ## a parsing error occurs.
+  CsvError* = object of IOError
+    ## An exception that is raised if
+    ## a parsing error occurs.
 
-proc raiseEInvalidCsv(filename: string, line, col: int,
-                      msg: string) {.noreturn.} =
+proc raiseEInvalidCsv(filename: string, line, col: int, msg: string) {.noreturn.} =
   var e: ref CsvError
   new(e)
   if filename.len == 0:
@@ -104,9 +105,15 @@ proc raiseEInvalidCsv(filename: string, line, col: int,
 proc error(self: CsvParser, pos: int, msg: string) =
   raiseEInvalidCsv(self.filename, self.lineNumber, getColNumber(self, pos), msg)
 
-proc open*(self: var CsvParser, input: Stream, filename: string,
-           separator = ',', quote = '"', escape = '\0',
-           skipInitialSpace = false) =
+proc open*(
+    self: var CsvParser,
+    input: Stream,
+    filename: string,
+    separator = ',',
+    quote = '"',
+    escape = '\0',
+    skipInitialSpace = false,
+) =
   ## Initializes the parser with an input stream. `Filename` is only used
   ## for nice error messages. The parser's behaviour can be controlled by
   ## the diverse optional parameters:
@@ -138,9 +145,14 @@ proc open*(self: var CsvParser, input: Stream, filename: string,
   self.esc = escape
   self.skipWhite = skipInitialSpace
 
-proc open*(self: var CsvParser, filename: string,
-           separator = ',', quote = '"', escape = '\0',
-           skipInitialSpace = false) =
+proc open*(
+    self: var CsvParser,
+    filename: string,
+    separator = ',',
+    quote = '"',
+    escape = '\0',
+    skipInitialSpace = false,
+) =
   ## Similar to the `other open proc<#open,CsvParser,Stream,string,char,char,char>`_,
   ## but creates the file stream for you.
   runnableExamples:
@@ -152,14 +164,15 @@ proc open*(self: var CsvParser, filename: string,
     removeFile("tmp.csv")
 
   var s = newFileStream(filename, fmRead)
-  if s == nil: self.error(0, "cannot open: " & filename)
-  open(self, s, filename, separator,
-       quote, escape, skipInitialSpace)
+  if s == nil:
+    self.error(0, "cannot open: " & filename)
+  open(self, s, filename, separator, quote, escape, skipInitialSpace)
 
 proc parseField(self: var CsvParser, a: var string) =
   var pos = self.bufpos
   if self.skipWhite:
-    while self.buf[pos] in {' ', '\t'}: inc(pos)
+    while self.buf[pos] in {' ', '\t'}:
+      inc(pos)
   setLen(a, 0) # reuse memory
   if self.buf[pos] == self.quote and self.quote != '\0':
     inc(pos)
@@ -193,8 +206,10 @@ proc parseField(self: var CsvParser, a: var string) =
   else:
     while true:
       let c = self.buf[pos]
-      if c == self.sep: break
-      if c in {'\c', '\l', '\0'}: break
+      if c == self.sep:
+        break
+      if c in {'\c', '\l', '\0'}:
+        break
       add(a, c)
       inc(pos)
   self.bufpos = pos
@@ -257,9 +272,12 @@ proc readRow*(self: var CsvParser, columns = 0): bool =
   # skip initial empty lines #8365
   while true:
     case self.buf[self.bufpos]
-    of '\c': self.bufpos = handleCR(self, self.bufpos)
-    of '\l': self.bufpos = handleLF(self, self.bufpos)
-    else: break
+    of '\c':
+      self.bufpos = handleCR(self, self.bufpos)
+    of '\l':
+      self.bufpos = handleLF(self, self.bufpos)
+    else:
+      break
   while self.buf[self.bufpos] != '\0':
     let oldlen = self.row.len
     if oldlen < col + 1:
@@ -275,18 +293,24 @@ proc readRow*(self: var CsvParser, columns = 0): bool =
         # skip empty lines:
         while true:
           case self.buf[self.bufpos]
-          of '\c': self.bufpos = handleCR(self, self.bufpos)
-          of '\l': self.bufpos = handleLF(self, self.bufpos)
-          else: break
-      of '\0': discard
-      else: error(self, self.bufpos, self.sep & " expected")
+          of '\c':
+            self.bufpos = handleCR(self, self.bufpos)
+          of '\l':
+            self.bufpos = handleLF(self, self.bufpos)
+          else:
+            break
+      of '\0':
+        discard
+      else:
+        error(self, self.bufpos, self.sep & " expected")
       break
 
   setLen(self.row, col)
   result = col > 0
   if result and col != columns and columns > 0:
-    error(self, oldpos + 1, $columns & " columns expected, but found " &
-          $col & " columns")
+    error(
+      self, oldpos + 1, $columns & " columns expected, but found " & $col & " columns"
+    )
   inc(self.currRow)
 
 proc close*(self: var CsvParser) {.inline.} =
@@ -351,7 +375,8 @@ proc rowEntry*(self: var CsvParser, entry: string): var string =
 when not defined(testing) and isMainModule:
   import std/os
   var s = newFileStream(paramStr(1), fmRead)
-  if s == nil: quit("cannot open the file" & paramStr(1))
+  if s == nil:
+    quit("cannot open the file" & paramStr(1))
   var x: CsvParser
   open(x, s, paramStr(1))
   while readRow(x):

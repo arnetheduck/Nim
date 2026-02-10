@@ -8,7 +8,7 @@
 #
 
 # Low level allocator for Nim. Has been designed to support the GC.
-{.push profiler:off.}
+{.push profiler: off.}
 
 include osalloc
 import std/private/syslocks
@@ -55,24 +55,25 @@ const
   nimMinHeapPages {.intdefine.} = 128 # 0.5 MB
   SmallChunkSize = PageSize
   MaxFli = when sizeof(int) > 2: 30 else: 14
-  MaxLog2Sli = 5 # 32, this cannot be increased without changing 'uint32'
-                 # everywhere!
+  MaxLog2Sli = 5
+    # 32, this cannot be increased without changing 'uint32'
+    # everywhere!
   MaxSli = 1 shl MaxLog2Sli
   FliOffset = 6
   RealFli = MaxFli - FliOffset
 
   # size of chunks in last matrix bin
-  MaxBigChunkSize = int(1'i32 shl MaxFli - 1'i32 shl (MaxFli-MaxLog2Sli-1))
+  MaxBigChunkSize = int(1'i32 shl MaxFli - 1'i32 shl (MaxFli - MaxLog2Sli - 1))
   HugeChunkSize = MaxBigChunkSize + 1
 
 type
   PTrunk = ptr Trunk
   Trunk = object
-    next: PTrunk         # all nodes are connected with this pointer
-    key: int             # start address at bit 0
-    bits: array[0..IntsPerTrunk-1, uint] # a bit vector
+    next: PTrunk # all nodes are connected with this pointer
+    key: int # start address at bit 0
+    bits: array[0 .. IntsPerTrunk - 1, uint] # a bit vector
 
-  TrunkBuckets = array[0..255, PTrunk]
+  TrunkBuckets = array[0 .. 255, PTrunk]
   IntSet = object
     data: TrunkBuckets
 
@@ -86,13 +87,13 @@ type
 type
   PLLChunk = ptr LLChunk
   LLChunk = object ## *low-level* chunk
-    size: int                # remaining size
-    acc: int                 # accumulator
-    next: PLLChunk           # next low-level chunk; only needed for dealloc
+    size: int # remaining size
+    acc: int # accumulator
+    next: PLLChunk # next low-level chunk; only needed for dealloc
 
   PAvlNode = ptr AvlNode
   AvlNode = object
-    link: array[0..1, PAvlNode] # Left (0) and right (1) links
+    link: array[0 .. 1, PAvlNode] # Left (0) and right (1) links
     key, upperBound: int
     level: int
 
@@ -100,11 +101,12 @@ type
   FreeCell {.final, pure.} = object
     # A free cell is a pointer that has been freed, meaning it became available for reuse.
     # It may become foreign if it is lent to a chunk that did not create it, doing so reduces the amount of needed pages.
-    next: ptr FreeCell  # next free cell in chunk (overlaid with refcount)
+    next: ptr FreeCell # next free cell in chunk (overlaid with refcount)
     when not defined(gcDestructors):
-      zeroField: int       # 0 means cell is not used (overlaid with typ field)
-                          # 1 means cell is manually managed pointer
-                          # otherwise a PNimType is stored in there
+      zeroField: int
+        # 0 means cell is not used (overlaid with typ field)
+        # 1 means cell is manually managed pointer
+        # otherwise a PNimType is stored in there
     else:
       alignment: int
 
@@ -112,30 +114,35 @@ type
   PBigChunk = ptr BigChunk
   PSmallChunk = ptr SmallChunk
   BaseChunk {.pure, inheritable.} = object
-    prevSize: int        # size of previous chunk; for coalescing
-                         # 0th bit == 1 if 'used
-    size: int            # if < PageSize it is a small chunk
+    prevSize: int
+      # size of previous chunk; for coalescing
+      # 0th bit == 1 if 'used
+    size: int # if < PageSize it is a small chunk
     owner: ptr MemRegion
 
   SmallChunk = object of BaseChunk
-    next, prev: PSmallChunk  # chunks of the same size
-    freeList: ptr FreeCell   # Singly linked list of cells. They may be from foreign chunks or from the current chunk.
-                             #  Should be `nil` when the chunk isn't active in `a.freeSmallChunks`.
-    free: int32              # Bytes this chunk is able to provide using both the accumulator and free cells.
-                             # When a cell is considered foreign, its source chunk's free field is NOT adjusted until it
-                             #  reaches dealloc while the source chunk is active.
-                             # Instead, the receiving chunk gains the capacity and thus reserves space in the foreign chunk.
-    acc: uint32              # Offset from data, used when there are no free cells available but the chunk is considered free.
-    foreignCells: int        # When a free cell is given to a chunk that is not its origin,
-                             #  both the cell and the source chunk are considered foreign.
-                             # Receiving a foreign cell can happen both when deallocating from another thread or when
-                             #  the active chunk in `a.freeSmallChunks` is not the current chunk.
-                             # Freeing a chunk while `foreignCells > 0` leaks memory as all references to it become lost.
-    data {.align: MemAlign.}: UncheckedArray[byte]      # start of usable memory
+    next, prev: PSmallChunk # chunks of the same size
+    freeList: ptr FreeCell
+      # Singly linked list of cells. They may be from foreign chunks or from the current chunk.
+      #  Should be `nil` when the chunk isn't active in `a.freeSmallChunks`.
+    free: int32
+      # Bytes this chunk is able to provide using both the accumulator and free cells.
+      # When a cell is considered foreign, its source chunk's free field is NOT adjusted until it
+      #  reaches dealloc while the source chunk is active.
+      # Instead, the receiving chunk gains the capacity and thus reserves space in the foreign chunk.
+    acc: uint32
+      # Offset from data, used when there are no free cells available but the chunk is considered free.
+    foreignCells: int
+      # When a free cell is given to a chunk that is not its origin,
+      #  both the cell and the source chunk are considered foreign.
+      # Receiving a foreign cell can happen both when deallocating from another thread or when
+      #  the active chunk in `a.freeSmallChunks` is not the current chunk.
+      # Freeing a chunk while `foreignCells > 0` leaks memory as all references to it become lost.
+    data {.align: MemAlign.}: UncheckedArray[byte] # start of usable memory
 
   BigChunk = object of BaseChunk # not necessarily > PageSize!
-    next, prev: PBigChunk    # chunks of the same (or bigger) size
-    data {.align: MemAlign.}: UncheckedArray[byte]      # start of usable memory
+    next, prev: PBigChunk # chunks of the same (or bigger) size
+    data {.align: MemAlign.}: UncheckedArray[byte] # start of usable memory
 
   HeapLinks = object
     len: int
@@ -145,10 +152,10 @@ type
   MemRegion = object
     when not defined(gcDestructors):
       minLargeObj, maxLargeObj: int
-    freeSmallChunks: array[0..max(1, SmallChunkSize div MemAlign-1), PSmallChunk]
+    freeSmallChunks: array[0 .. max(1, SmallChunkSize div MemAlign - 1), PSmallChunk]
       # List of available chunks per size class. Only one is expected to be active per class.
     when defined(gcDestructors):
-      sharedFreeLists: array[0..max(1, SmallChunkSize div MemAlign-1), ptr FreeCell]
+      sharedFreeLists: array[0 .. max(1, SmallChunkSize div MemAlign - 1), ptr FreeCell]
         # When a thread frees a pointer it did not create, it must not adjust the counters.
         # Instead, the cell is placed here and deferred until the next allocation.
     flBitmap: uint32
@@ -158,7 +165,8 @@ type
     currMem, maxMem, freeMem, occ: int # memory sizes (allocated from OS)
     lastSize: int # needed for the case that OS gives us pages linearly
     when defined(gcDestructors):
-      sharedFreeListBigChunks: PBigChunk # make no attempt at avoiding false sharing for now for this object field
+      sharedFreeListBigChunks: PBigChunk
+        # make no attempt at avoiding false sharing for now for this object field
 
     chunkStarts: IntSet
     when not defined(gcDestructors):
@@ -171,55 +179,67 @@ type
     when defined(nimTypeNames):
       allocCounter, deallocCounter: int
 
-template smallChunkOverhead(): untyped = sizeof(SmallChunk)
-template bigChunkOverhead(): untyped = sizeof(BigChunk)
+template smallChunkOverhead(): untyped =
+  sizeof(SmallChunk)
+
+template bigChunkOverhead(): untyped =
+  sizeof(BigChunk)
 
 when hasThreadSupport:
-  template loada(x: untyped): untyped = atomicLoadN(unsafeAddr x, ATOMIC_RELAXED)
-  template storea(x, y: untyped) = atomicStoreN(unsafeAddr x, y, ATOMIC_RELAXED)
+  template loada(x: untyped): untyped =
+    atomicLoadN(unsafeAddr x, ATOMIC_RELAXED)
+
+  template storea(x, y: untyped) =
+    atomicStoreN(unsafeAddr x, y, ATOMIC_RELAXED)
 
   when false:
     # not yet required
-    template atomicStatDec(x, diff: untyped) = discard atomicSubFetch(unsafeAddr x, diff, ATOMIC_RELAXED)
-    template atomicStatInc(x, diff: untyped) = discard atomicAddFetch(unsafeAddr x, diff, ATOMIC_RELAXED)
+    template atomicStatDec(x, diff: untyped) =
+      discard atomicSubFetch(unsafeAddr x, diff, ATOMIC_RELAXED)
+
+    template atomicStatInc(x, diff: untyped) =
+      discard atomicAddFetch(unsafeAddr x, diff, ATOMIC_RELAXED)
+
 else:
-  template loada(x: untyped): untyped = x
-  template storea(x, y: untyped) = x = y
+  template loada(x: untyped): untyped =
+    x
 
-template atomicStatDec(x, diff: untyped) = dec x, diff
-template atomicStatInc(x, diff: untyped) = inc x, diff
+  template storea(x, y: untyped) =
+    x = y
 
-const
-  fsLookupTable: array[byte, int8] = [
-    -1'i8, 0, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3,
-    4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
-    5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5,
-    5, 5, 5, 5, 5, 5, 5, 5,
-    6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6,
-    6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6,
-    6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6,
-    7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
-    7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
-    7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
-    7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
-    7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
-    7, 7, 7, 7, 7, 7, 7, 7
-  ]
+template atomicStatDec(x, diff: untyped) =
+  dec x, diff
+
+template atomicStatInc(x, diff: untyped) =
+  inc x, diff
+
+const fsLookupTable: array[byte, int8] = [
+  -1'i8, 0, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
+  4, 4, 4, 4, 4, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5,
+  5, 5, 5, 5, 5, 5, 5, 5, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6,
+  6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6,
+  6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
+  7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
+  7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
+  7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
+  7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
+]
 
 proc msbit(x: uint32): int {.inline.} =
-  let a = if x <= 0xff_ff'u32:
-            (if x <= 0xff: 0 else: 8)
-          else:
-            (if x <= 0xff_ff_ff'u32: 16 else: 24)
+  let a =
+    if x <= 0xff_ff'u32:
+      (if x <= 0xff: 0 else: 8)
+    else:
+      (if x <= 0xff_ff_ff'u32: 16 else: 24)
   result = int(fsLookupTable[byte(x shr a)]) + a
 
 proc lsbit(x: uint32): int {.inline.} =
   msbit(x and ((not x) + 1))
 
-proc setBit(nr: int; dest: var uint32) {.inline.} =
+proc setBit(nr: int, dest: var uint32) {.inline.} =
   dest = dest or (1u32 shl (nr and 0x1f))
 
-proc clearBit(nr: int; dest: var uint32) {.inline.} =
+proc clearBit(nr: int, dest: var uint32) {.inline.} =
   dest = dest and not (1u32 shl (nr and 0x1f))
 
 proc mappingSearch(r, fl, sl: var int) {.inline.} =
@@ -244,9 +264,10 @@ proc mappingInsert(r: int): tuple[fl, sl: int] {.inline.} =
   result.sl = (r shr (result.fl - MaxLog2Sli)) - MaxSli
   dec result.fl, FliOffset
 
-template mat(): untyped = a.matrix[fl][sl]
+template mat(): untyped =
+  a.matrix[fl][sl]
 
-proc findSuitableBlock(a: MemRegion; fl, sl: var int): PBigChunk {.inline.} =
+proc findSuitableBlock(a: MemRegion, fl, sl: var int): PBigChunk {.inline.} =
   let tmp = a.slBitmap[fl] and (not 0u32 shl sl)
   result = nil
   if tmp != 0:
@@ -264,10 +285,12 @@ template clearBits(sl, fl) =
     # do not forget to cascade:
     clearBit(fl, a.flBitmap)
 
-proc removeChunkFromMatrix(a: var MemRegion; b: PBigChunk) =
+proc removeChunkFromMatrix(a: var MemRegion, b: PBigChunk) =
   let (fl, sl) = mappingInsert(b.size)
-  if b.next != nil: b.next.prev = b.prev
-  if b.prev != nil: b.prev.next = b.next
+  if b.next != nil:
+    b.next.prev = b.prev
+  if b.prev != nil:
+    b.prev.next = b.next
   if mat() == b:
     mat() = b.next
     if mat() == nil:
@@ -275,7 +298,7 @@ proc removeChunkFromMatrix(a: var MemRegion; b: PBigChunk) =
   b.prev = nil
   b.next = nil
 
-proc removeChunkFromMatrix2(a: var MemRegion; b: PBigChunk; fl, sl: int) =
+proc removeChunkFromMatrix2(a: var MemRegion, b: PBigChunk, fl, sl: int) =
   mat() = b.next
   if mat() != nil:
     mat().prev = nil
@@ -284,7 +307,7 @@ proc removeChunkFromMatrix2(a: var MemRegion; b: PBigChunk; fl, sl: int) =
   b.prev = nil
   b.next = nil
 
-proc addChunkToMatrix(a: var MemRegion; b: PBigChunk) =
+proc addChunkToMatrix(a: var MemRegion, b: PBigChunk) =
   let (fl, sl) = mappingInsert(b.size)
   b.prev = nil
   b.next = mat()
@@ -328,7 +351,7 @@ proc llAlloc(a: var MemRegion, size: int): pointer =
     # the requested size is ``roundup(size+sizeof(LLChunk), PageSize)``, but
     # since we know ``size`` is a (small) constant, we know the requested size
     # is one page:
-    sysAssert roundup(size+sizeof(LLChunk), PageSize) == PageSize, "roundup 6"
+    sysAssert roundup(size + sizeof(LLChunk), PageSize) == PageSize, "roundup 6"
     var old = a.llmem # can be nil and is correct with nil
     a.llmem = cast[PLLChunk](allocPages(a, PageSize))
     when defined(nimAvlcorruption):
@@ -373,9 +396,10 @@ when not defined(gcDestructors):
     n.link[0] = a.freeAvlNodes
     a.freeAvlNodes = n
 
-proc addHeapLink(a: var MemRegion; p: PBigChunk, size: int): ptr HeapLinks =
+proc addHeapLink(a: var MemRegion, p: PBigChunk, size: int): ptr HeapLinks =
   var it = addr(a.heapLinks)
-  while it != nil and it.len >= it.chunks.len: it = it.next
+  while it != nil and it.len >= it.chunks.len:
+    it = it.next
   if it == nil:
     var n = cast[ptr HeapLinks](llAlloc(a, sizeof(HeapLinks)))
     n.next = a.heapLinks.next
@@ -404,7 +428,8 @@ proc llDeallocAll(a: var MemRegion) =
 proc intSetGet(t: IntSet, key: int): PTrunk =
   var it = t.data[key and high(t.data)]
   while it != nil:
-    if it.key == key: return it
+    if it.key == key:
+      return it
     it = it.next
   result = nil
 
@@ -433,12 +458,12 @@ proc excl(s: var IntSet, key: int) =
   var t = intSetGet(s, key shr TrunkShift)
   if t != nil:
     var u = key and TrunkMask
-    t.bits[u shr IntShift] = t.bits[u shr IntShift] and not
-        (uint(1) shl (u and IntMask))
+    t.bits[u shr IntShift] =
+      t.bits[u shr IntShift] and not (uint(1) shl (u and IntMask))
 
 iterator elements(t: IntSet): int {.inline.} =
   # while traversing it is forbidden to change the set!
-  for h in 0..high(t.data):
+  for h in 0 .. high(t.data):
     var r = t.data[h]
     while r != nil:
       var i = 0
@@ -446,8 +471,8 @@ iterator elements(t: IntSet): int {.inline.} =
         var w = r.bits[i] # taking a copy of r.bits[i] here is correct, because
         # modifying operations are not allowed during traversation
         var j = 0
-        while w != 0:         # test all remaining bits for zero
-          if (w and 1) != 0:  # the bit is set!
+        while w != 0: # test all remaining bits for zero
+          if (w and 1) != 0: # the bit is set!
             yield (r.key shl TrunkShift) or (i shl IntShift +% j)
           inc(j)
           w = w shr 1
@@ -455,7 +480,7 @@ iterator elements(t: IntSet): int {.inline.} =
       r = r.next
 
 proc isSmallChunk(c: PChunk): bool {.inline.} =
-  result = c.size <= SmallChunkSize-smallChunkOverhead()
+  result = c.size <= SmallChunkSize - smallChunkOverhead()
 
 proc chunkUnused(c: PChunk): bool {.inline.} =
   result = (c.prevSize and 1) == 0
@@ -481,8 +506,9 @@ iterator allObjects(m: var MemRegion): pointer {.inline.} =
           yield addr(c.data)
   m.locked = false
 
-proc iterToProc*(iter: typed, envType: typedesc; procName: untyped) {.
-                      magic: "Plugin", compileTime.}
+proc iterToProc*(
+  iter: typed, envType: typedesc, procName: untyped
+) {.magic: "Plugin", compileTime.}
 
 when not defined(gcDestructors):
   proc isCell(p: pointer): bool {.inline.} =
@@ -504,8 +530,9 @@ when false:
     var it = a.freeChunksList
     c_fprintf(stdout, "freeChunksList: %p\n", it)
     while it != nil:
-      c_fprintf(stdout, "it: %p, next: %p, prev: %p, size: %ld\n",
-                it, it.next, it.prev, it.size)
+      c_fprintf(
+        stdout, "it: %p, next: %p, prev: %p, size: %ld\n", it, it.next, it.prev, it.size
+      )
       it = it.next
 
 proc requestOsChunks(a: var MemRegion, size: int): PBigChunk =
@@ -513,7 +540,7 @@ proc requestOsChunks(a: var MemRegion, size: int): PBigChunk =
     if not a.blockChunkSizeIncrease:
       let usedMem = a.occ #a.currMem # - a.freeMem
       if usedMem < 64 * 1024:
-        a.nextChunkSize = PageSize*4
+        a.nextChunkSize = PageSize * 4
       else:
         a.nextChunkSize = min(roundup(usedMem shr 2, PageSize), a.nextChunkSize * 2)
         a.nextChunkSize = min(a.nextChunkSize, MaxBigChunkSize).int
@@ -533,8 +560,13 @@ proc requestOsChunks(a: var MemRegion, size: int): PBigChunk =
   inc(a.freeMem, size)
   let heapLink = a.addHeapLink(result, size)
   when defined(debugHeapLinks):
-    cprintf("owner: %p; result: %p; next pointer %p; size: %ld\n", addr(a),
-      result, heapLink, size)
+    cprintf(
+      "owner: %p; result: %p; next pointer %p; size: %ld\n",
+      addr(a),
+      result,
+      heapLink,
+      size,
+    )
 
   when defined(memtracker):
     trackLocation(addr result.size, sizeof(int))
@@ -572,7 +604,8 @@ proc contains[T](list, x: T): bool =
   result = false
   var it = list
   while it != nil:
-    if it == x: return true
+    if it == x:
+      return true
     it = it.next
 
 proc listAdd[T](head: var T, c: T) {.inline.} =
@@ -590,16 +623,17 @@ proc listRemove[T](head: var T, c: T) {.inline.} =
   if c == head:
     head = c.next
     sysAssert c.prev == nil, "listRemove 2"
-    if head != nil: head.prev = nil
+    if head != nil:
+      head.prev = nil
   else:
     sysAssert c.prev != nil, "listRemove 3"
     c.prev.next = c.next
-    if c.next != nil: c.next.prev = c.prev
+    if c.next != nil:
+      c.next.prev = c.prev
   c.next = nil
   c.prev = nil
 
-proc updatePrevSize(a: var MemRegion, c: PBigChunk,
-                    prevSize: int) {.inline.} =
+proc updatePrevSize(a: var MemRegion, c: PBigChunk, prevSize: int) {.inline.} =
   var ri = cast[PChunk](cast[int](c) +% c.size)
   sysAssert((cast[int](ri) and PageMask) == 0, "updatePrevSize")
   if isAccessible(a, ri):
@@ -617,8 +651,9 @@ proc splitChunk2(a: var MemRegion, c: PBigChunk, size: int): PBigChunk =
   result.prevSize = size
   result.owner = addr a
   sysAssert((size and 1) == 0, "splitChunk 2")
-  sysAssert((size and PageMask) == 0,
-      "splitChunk: size is not a multiple of the PageSize")
+  sysAssert(
+    (size and PageMask) == 0, "splitChunk: size is not a multiple of the PageSize"
+  )
   updatePrevSize(a, c, result.size)
   c.size = size
   incl(a, a.chunkStarts, pageIndex(result))
@@ -631,7 +666,7 @@ proc freeBigChunk(a: var MemRegion, c: PBigChunk) =
   var c = c
   sysAssert(c.size >= PageSize, "freeBigChunk")
   inc(a.freeMem, c.size)
-  c.prevSize = c.prevSize and not 1  # set 'used' to false
+  c.prevSize = c.prevSize and not 1 # set 'used' to false
   when coalescLeft:
     let prevSize = c.prevSize
     if prevSize != 0:
@@ -696,11 +731,12 @@ proc getBigChunk(a: var MemRegion, size: int): PBigChunk =
   incl(a, a.chunkStarts, pageIndex(result))
   dec(a.freeMem, size)
 
-proc getHugeChunk(a: var MemRegion; size: int): PBigChunk =
+proc getHugeChunk(a: var MemRegion, size: int): PBigChunk =
   result = cast[PBigChunk](allocPages(a, size))
   incCurrMem(a, size)
   # XXX add this to the heap links. But also remove it from it later.
-  when false: a.addHeapLink(result, size)
+  when false:
+    a.addHeapLink(result, size)
   sysAssert((cast[int](result) and PageMask) == 0, "getHugeChunk")
   result.next = nil
   result.prev = nil
@@ -710,7 +746,7 @@ proc getHugeChunk(a: var MemRegion; size: int): PBigChunk =
   result.owner = addr a
   incl(a, a.chunkStarts, pageIndex(result))
 
-proc freeHugeChunk(a: var MemRegion; c: PBigChunk) =
+proc freeHugeChunk(a: var MemRegion, c: PBigChunk) =
   let size = c.size
   sysAssert(size >= HugeChunkSize, "freeHugeChunk: invalid size")
   excl(a.chunkStarts, pageIndex(c))
@@ -728,11 +764,13 @@ when not defined(gcDestructors):
   proc isAllocatedPtr(a: MemRegion, p: pointer): bool {.benign.}
 
 when true:
-  template allocInv(a: MemRegion): bool = true
+  template allocInv(a: MemRegion): bool =
+    true
+
 else:
   proc allocInv(a: MemRegion): bool =
     ## checks some (not all yet) invariants of the allocator's data structures.
-    for s in low(a.freeSmallChunks)..high(a.freeSmallChunks):
+    for s in low(a.freeSmallChunks) .. high(a.freeSmallChunks):
       var c = a.freeSmallChunks[s]
       while not (c == nil):
         if c.next == c:
@@ -761,16 +799,20 @@ when false:
     inc rsizesLen
 
   proc untrackSize(size: int) =
-    for i in 0 .. rsizesLen-1:
+    for i in 0 .. rsizesLen - 1:
       if rsizes[i] == size:
-        rsizes[i] = rsizes[rsizesLen-1]
+        rsizes[i] = rsizes[rsizesLen - 1]
         dec rsizesLen
         return
     c_fprintf(stdout, "%ld\n", size)
     sysAssert(false, "untracked size!")
+
 else:
-  template trackSize(x) = discard
-  template untrackSize(x) = discard
+  template trackSize(x) =
+    discard
+
+  template untrackSize(x) =
+    discard
 
 proc deallocBigChunk(a: var MemRegion, c: PBigChunk) =
   dec a.occ, c.size
@@ -779,8 +821,10 @@ proc deallocBigChunk(a: var MemRegion, c: PBigChunk) =
   when not defined(gcDestructors):
     a.deleted = getBottom(a)
     del(a, a.root, cast[int](addr(c.data)))
-  if c.size >= HugeChunkSize: freeHugeChunk(a, c)
-  else: freeBigChunk(a, c)
+  if c.size >= HugeChunkSize:
+    freeHugeChunk(a, c)
+  else:
+    freeBigChunk(a, c)
 
 when defined(gcDestructors):
   template atomicPrepend(head, elem: untyped) =
@@ -788,22 +832,24 @@ when defined(gcDestructors):
     when hasThreadSupport:
       while true:
         elem.next.storea head.loada
-        if atomicCompareExchangeN(addr head, addr elem.next, elem, weak = true, ATOMIC_RELEASE, ATOMIC_RELAXED):
+        if atomicCompareExchangeN(
+          addr head, addr elem.next, elem, weak = true, ATOMIC_RELEASE, ATOMIC_RELAXED
+        ):
           break
     else:
       elem.next.storea head.loada
       head.storea elem
 
-  proc addToSharedFreeListBigChunks(a: var MemRegion; c: PBigChunk) {.inline.} =
+  proc addToSharedFreeListBigChunks(a: var MemRegion, c: PBigChunk) {.inline.} =
     sysAssert c.next == nil, "c.next pointer must be nil"
     atomicPrepend a.sharedFreeListBigChunks, c
 
-  proc addToSharedFreeList(c: PSmallChunk; f: ptr FreeCell; size: int) {.inline.} =
+  proc addToSharedFreeList(c: PSmallChunk, f: ptr FreeCell, size: int) {.inline.} =
     atomicPrepend c.owner.sharedFreeLists[size], f
 
   const MaxSteps = 20
 
-  proc compensateCounters(a: var MemRegion; c: PSmallChunk; size: int) =
+  proc compensateCounters(a: var MemRegion, c: PSmallChunk, size: int) =
     # rawDealloc did NOT do the usual:
     # `inc(c.free, size); dec(a.occ, size)` because it wasn't the owner of these
     # memory locations. We have to compensate here for these for the entire list.
@@ -821,7 +867,7 @@ when defined(gcDestructors):
     inc(c.free, total)
     dec(a.occ, total)
 
-  proc freeDeferredObjects(a: var MemRegion; root: PBigChunk) =
+  proc freeDeferredObjects(a: var MemRegion, root: PBigChunk) =
     var it = root
     var maxIters = MaxSteps # make it time-bounded
     while true:
@@ -835,7 +881,8 @@ when defined(gcDestructors):
         break
       it = rest
       dec maxIters
-      if it == nil: break
+      if it == nil:
+        break
 
 when defined(heaptrack):
   const heaptrackLib =
@@ -856,14 +903,15 @@ proc rawAlloc(a: var MemRegion, requestedSize: int): pointer =
   sysAssert(size >= requestedSize, "insufficient allocated size!")
   #c_fprintf(stdout, "alloc; size: %ld; %ld\n", requestedSize, size)
 
-  if size <= SmallChunkSize-smallChunkOverhead():
+  if size <= SmallChunkSize - smallChunkOverhead():
     template fetchSharedCells(tc: PSmallChunk) =
       # Consumes cells from (potentially) foreign threads from `a.sharedFreeLists[s]`
       when defined(gcDestructors):
         if tc.freeList == nil:
           when hasThreadSupport:
             # Steal the entire list from `sharedFreeList`:
-            tc.freeList = atomicExchangeN(addr a.sharedFreeLists[s], nil, ATOMIC_RELAXED)
+            tc.freeList =
+              atomicExchangeN(addr a.sharedFreeLists[s], nil, ATOMIC_RELAXED)
           else:
             tc.freeList = a.sharedFreeLists[s]
             a.sharedFreeLists[s] = nil
@@ -895,7 +943,7 @@ proc rawAlloc(a: var MemRegion, requestedSize: int): pointer =
         #  we must not add it to the list if it cannot be used the next time a pointer of `size` bytes is needed.
         listAdd(a.freeSmallChunks[s], c)
       result = addr(c.data)
-      sysAssert((cast[int](result) and (MemAlign-1)) == 0, "rawAlloc 4")
+      sysAssert((cast[int](result) and (MemAlign - 1)) == 0, "rawAlloc 4")
     else:
       # There is a free chunk of the requested size available, use it.
       sysAssert(allocInv(a), "rawAlloc: begin c != nil")
@@ -904,8 +952,9 @@ proc rawAlloc(a: var MemRegion, requestedSize: int): pointer =
       #  c_fprintf(stdout, "csize: %lld; size %lld\n", c.size, size)
       sysAssert c.size == size, "rawAlloc 6"
       if c.freeList == nil:
-        sysAssert(c.acc.int + smallChunkOverhead() + size <= SmallChunkSize,
-                  "rawAlloc 7")
+        sysAssert(
+          c.acc.int + smallChunkOverhead() + size <= SmallChunkSize, "rawAlloc 7"
+        )
         result = cast[pointer](cast[int](addr(c.data)) +% c.acc.int)
         inc(c.acc, size)
       else:
@@ -924,7 +973,7 @@ proc rawAlloc(a: var MemRegion, requestedSize: int): pointer =
       #  then added into the current chunk during dealloc,
       #  so the source chunk will not be freed or leak memory because of this.
       dec(c.free, size)
-      sysAssert((cast[int](result) and (MemAlign-1)) == 0, "rawAlloc 9")
+      sysAssert((cast[int](result) and (MemAlign - 1)) == 0, "rawAlloc 9")
       sysAssert(allocInv(a), "rawAlloc: end c != nil")
       # We fetch deferred cells *after* advancing `c.freeList`/`acc` to adjust `c.free`.
       # If after the adjustment it turns out there's free cells available,
@@ -936,38 +985,49 @@ proc rawAlloc(a: var MemRegion, requestedSize: int): pointer =
         sysAssert(allocInv(a), "rawAlloc: before listRemove test")
         listRemove(a.freeSmallChunks[s], c)
         sysAssert(allocInv(a), "rawAlloc: end listRemove test")
-    sysAssert(((cast[int](result) and PageMask) - smallChunkOverhead()) %%
-               size == 0, "rawAlloc 21")
+    sysAssert(
+      ((cast[int](result) and PageMask) - smallChunkOverhead()) %% size == 0,
+      "rawAlloc 21",
+    )
     sysAssert(allocInv(a), "rawAlloc: end small size")
     inc a.occ, size
     trackSize(c.size)
   else:
     when defined(gcDestructors):
       when hasThreadSupport:
-        let deferredFrees = atomicExchangeN(addr a.sharedFreeListBigChunks, nil, ATOMIC_RELAXED)
+        let deferredFrees =
+          atomicExchangeN(addr a.sharedFreeListBigChunks, nil, ATOMIC_RELAXED)
       else:
         let deferredFrees = a.sharedFreeListBigChunks
         a.sharedFreeListBigChunks = nil
       if deferredFrees != nil:
         freeDeferredObjects(a, deferredFrees)
 
-    size = requestedSize + bigChunkOverhead() #  roundup(requestedSize+bigChunkOverhead(), PageSize)
+    size = requestedSize + bigChunkOverhead()
+      #  roundup(requestedSize+bigChunkOverhead(), PageSize)
     # allocate a large block
-    var c = if size >= HugeChunkSize: getHugeChunk(a, size)
-            else: getBigChunk(a, size)
+    var c =
+      if size >= HugeChunkSize:
+        getHugeChunk(a, size)
+      else:
+        getBigChunk(a, size)
     sysAssert c.prev == nil, "rawAlloc 10"
     sysAssert c.next == nil, "rawAlloc 11"
     result = addr(c.data)
-    sysAssert((cast[int](c) and (MemAlign-1)) == 0, "rawAlloc 13")
-    sysAssert((cast[int](c) and PageMask) == 0, "rawAlloc: Not aligned on a page boundary")
+    sysAssert((cast[int](c) and (MemAlign - 1)) == 0, "rawAlloc 13")
+    sysAssert(
+      (cast[int](c) and PageMask) == 0, "rawAlloc: Not aligned on a page boundary"
+    )
     when not defined(gcDestructors):
-      if a.root == nil: a.root = getBottom(a)
-      add(a, a.root, cast[int](result), cast[int](result)+%size)
+      if a.root == nil:
+        a.root = getBottom(a)
+      add(a, a.root, cast[int](result), cast[int](result) +% size)
     inc a.occ, c.size
     trackSize(c.size)
   sysAssert(isAccessible(a, result), "rawAlloc 14")
   sysAssert(allocInv(a), "rawAlloc: end")
-  when logAlloc: cprintf("var pointer_%p = alloc(%ld) # %p\n", result, requestedSize, addr a)
+  when logAlloc:
+    cprintf("var pointer_%p = alloc(%ld) # %p\n", result, requestedSize, addr a)
   when defined(heaptrack):
     heaptrack_malloc(result, requestedSize)
 
@@ -996,16 +1056,18 @@ proc rawDealloc(a: var MemRegion, p: pointer) =
       dec a.occ, s
       untrackSize(s)
       sysAssert a.occ >= 0, "rawDealloc: negative occupied memory (case A)"
-      sysAssert(((cast[int](p) and PageMask) - smallChunkOverhead()) %%
-                s == 0, "rawDealloc 3")
+      sysAssert(
+        ((cast[int](p) and PageMask) - smallChunkOverhead()) %% s == 0, "rawDealloc 3"
+      )
       when not defined(gcDestructors):
         #echo("setting to nil: ", $cast[int](addr(f.zeroField)))
         sysAssert(f.zeroField != 0, "rawDealloc 1")
         f.zeroField = 0
       when overwriteFree:
         # set to 0xff to check for usage after free bugs:
-        nimSetMem(cast[pointer](cast[int](p) +% sizeof(FreeCell)), -1'i32,
-                s -% sizeof(FreeCell))
+        nimSetMem(
+          cast[pointer](cast[int](p) +% sizeof(FreeCell)), -1'i32, s -% sizeof(FreeCell)
+        )
       let activeChunk = a.freeSmallChunks[s div MemAlign]
       if activeChunk != nil and c != activeChunk:
         # This pointer is not part of the active chunk, lend it out
@@ -1015,8 +1077,10 @@ proc rawDealloc(a: var MemRegion, p: pointer) =
         #  This queue would otherwise waste memory in the form of free cells until we return to those chunks.
         f.next = activeChunk.freeList
         activeChunk.freeList = f # lend the cell
-        inc(activeChunk.free, s) # By not adjusting the current chunk's capacity it is prevented from being freed
-        inc(activeChunk.foreignCells) # The cell is now considered foreign from the perspective of the active chunk
+        inc(activeChunk.free, s)
+          # By not adjusting the current chunk's capacity it is prevented from being freed
+        inc(activeChunk.foreignCells)
+          # The cell is now considered foreign from the perspective of the active chunk
       else:
         f.next = c.freeList
         c.freeList = f
@@ -1029,21 +1093,25 @@ proc rawDealloc(a: var MemRegion, p: pointer) =
           # Free only if the entire chunk is unused and there are no borrowed cells.
           # If the chunk were to be freed while it references foreign cells,
           #  the foreign chunks will leak memory and can never be freed.
-          if c.free == SmallChunkSize-smallChunkOverhead() and c.foreignCells == 0:
+          if c.free == SmallChunkSize - smallChunkOverhead() and c.foreignCells == 0:
             listRemove(a.freeSmallChunks[s div MemAlign], c)
             c.size = SmallChunkSize
             freeBigChunk(a, cast[PBigChunk](c))
     else:
-      when logAlloc: cprintf("dealloc(pointer_%p) # SMALL FROM %p CALLER %p\n", p, c.owner, addr(a))
+      when logAlloc:
+        cprintf("dealloc(pointer_%p) # SMALL FROM %p CALLER %p\n", p, c.owner, addr(a))
 
       when defined(gcDestructors):
         addToSharedFreeList(c, f, s div MemAlign)
-    sysAssert(((cast[int](p) and PageMask) - smallChunkOverhead()) %%
-               s == 0, "rawDealloc 2")
+    sysAssert(
+      ((cast[int](p) and PageMask) - smallChunkOverhead()) %% s == 0, "rawDealloc 2"
+    )
   else:
     # set to 0xff to check for usage after free bugs:
-    when overwriteFree: nimSetMem(p, -1'i32, c.size -% bigChunkOverhead())
-    when logAlloc: cprintf("dealloc(pointer_%p) # BIG %p\n", p, c.owner)
+    when overwriteFree:
+      nimSetMem(p, -1'i32, c.size -% bigChunkOverhead())
+    when logAlloc:
+      cprintf("dealloc(pointer_%p) # BIG %p\n", p, c.owner)
     when defined(gcDestructors):
       if c.owner == addr(a):
         deallocBigChunk(a, cast[PBigChunk](c))
@@ -1062,9 +1130,9 @@ when not defined(gcDestructors):
       if not chunkUnused(c):
         if isSmallChunk(c):
           var c = cast[PSmallChunk](c)
-          var offset = (cast[int](p) and (PageSize-1)) -%
-                      smallChunkOverhead()
-          result = (c.acc.int >% offset) and (offset %% c.size == 0) and
+          var offset = (cast[int](p) and (PageSize - 1)) -% smallChunkOverhead()
+          result =
+            (c.acc.int >% offset) and (offset %% c.size == 0) and
             (cast[ptr FreeCell](p).zeroField >% 1)
         else:
           var c = cast[PBigChunk](c)
@@ -1080,13 +1148,14 @@ when not defined(gcDestructors):
       if not chunkUnused(c):
         if isSmallChunk(c):
           var c = cast[PSmallChunk](c)
-          var offset = (cast[int](p) and (PageSize-1)) -%
-                      smallChunkOverhead()
+          var offset = (cast[int](p) and (PageSize - 1)) -% smallChunkOverhead()
           if c.acc.int >% offset:
-            sysAssert(cast[int](addr(c.data)) +% offset ==
-                      cast[int](p), "offset is not what you think it is")
-            var d = cast[ptr FreeCell](cast[int](addr(c.data)) +%
-                      offset -% (offset %% c.size))
+            sysAssert(
+              cast[int](addr(c.data)) +% offset == cast[int](p),
+              "offset is not what you think it is",
+            )
+            var d = cast[ptr FreeCell](cast[int](addr(c.data)) +% offset -%
+              (offset %% c.size))
             if d.zeroField >% 1:
               result = d
               sysAssert isAllocatedPtr(a, result), " result wrong pointer!"
@@ -1127,7 +1196,7 @@ proc ptrSize(p: pointer): int =
 
 proc alloc(allocator: var MemRegion, size: Natural): pointer {.gcsafe.} =
   when not defined(gcDestructors):
-    result = rawAlloc(allocator, size+sizeof(FreeCell))
+    result = rawAlloc(allocator, size + sizeof(FreeCell))
     cast[ptr FreeCell](result).zeroField = 1 # mark it as used
     sysAssert(not isAllocatedPtr(allocator, result), "alloc")
     result = cast[pointer](cast[int](result) +% sizeof(FreeCell))
@@ -1162,7 +1231,9 @@ proc realloc(allocator: var MemRegion, p: pointer, newsize: Natural): pointer =
   elif p != nil:
     dealloc(allocator, p)
 
-proc realloc0(allocator: var MemRegion, p: pointer, oldsize, newsize: Natural): pointer =
+proc realloc0(
+    allocator: var MemRegion, p: pointer, oldsize, newsize: Natural
+): pointer =
   result = realloc(allocator, p, newsize)
   if newsize > oldsize:
     zeroMem(cast[pointer](cast[uint](result) + uint(oldsize)), newsize - oldsize)
@@ -1172,20 +1243,26 @@ proc deallocOsPages(a: var MemRegion) =
   var it = addr(a.heapLinks)
   while true:
     let next = it.next
-    for i in 0..it.len-1:
+    for i in 0 .. it.len - 1:
       let (p, size) = it.chunks[i]
       when defined(debugHeapLinks):
-        cprintf("owner %p; dealloc A: %p size: %ld; next: %p\n", addr(a),
-          it, size, next)
+        cprintf(
+          "owner %p; dealloc A: %p size: %ld; next: %p\n", addr(a), it, size, next
+        )
       sysAssert size >= PageSize, "origSize too small"
       osDeallocPages(p, size)
     it = next
-    if it == nil: break
+    if it == nil:
+      break
   # And then we free the pages that are in use for the page bits:
   llDeallocAll(a)
 
-proc getFreeMem(a: MemRegion): int {.inline.} = result = a.freeMem
-proc getTotalMem(a: MemRegion): int {.inline.} = result = a.currMem
+proc getFreeMem(a: MemRegion): int {.inline.} =
+  result = a.freeMem
+
+proc getTotalMem(a: MemRegion): int {.inline.} =
+  result = a.currMem
+
 proc getOccupiedMem(a: MemRegion): int {.inline.} =
   result = a.occ
   # a.currMem - a.freeMem
@@ -1204,10 +1281,11 @@ template instantiateForRegion(allocator: untyped) {.dirty.} =
       result = interiorAllocatedPtr(allocator, p)
 
     proc isAllocatedPtr*(p: pointer): bool =
-      let p = cast[pointer](cast[int](p)-%ByteAddress(sizeof(Cell)))
+      let p = cast[pointer](cast[int](p) -% ByteAddress(sizeof(Cell)))
       result = isAllocatedPtr(allocator, p)
 
-  proc deallocOsPages = deallocOsPages(allocator)
+  proc deallocOsPages() =
+    deallocOsPages(allocator)
 
   proc allocImpl(size: Natural): pointer =
     result = alloc(allocator, size)
@@ -1235,12 +1313,17 @@ template instantiateForRegion(allocator: untyped) {.dirty.} =
         it = it.next
 
   when hasThreadSupport and not defined(gcDestructors):
-    proc addSysExitProc(quitProc: proc() {.noconv.}) {.importc: "atexit", header: "<stdlib.h>".}
+    proc addSysExitProc(
+      quitProc: proc() {.noconv.}
+    ) {.importc: "atexit", header: "<stdlib.h>".}
 
     var sharedHeap: MemRegion
     var heapLock: SysLock
     initSysLock(heapLock)
-    addSysExitProc(proc() {.noconv.} = deinitSys(heapLock))
+    addSysExitProc(
+      proc() {.noconv.} =
+        deinitSys(heapLock)
+    )
 
   proc getFreeMem(): int =
     #sysAssert(result == countFreeMem())
@@ -1256,7 +1339,8 @@ template instantiateForRegion(allocator: untyped) {.dirty.} =
     result = getMaxMem(allocator)
 
   when defined(nimTypeNames):
-    proc getMemCounters*(): (int, int) = getMemCounters(allocator)
+    proc getMemCounters*(): (int, int) =
+      getMemCounters(allocator)
 
   # -------------------- shared heap region ----------------------------------
 
@@ -1322,6 +1406,7 @@ template instantiateForRegion(allocator: untyped) {.dirty.} =
       proc getOccupiedSharedMem(): int =
         sharedMemStatsShared(sharedHeap.occ)
         #sharedMemStatsShared(sharedHeap.currMem - sharedHeap.freeMem)
+
   {.pop.}
 
 {.pop.}

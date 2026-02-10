@@ -4,12 +4,11 @@ when not usesDestructors:
   {.pragma: nodestroy.}
 
 when hasAlloc:
-  type
-    GC_Strategy* = enum  ## The strategy the GC should use for the application.
-      gcThroughput,      ## optimize for throughput
-      gcResponsiveness,  ## optimize for responsiveness (default)
-      gcOptimizeTime,    ## optimize for speed
-      gcOptimizeSpace    ## optimize for memory footprint
+  type GC_Strategy* = enum ## The strategy the GC should use for the application.
+    gcThroughput ## optimize for throughput
+    gcResponsiveness ## optimize for responsiveness (default)
+    gcOptimizeTime ## optimize for speed
+    gcOptimizeSpace ## optimize for memory footprint
 
 when hasAlloc and not defined(js) and not usesDestructors:
   proc GC_disable*() {.rtl, inl, benign, raises: [].}
@@ -20,8 +19,7 @@ when hasAlloc and not defined(js) and not usesDestructors:
     ## the mark and sweep phase with
     ## `GC_disableMarkAndSweep <#GC_disableMarkAndSweep>`_.
 
-  proc GC_enable*() {.rtl, inl, benign, raises: [].}
-    ## Enables the GC again.
+  proc GC_enable*() {.rtl, inl, benign, raises: [].} ## Enables the GC again.
 
   proc GC_fullCollect*() {.rtl, benign, raises: [].}
     ## Forces a full garbage collection pass.
@@ -52,27 +50,29 @@ when hasAlloc and not defined(js) and not usesDestructors:
   proc GC_unref*(x: string) {.magic: "GCunref", benign, raises: [].}
     ## See the documentation of `GC_ref <#GC_ref,string>`_.
 
-  proc nimGC_setStackBottom*(theStackBottom: pointer) {.compilerRtl, noinline, benign, raises: [].}
+  proc nimGC_setStackBottom*(
+    theStackBottom: pointer
+  ) {.compilerRtl, noinline, benign, raises: [].}
     ## Expands operating GC stack range to `theStackBottom`. Does nothing
-      ## if current stack bottom is already lower than `theStackBottom`.
+    ## if current stack bottom is already lower than `theStackBottom`.
 
 when hasAlloc and defined(js):
-  template GC_disable* =
+  template GC_disable*() =
     {.warning: "GC_disable is a no-op in JavaScript".}
 
-  template GC_enable* =
+  template GC_enable*() =
     {.warning: "GC_enable is a no-op in JavaScript".}
 
-  template GC_fullCollect* =
+  template GC_fullCollect*() =
     {.warning: "GC_fullCollect is a no-op in JavaScript".}
 
-  template GC_setStrategy* =
+  template GC_setStrategy*() =
     {.warning: "GC_setStrategy is a no-op in JavaScript".}
 
-  template GC_enableMarkAndSweep* =
+  template GC_enableMarkAndSweep*() =
     {.warning: "GC_enableMarkAndSweep is a no-op in JavaScript".}
 
-  template GC_disableMarkAndSweep* =
+  template GC_disableMarkAndSweep*() =
     {.warning: "GC_disableMarkAndSweep is a no-op in JavaScript".}
 
   template GC_ref*[T](x: ref T) =

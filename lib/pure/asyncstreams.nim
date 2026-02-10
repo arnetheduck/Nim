@@ -16,15 +16,15 @@ when defined(nimPreviewSlimSystem):
 
 import std/deques
 
-type
-  FutureStream*[T] = ref object ## Special future that acts as
-                                ## a queue. Its API is still
-                                ## experimental and so is
-                                ## subject to change.
-    queue: Deque[T]
-    finished: bool
-    cb: proc () {.closure, gcsafe.}
-    error*: ref Exception
+type FutureStream*[T] = ref object
+  ## Special future that acts as
+  ## a queue. Its API is still
+  ## experimental and so is
+  ## subject to change.
+  queue: Deque[T]
+  finished: bool
+  cb: proc() {.closure, gcsafe.}
+  error*: ref Exception
 
 proc newFutureStream*[T](fromProc = "unspecified"): FutureStream[T] =
   ## Create a new `FutureStream`. This future's callback is activated when
@@ -57,8 +57,9 @@ proc fail*[T](future: FutureStream[T], error: ref Exception) =
   if not future.cb.isNil:
     future.cb()
 
-proc `callback=`*[T](future: FutureStream[T],
-    cb: proc (future: FutureStream[T]) {.closure, gcsafe.}) =
+proc `callback=`*[T](
+    future: FutureStream[T], cb: proc(future: FutureStream[T]) {.closure, gcsafe.}
+) =
   ## Sets the callback proc to be called when data was placed inside the
   ## future stream.
   ##
@@ -67,7 +68,9 @@ proc `callback=`*[T](future: FutureStream[T],
   ##
   ## If the future stream already has data or is finished then `cb` will be
   ## called immediately.
-  proc named() = cb(future)
+  proc named() =
+    cb(future)
+
   future.cb = named
   if future.queue.len > 0 or future.finished:
     callSoon(future.cb)
@@ -94,7 +97,8 @@ proc write*[T](future: FutureStream[T], value: T): Future[void] =
   # TODO: Implement limiting of the streams storage to prevent it growing
   # infinitely when no reads are occurring.
   future.queue.addLast(value)
-  if not future.cb.isNil: future.cb()
+  if not future.cb.isNil:
+    future.cb()
   result.complete()
 
 proc read*[T](future: FutureStream[T]): owned(Future[(bool, T)]) =
@@ -110,7 +114,8 @@ proc read*[T](future: FutureStream[T]): owned(Future[(bool, T)]) =
   let savedCb = future.cb
   proc newCb(fs: FutureStream[T]) =
     # Exit early if `resFut` is already complete. (See #8994).
-    if resFut.finished: return
+    if resFut.finished:
+      return
 
     # We don't want this callback called again.
     #future.cb = nil

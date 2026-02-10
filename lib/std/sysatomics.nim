@@ -11,16 +11,15 @@ when defined(nimPreviewSlimSystem):
   {.deprecated: "use `std/atomics` instead".}
 
 # Atomic operations for Nim.
-{.push stackTrace:off, profiler:off.}
+{.push stackTrace: off, profiler: off.}
 
-const
-  hasThreadSupport = compileOption("threads") and not defined(nimscript)
-const someGcc = defined(gcc) or defined(llvm_gcc) or defined(clang) or defined(nintendoswitch)
+const hasThreadSupport = compileOption("threads") and not defined(nimscript)
+const someGcc =
+  defined(gcc) or defined(llvm_gcc) or defined(clang) or defined(nintendoswitch)
 const someVcc = defined(vcc) or defined(clang_cl)
 
-type
-  AtomType* = SomeNumber|pointer|ptr|char|bool
-    ## Type Class representing valid types for use with atomic procs
+type AtomType* = SomeNumber | pointer | ptr | char | bool
+  ## Type Class representing valid types for use with atomic procs
 
 when someGcc:
   type AtomMemModel* = distinct cint
@@ -47,38 +46,48 @@ when someGcc:
     ## with acquire loads
     ## and release stores in all threads.
 
-  proc atomicLoadN*[T: AtomType](p: ptr T, mem: AtomMemModel): T {.
-    importc: "__atomic_load_n", nodecl.}
+  proc atomicLoadN*[T: AtomType](
+    p: ptr T, mem: AtomMemModel
+  ): T {.importc: "__atomic_load_n", nodecl.}
     ## This proc implements an atomic load operation. It returns the contents at p.
     ## ATOMIC_RELAXED, ATOMIC_SEQ_CST, ATOMIC_ACQUIRE, ATOMIC_CONSUME.
 
-  proc atomicLoad*[T: AtomType](p, ret: ptr T, mem: AtomMemModel) {.
-    importc: "__atomic_load", nodecl.}
+  proc atomicLoad*[T: AtomType](
+    p, ret: ptr T, mem: AtomMemModel
+  ) {.importc: "__atomic_load", nodecl.}
     ## This is the generic version of an atomic load. It returns the contents at p in ret.
 
-  proc atomicStoreN*[T: AtomType](p: ptr T, val: T, mem: AtomMemModel) {.
-    importc: "__atomic_store_n", nodecl.}
+  proc atomicStoreN*[T: AtomType](
+    p: ptr T, val: T, mem: AtomMemModel
+  ) {.importc: "__atomic_store_n", nodecl.}
     ## This proc implements an atomic store operation. It writes val at p.
     ## ATOMIC_RELAXED, ATOMIC_SEQ_CST, and ATOMIC_RELEASE.
 
-  proc atomicStore*[T: AtomType](p, val: ptr T, mem: AtomMemModel) {.
-    importc: "__atomic_store", nodecl.}
+  proc atomicStore*[T: AtomType](
+    p, val: ptr T, mem: AtomMemModel
+  ) {.importc: "__atomic_store", nodecl.}
     ## This is the generic version of an atomic store. It stores the value of val at p
 
-  proc atomicExchangeN*[T: AtomType](p: ptr T, val: T, mem: AtomMemModel): T {.
-    importc: "__atomic_exchange_n", nodecl.}
+  proc atomicExchangeN*[T: AtomType](
+    p: ptr T, val: T, mem: AtomMemModel
+  ): T {.importc: "__atomic_exchange_n", nodecl.}
     ## This proc implements an atomic exchange operation. It writes val at p,
     ## and returns the previous contents at p.
     ## ATOMIC_RELAXED, ATOMIC_SEQ_CST, ATOMIC_ACQUIRE, ATOMIC_RELEASE, ATOMIC_ACQ_REL
 
-  proc atomicExchange*[T: AtomType](p, val, ret: ptr T, mem: AtomMemModel) {.
-    importc: "__atomic_exchange", nodecl.}
+  proc atomicExchange*[T: AtomType](
+    p, val, ret: ptr T, mem: AtomMemModel
+  ) {.importc: "__atomic_exchange", nodecl.}
     ## This is the generic version of an atomic exchange. It stores the contents at val at p.
     ## The original value at p is copied into ret.
 
-  proc atomicCompareExchangeN*[T: AtomType](p, expected: ptr T, desired: T,
-    weak: bool, success_memmodel: AtomMemModel, failure_memmodel: AtomMemModel): bool {.
-    importc: "__atomic_compare_exchange_n", nodecl.}
+  proc atomicCompareExchangeN*[T: AtomType](
+    p, expected: ptr T,
+    desired: T,
+    weak: bool,
+    success_memmodel: AtomMemModel,
+    failure_memmodel: AtomMemModel,
+  ): bool {.importc: "__atomic_compare_exchange_n", nodecl.}
     ## This proc implements an atomic compare and exchange operation. This compares the
     ## contents at p with the contents at expected and if equal, writes desired at p.
     ## If they are not equal, the current contents at p is written into expected.
@@ -92,66 +101,94 @@ when someGcc:
     ## cannot be __ATOMIC_RELEASE nor __ATOMIC_ACQ_REL. It also cannot be a stronger model
     ## than that specified by success_memmodel.
 
-  proc atomicCompareExchange*[T: AtomType](p, expected, desired: ptr T,
-    weak: bool, success_memmodel: AtomMemModel, failure_memmodel: AtomMemModel): bool {.
-    importc: "__atomic_compare_exchange", nodecl.}
+  proc atomicCompareExchange*[T: AtomType](
+    p, expected, desired: ptr T,
+    weak: bool,
+    success_memmodel: AtomMemModel,
+    failure_memmodel: AtomMemModel,
+  ): bool {.importc: "__atomic_compare_exchange", nodecl.}
     ## This proc implements the generic version of atomic_compare_exchange.
     ## The proc is virtually identical to atomic_compare_exchange_n, except the desired
     ## value is also a pointer.
 
   ## Perform the operation return the new value, all memory models are valid
-  proc atomicAddFetch*[T: AtomType](p: ptr T, val: T, mem: AtomMemModel): T {.
-    importc: "__atomic_add_fetch", nodecl.}
-  proc atomicSubFetch*[T: AtomType](p: ptr T, val: T, mem: AtomMemModel): T {.
-    importc: "__atomic_sub_fetch", nodecl.}
-  proc atomicOrFetch*[T: AtomType](p: ptr T, val: T, mem: AtomMemModel): T {.
-    importc: "__atomic_or_fetch", nodecl.}
-  proc atomicAndFetch*[T: AtomType](p: ptr T, val: T, mem: AtomMemModel): T {.
-    importc: "__atomic_and_fetch", nodecl.}
-  proc atomicXorFetch*[T: AtomType](p: ptr T, val: T, mem: AtomMemModel): T {.
-    importc: "__atomic_xor_fetch", nodecl.}
-  proc atomicNandFetch*[T: AtomType](p: ptr T, val: T, mem: AtomMemModel): T {.
-    importc: "__atomic_nand_fetch", nodecl.}
+  proc atomicAddFetch*[T: AtomType](
+    p: ptr T, val: T, mem: AtomMemModel
+  ): T {.importc: "__atomic_add_fetch", nodecl.}
+
+  proc atomicSubFetch*[T: AtomType](
+    p: ptr T, val: T, mem: AtomMemModel
+  ): T {.importc: "__atomic_sub_fetch", nodecl.}
+
+  proc atomicOrFetch*[T: AtomType](
+    p: ptr T, val: T, mem: AtomMemModel
+  ): T {.importc: "__atomic_or_fetch", nodecl.}
+
+  proc atomicAndFetch*[T: AtomType](
+    p: ptr T, val: T, mem: AtomMemModel
+  ): T {.importc: "__atomic_and_fetch", nodecl.}
+
+  proc atomicXorFetch*[T: AtomType](
+    p: ptr T, val: T, mem: AtomMemModel
+  ): T {.importc: "__atomic_xor_fetch", nodecl.}
+
+  proc atomicNandFetch*[T: AtomType](
+    p: ptr T, val: T, mem: AtomMemModel
+  ): T {.importc: "__atomic_nand_fetch", nodecl.}
 
   ## Perform the operation return the old value, all memory models are valid
-  proc atomicFetchAdd*[T: AtomType](p: ptr T, val: T, mem: AtomMemModel): T {.
-    importc: "__atomic_fetch_add", nodecl.}
-  proc atomicFetchSub*[T: AtomType](p: ptr T, val: T, mem: AtomMemModel): T {.
-    importc: "__atomic_fetch_sub", nodecl.}
-  proc atomicFetchOr*[T: AtomType](p: ptr T, val: T, mem: AtomMemModel): T {.
-    importc: "__atomic_fetch_or", nodecl.}
-  proc atomicFetchAnd*[T: AtomType](p: ptr T, val: T, mem: AtomMemModel): T {.
-    importc: "__atomic_fetch_and", nodecl.}
-  proc atomicFetchXor*[T: AtomType](p: ptr T, val: T, mem: AtomMemModel): T {.
-    importc: "__atomic_fetch_xor", nodecl.}
-  proc atomicFetchNand*[T: AtomType](p: ptr T, val: T, mem: AtomMemModel): T {.
-    importc: "__atomic_fetch_nand", nodecl.}
+  proc atomicFetchAdd*[T: AtomType](
+    p: ptr T, val: T, mem: AtomMemModel
+  ): T {.importc: "__atomic_fetch_add", nodecl.}
 
-  proc atomicTestAndSet*(p: pointer, mem: AtomMemModel): bool {.
-    importc: "__atomic_test_and_set", nodecl.}
+  proc atomicFetchSub*[T: AtomType](
+    p: ptr T, val: T, mem: AtomMemModel
+  ): T {.importc: "__atomic_fetch_sub", nodecl.}
+
+  proc atomicFetchOr*[T: AtomType](
+    p: ptr T, val: T, mem: AtomMemModel
+  ): T {.importc: "__atomic_fetch_or", nodecl.}
+
+  proc atomicFetchAnd*[T: AtomType](
+    p: ptr T, val: T, mem: AtomMemModel
+  ): T {.importc: "__atomic_fetch_and", nodecl.}
+
+  proc atomicFetchXor*[T: AtomType](
+    p: ptr T, val: T, mem: AtomMemModel
+  ): T {.importc: "__atomic_fetch_xor", nodecl.}
+
+  proc atomicFetchNand*[T: AtomType](
+    p: ptr T, val: T, mem: AtomMemModel
+  ): T {.importc: "__atomic_fetch_nand", nodecl.}
+
+  proc atomicTestAndSet*(
+    p: pointer, mem: AtomMemModel
+  ): bool {.importc: "__atomic_test_and_set", nodecl.}
     ## This built-in function performs an atomic test-and-set operation on the byte at p.
     ## The byte is set to some implementation defined nonzero "set" value and the return
     ## value is true if and only if the previous contents were "set".
     ## All memory models are valid.
 
-  proc atomicClear*(p: pointer, mem: AtomMemModel) {.
-    importc: "__atomic_clear", nodecl.}
+  proc atomicClear*(p: pointer, mem: AtomMemModel) {.importc: "__atomic_clear", nodecl.}
     ## This built-in function performs an atomic clear operation at p.
     ## After the operation, at p contains 0.
     ## ATOMIC_RELAXED, ATOMIC_SEQ_CST, ATOMIC_RELEASE
 
-  proc atomicThreadFence*(mem: AtomMemModel) {.
-    importc: "__atomic_thread_fence", nodecl.}
+  proc atomicThreadFence*(
+    mem: AtomMemModel
+  ) {.importc: "__atomic_thread_fence", nodecl.}
     ## This built-in function acts as a synchronization fence between threads based
     ## on the specified memory model. All memory orders are valid.
 
-  proc atomicSignalFence*(mem: AtomMemModel) {.
-    importc: "__atomic_signal_fence", nodecl.}
+  proc atomicSignalFence*(
+    mem: AtomMemModel
+  ) {.importc: "__atomic_signal_fence", nodecl.}
     ## This built-in function acts as a synchronization fence between a thread and
     ## signal handlers based in the same thread. All memory orders are valid.
 
-  proc atomicAlwaysLockFree*(size: int, p: pointer): bool {.
-    importc: "__atomic_always_lock_free", nodecl.}
+  proc atomicAlwaysLockFree*(
+    size: int, p: pointer
+  ): bool {.importc: "__atomic_always_lock_free", nodecl.}
     ## This built-in function returns true if objects of size bytes always generate
     ## lock free atomic instructions for the target architecture. size must resolve
     ## to a compile-time constant and the result also resolves to a compile-time constant.
@@ -159,8 +196,9 @@ when someGcc:
     ## A value of 0 indicates typical alignment should be used. The compiler may also
     ## ignore this parameter.
 
-  proc atomicIsLockFree*(size: int, p: pointer): bool {.
-    importc: "__atomic_is_lock_free", nodecl.}
+  proc atomicIsLockFree*(
+    size: int, p: pointer
+  ): bool {.importc: "__atomic_is_lock_free", nodecl.}
     ## This built-in function returns true if objects of size bytes always generate
     ## lock free atomic instructions for the target architecture. If it is not known
     ## to be lock free a call is made to a runtime routine named __atomic_is_lock_free.
@@ -168,7 +206,9 @@ when someGcc:
     ## A value of 0 indicates typical alignment should be used. The compiler may also
     ## ignore this parameter.
 
-  template fence*() = atomicThreadFence(ATOMIC_SEQ_CST)
+  template fence*() =
+    atomicThreadFence(ATOMIC_SEQ_CST)
+
 elif someVcc:
   type AtomMemModel* = distinct cint
 
@@ -187,37 +227,97 @@ elif someVcc:
   proc fence*() {.importc: "_ReadWriteBarrier", header: "<intrin.h>".}
 
   when defined(cpp):
-    proc interlockedCompareExchange64(p: pointer; exchange, comparand: int64): int64
-      {.importcpp: "_InterlockedCompareExchange64(static_cast<NI64 volatile *>(#), #, #)", header: "<intrin.h>".}
-    proc interlockedCompareExchange32(p: pointer; exchange, comparand: int32): int32
-      {.importcpp: "_InterlockedCompareExchange(static_cast<long volatile *>(#), #, #)", header: "<intrin.h>".}
-    proc interlockedCompareExchange8(p: pointer; exchange, comparand: byte): byte
-      {.importcpp: "_InterlockedCompareExchange8(static_cast<char volatile *>(#), #, #)", header: "<intrin.h>".}
-    proc interlockedExchange8(location: pointer; desired: int8): int8 {.importcpp: "_InterlockedExchange8(static_cast<NI8 volatile *>(#), #)", header: "<intrin.h>".}
-    proc interlockedExchange16(location: pointer; desired: int16): int16 {.importcpp: "_InterlockedExchange16(static_cast<NI16 volatile *>(#), #)", header: "<intrin.h>".}
-    proc interlockedExchange32(location: pointer; desired: int32): int32 {.importcpp: "_InterlockedExchange(static_cast<long volatile *>(#), #)", header: "<intrin.h>".}
-    proc interlockedExchange64(location: pointer; desired: int64): int64 {.importcpp: "_InterlockedExchange64(static_cast<NI64 volatile *>(#), #)", header: "<intrin.h>".}
+    proc interlockedCompareExchange64(
+      p: pointer, exchange, comparand: int64
+    ): int64 {.
+      importcpp: "_InterlockedCompareExchange64(static_cast<NI64 volatile *>(#), #, #)",
+      header: "<intrin.h>"
+    .}
+
+    proc interlockedCompareExchange32(
+      p: pointer, exchange, comparand: int32
+    ): int32 {.
+      importcpp: "_InterlockedCompareExchange(static_cast<long volatile *>(#), #, #)",
+      header: "<intrin.h>"
+    .}
+
+    proc interlockedCompareExchange8(
+      p: pointer, exchange, comparand: byte
+    ): byte {.
+      importcpp: "_InterlockedCompareExchange8(static_cast<char volatile *>(#), #, #)",
+      header: "<intrin.h>"
+    .}
+
+    proc interlockedExchange8(
+      location: pointer, desired: int8
+    ): int8 {.
+      importcpp: "_InterlockedExchange8(static_cast<NI8 volatile *>(#), #)",
+      header: "<intrin.h>"
+    .}
+
+    proc interlockedExchange16(
+      location: pointer, desired: int16
+    ): int16 {.
+      importcpp: "_InterlockedExchange16(static_cast<NI16 volatile *>(#), #)",
+      header: "<intrin.h>"
+    .}
+
+    proc interlockedExchange32(
+      location: pointer, desired: int32
+    ): int32 {.
+      importcpp: "_InterlockedExchange(static_cast<long volatile *>(#), #)",
+      header: "<intrin.h>"
+    .}
+
+    proc interlockedExchange64(
+      location: pointer, desired: int64
+    ): int64 {.
+      importcpp: "_InterlockedExchange64(static_cast<NI64 volatile *>(#), #)",
+      header: "<intrin.h>"
+    .}
+
   else:
-    proc interlockedCompareExchange64(p: pointer; exchange, comparand: int64): int64
-      {.importc: "_InterlockedCompareExchange64", header: "<intrin.h>".}
-    proc interlockedCompareExchange32(p: pointer; exchange, comparand: int32): int32
-      {.importc: "_InterlockedCompareExchange", header: "<intrin.h>".}
-    proc interlockedCompareExchange8(p: pointer; exchange, comparand: byte): byte
-      {.importc: "_InterlockedCompareExchange8", header: "<intrin.h>".}
+    proc interlockedCompareExchange64(
+      p: pointer, exchange, comparand: int64
+    ): int64 {.importc: "_InterlockedCompareExchange64", header: "<intrin.h>".}
 
-    proc interlockedExchange8(location: pointer; desired: int8): int8 {.importc: "_InterlockedExchange8", header: "<intrin.h>".}
-    proc interlockedExchange16(location: pointer; desired: int16): int16 {.importc: "_InterlockedExchange16", header: "<intrin.h>".}
-    proc interlockedExchange32(location: pointer; desired: int32): int32 {.importc: "_InterlockedExchange", header: "<intrin.h>".}
-    proc interlockedExchange64(location: pointer; desired: int64): int64 {.importc: "_InterlockedExchange64", header: "<intrin.h>".}
+    proc interlockedCompareExchange32(
+      p: pointer, exchange, comparand: int32
+    ): int32 {.importc: "_InterlockedCompareExchange", header: "<intrin.h>".}
 
+    proc interlockedCompareExchange8(
+      p: pointer, exchange, comparand: byte
+    ): byte {.importc: "_InterlockedCompareExchange8", header: "<intrin.h>".}
+
+    proc interlockedExchange8(
+      location: pointer, desired: int8
+    ): int8 {.importc: "_InterlockedExchange8", header: "<intrin.h>".}
+
+    proc interlockedExchange16(
+      location: pointer, desired: int16
+    ): int16 {.importc: "_InterlockedExchange16", header: "<intrin.h>".}
+
+    proc interlockedExchange32(
+      location: pointer, desired: int32
+    ): int32 {.importc: "_InterlockedExchange", header: "<intrin.h>".}
+
+    proc interlockedExchange64(
+      location: pointer, desired: int64
+    ): int64 {.importc: "_InterlockedExchange64", header: "<intrin.h>".}
 
   template barrier(mem: AtomMemModel) =
-    when mem == ATOMIC_RELAXED: discard
-    elif mem == ATOMIC_CONSUME: readBarrier()
-    elif mem == ATOMIC_ACQUIRE: writeBarrier()
-    elif mem == ATOMIC_RELEASE: fence()
-    elif mem == ATOMIC_ACQ_REL: fence()
-    elif mem == ATOMIC_SEQ_CST: fence()
+    when mem == ATOMIC_RELAXED:
+      discard
+    elif mem == ATOMIC_CONSUME:
+      readBarrier()
+    elif mem == ATOMIC_ACQUIRE:
+      writeBarrier()
+    elif mem == ATOMIC_RELEASE:
+      fence()
+    elif mem == ATOMIC_ACQ_REL:
+      fence()
+    elif mem == ATOMIC_SEQ_CST:
+      fence()
 
   proc atomicStoreN*[T: AtomType](p: ptr T, val: T, mem: static[AtomMemModel]) =
     barrier(mem)
@@ -227,8 +327,13 @@ elif someVcc:
     result = p[]
     barrier(mem)
 
-  proc atomicCompareExchangeN*[T: ptr](p, expected: ptr T, desired: T,
-    weak: bool, success_memmodel: AtomMemModel, failure_memmodel: AtomMemModel): bool =
+  proc atomicCompareExchangeN*[T: ptr](
+      p, expected: ptr T,
+      desired: T,
+      weak: bool,
+      success_memmodel: AtomMemModel,
+      failure_memmodel: AtomMemModel,
+  ): bool =
     when sizeof(T) == 8:
       interlockedCompareExchange64(p, cast[int64](desired), cast[int64](expected[])) ==
         cast[int64](expected[])
@@ -241,30 +346,44 @@ elif someVcc:
       cast[T](interlockedExchange64(p, cast[int64](val)))
     elif sizeof(T) == 4:
       cast[T](interlockedExchange32(p, cast[int32](val)))
+
   when defined(cpp):
     when sizeof(int) == 8:
-      proc addAndFetch*(p: ptr int, val: int): int {.
+      proc addAndFetch*(
+        p: ptr int, val: int
+      ): int {.
         importcpp: "_InterlockedExchangeAdd64(static_cast<NI volatile *>(#), #)",
-        header: "<intrin.h>".}
+        header: "<intrin.h>"
+      .}
+
     else:
-      proc addAndFetch*(p: ptr int, val: int): int {.
-        importcpp: "_InterlockedExchangeAdd(reinterpret_cast<long volatile *>(#), static_cast<long>(#))",
-        header: "<intrin.h>".}
+      proc addAndFetch*(
+        p: ptr int, val: int
+      ): int {.
+        importcpp:
+          "_InterlockedExchangeAdd(reinterpret_cast<long volatile *>(#), static_cast<long>(#))",
+        header: "<intrin.h>"
+      .}
+
   else:
     when sizeof(int) == 8:
-      proc addAndFetch*(p: ptr int, val: int): int {.
-        importc: "_InterlockedExchangeAdd64", header: "<intrin.h>".}
+      proc addAndFetch*(
+        p: ptr int, val: int
+      ): int {.importc: "_InterlockedExchangeAdd64", header: "<intrin.h>".}
+
     else:
-      proc addAndFetch*(p: ptr int, val: int): int {.
-        importc: "_InterlockedExchangeAdd", header: "<intrin.h>".}
+      proc addAndFetch*(
+        p: ptr int, val: int
+      ): int {.importc: "_InterlockedExchangeAdd", header: "<intrin.h>".}
 
 else:
   proc addAndFetch*(p: ptr int, val: int): int {.inline.} =
     inc(p[], val)
     result = p[]
 
-
-proc atomicInc*(memLoc: var int, x: int = 1): int {.inline, discardable, raises: [], tags: [].} =
+proc atomicInc*(
+    memLoc: var int, x: int = 1
+): int {.inline, discardable, raises: [], tags: [].} =
   ## Atomically increments the integer by some `x`. It returns the new value.
   when someGcc and hasThreadSupport:
     result = atomicAddFetch(memLoc.addr, x, ATOMIC_SEQ_CST)
@@ -275,7 +394,9 @@ proc atomicInc*(memLoc: var int, x: int = 1): int {.inline, discardable, raises:
     inc(memLoc, x)
     result = memLoc
 
-proc atomicDec*(memLoc: var int, x: int = 1): int {.inline, discardable, raises: [], tags: [].} =
+proc atomicDec*(
+    memLoc: var int, x: int = 1
+): int {.inline, discardable, raises: [], tags: [].} =
   ## Atomically decrements the integer by some `x`. It returns the new value.
   when someGcc and hasThreadSupport:
     when declared(atomicSubFetch):
@@ -290,7 +411,7 @@ proc atomicDec*(memLoc: var int, x: int = 1): int {.inline, discardable, raises:
     result = memLoc
 
 when someVcc:
-  proc cas*[T: bool|int|ptr](p: ptr T; oldValue, newValue: T): bool =
+  proc cas*[T: bool | int | ptr](p: ptr T, oldValue, newValue: T): bool =
     when sizeof(T) == 8:
       interlockedCompareExchange64(p, cast[int64](newValue), cast[int64](oldValue)) ==
         cast[int64](oldValue)
@@ -305,7 +426,8 @@ when someVcc:
 
 elif defined(tcc):
   when defined(amd64):
-    {.emit:"""
+    {.
+      emit: """
 static int __tcc_cas(int *ptr, int oldVal, int newVal)
 {
     unsigned char ret;
@@ -319,10 +441,12 @@ static int __tcc_cas(int *ptr, int oldVal, int newVal)
 
     return ret;
 }
-""".}
+"""
+    .}
   else:
     #assert sizeof(int) == 4
-    {.emit:"""
+    {.
+      emit: """
 static int __tcc_cas(int *ptr, int oldVal, int newVal)
 {
     unsigned char ret;
@@ -336,36 +460,47 @@ static int __tcc_cas(int *ptr, int oldVal, int newVal)
 
     return ret;
 }
-""".}
+"""
+    .}
 
-  proc tcc_cas(p: ptr int; oldValue, newValue: int): bool
-    {.importc: "__tcc_cas", nodecl.}
-  proc cas*[T: bool|int|ptr](p: ptr T; oldValue, newValue: T): bool =
+  proc tcc_cas(
+    p: ptr int, oldValue, newValue: int
+  ): bool {.importc: "__tcc_cas", nodecl.}
+
+  proc cas*[T: bool | int | ptr](p: ptr T, oldValue, newValue: T): bool =
     tcc_cas(cast[ptr int](p), cast[int](oldValue), cast[int](newValue))
+
 elif declared(atomicCompareExchangeN):
-  proc cas*[T: bool|int|ptr](p: ptr T; oldValue, newValue: T): bool =
-    atomicCompareExchangeN(p, oldValue.unsafeAddr, newValue, false, ATOMIC_SEQ_CST, ATOMIC_SEQ_CST)
+  proc cas*[T: bool | int | ptr](p: ptr T, oldValue, newValue: T): bool =
+    atomicCompareExchangeN(
+      p, oldValue.unsafeAddr, newValue, false, ATOMIC_SEQ_CST, ATOMIC_SEQ_CST
+    )
+
 else:
   # this is valid for GCC and Intel C++
-  proc cas*[T: bool|int|ptr](p: ptr T; oldValue, newValue: T): bool
-    {.importc: "__sync_bool_compare_and_swap", nodecl.}
+  proc cas*[T: bool | int | ptr](
+    p: ptr T, oldValue, newValue: T
+  ): bool {.importc: "__sync_bool_compare_and_swap", nodecl.}
+
   # XXX is this valid for 'int'?
 
-
 when (defined(x86) or defined(amd64)) and someVcc:
-  proc cpuRelax* {.importc: "YieldProcessor", header: "<windows.h>".}
+  proc cpuRelax*() {.importc: "YieldProcessor", header: "<windows.h>".}
 elif (defined(x86) or defined(amd64)) and (someGcc or defined(bcc)):
-  proc cpuRelax* {.inline.} =
+  proc cpuRelax*() {.inline.} =
     {.emit: """asm volatile("pause" ::: "memory");""".}
+
 elif someGcc or defined(tcc):
-  proc cpuRelax* {.inline.} =
+  proc cpuRelax*() {.inline.} =
     {.emit: """asm volatile("" ::: "memory");""".}
+
 elif defined(icl):
-  proc cpuRelax* {.importc: "_mm_pause", header: "xmmintrin.h".}
+  proc cpuRelax*() {.importc: "_mm_pause", header: "xmmintrin.h".}
 elif false:
   from std/os import sleep
 
-  proc cpuRelax* {.inline.} = os.sleep(1)
+  proc cpuRelax*() {.inline.} =
+    os.sleep(1)
 
 when not declared(fence) and hasThreadSupport:
   # XXX fixme

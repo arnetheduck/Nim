@@ -13,28 +13,26 @@ type
   Speed* = cuint
   Cflag* = cuint
 
-const
-  NCCS* = when defined(macosx): 20 else: 32
+const NCCS* = when defined(macosx): 20 else: 32
 
 when defined(linux) and defined(amd64):
-  type
-    Termios* {.importc: "struct termios", header: "<termios.h>".} = object
-      c_iflag*: Cflag        # input mode flags
-      c_oflag*: Cflag        # output mode flags
-      c_cflag*: Cflag        # control mode flags
-      c_lflag*: Cflag        # local mode flags
-      c_line*: cuchar
-      c_cc*: array[NCCS, cuchar]  # control characters
-      c_ispeed*: Speed
-      c_ospeed*: Speed
+  type Termios* {.importc: "struct termios", header: "<termios.h>".} = object
+    c_iflag*: Cflag # input mode flags
+    c_oflag*: Cflag # output mode flags
+    c_cflag*: Cflag # control mode flags
+    c_lflag*: Cflag # local mode flags
+    c_line*: cuchar
+    c_cc*: array[NCCS, cuchar] # control characters
+    c_ispeed*: Speed
+    c_ospeed*: Speed
+
 else:
-  type
-    Termios* {.importc: "struct termios", header: "<termios.h>".} = object
-      c_iflag*: Cflag        # input mode flags
-      c_oflag*: Cflag        # output mode flags
-      c_cflag*: Cflag        # control mode flags
-      c_lflag*: Cflag        # local mode flags
-      c_cc*: array[NCCS, cuchar]  # control characters
+  type Termios* {.importc: "struct termios", header: "<termios.h>".} = object
+    c_iflag*: Cflag # input mode flags
+    c_oflag*: Cflag # output mode flags
+    c_cflag*: Cflag # control mode flags
+    c_lflag*: Cflag # local mode flags
+    c_cc*: array[NCCS, cuchar] # control characters
 
 # cc characters
 
@@ -192,33 +190,47 @@ template cceq*(val, c): untyped =
 
 # Return the output baud rate stored in *TERMIOS_P.
 
-proc cfGetOspeed*(termios: ptr Termios): Speed {.importc: "cfgetospeed",
-    header: "<termios.h>".}
+proc cfGetOspeed*(
+  termios: ptr Termios
+): Speed {.importc: "cfgetospeed", header: "<termios.h>".}
+
 # Return the input baud rate stored in *TERMIOS_P.
 
-proc cfGetIspeed*(termios: ptr Termios): Speed {.importc: "cfgetispeed",
-    header: "<termios.h>".}
+proc cfGetIspeed*(
+  termios: ptr Termios
+): Speed {.importc: "cfgetispeed", header: "<termios.h>".}
+
 # Set the output baud rate stored in *TERMIOS_P to SPEED.
 
-proc cfSetOspeed*(termios: ptr Termios; speed: Speed): cint {.
-    importc: "cfsetospeed", header: "<termios.h>".}
+proc cfSetOspeed*(
+  termios: ptr Termios, speed: Speed
+): cint {.importc: "cfsetospeed", header: "<termios.h>".}
+
 # Set the input baud rate stored in *TERMIOS_P to SPEED.
 
-proc cfSetIspeed*(termios: ptr Termios; speed: Speed): cint {.
-    importc: "cfsetispeed", header: "<termios.h>".}
+proc cfSetIspeed*(
+  termios: ptr Termios, speed: Speed
+): cint {.importc: "cfsetispeed", header: "<termios.h>".}
+
 # Set both the input and output baud rates in *TERMIOS_OP to SPEED.
 
-proc tcGetAttr*(fd: cint; termios: ptr Termios): cint {.
-    importc: "tcgetattr", header: "<termios.h>".}
+proc tcGetAttr*(
+  fd: cint, termios: ptr Termios
+): cint {.importc: "tcgetattr", header: "<termios.h>".}
+
 # Set the state of FD to *TERMIOS_P.
 #   Values for OPTIONAL_ACTIONS (TCSA*) are in <bits/termios.h>.
 
-proc tcSetAttr*(fd: cint; optional_actions: cint; termios: ptr Termios): cint {.
-    importc: "tcsetattr", header: "<termios.h>".}
+proc tcSetAttr*(
+  fd: cint, optional_actions: cint, termios: ptr Termios
+): cint {.importc: "tcsetattr", header: "<termios.h>".}
+
 # Set *TERMIOS_P to indicate raw mode.
 
-proc tcSendBreak*(fd: cint; duration: cint): cint {.importc: "tcsendbreak",
-    header: "<termios.h>".}
+proc tcSendBreak*(
+  fd: cint, duration: cint
+): cint {.importc: "tcsendbreak", header: "<termios.h>".}
+
 # Wait for pending output to be written on FD.
 #
 #   This function is a cancellation point and therefore not marked with
@@ -228,20 +240,21 @@ proc tcDrain*(fd: cint): cint {.importc: "tcdrain", header: "<termios.h>".}
 # Flush pending data on FD.
 #   Values for QUEUE_SELECTOR (TC{I,O,IO}FLUSH) are in <bits/termios.h>.
 
-proc tcFlush*(fd: cint; queue_selector: cint): cint {.importc: "tcflush",
-    header: "<termios.h>".}
+proc tcFlush*(
+  fd: cint, queue_selector: cint
+): cint {.importc: "tcflush", header: "<termios.h>".}
+
 # Suspend or restart transmission on FD.
 #   Values for ACTION (TC[IO]{OFF,ON}) are in <bits/termios.h>.
 
-proc tcFlow*(fd: cint; action: cint): cint {.importc: "tcflow",
-    header: "<termios.h>".}
+proc tcFlow*(fd: cint, action: cint): cint {.importc: "tcflow", header: "<termios.h>".}
 # Get process group ID for session leader for controlling terminal FD.
 
 # Window size ioctl.  Solaris based systems have an uncommen place for this.
 when defined(solaris) or defined(sunos):
-  var TIOCGWINSZ*{.importc, header: "<sys/termios.h>".}: culong
+  var TIOCGWINSZ* {.importc, header: "<sys/termios.h>".}: culong
 else:
-  var TIOCGWINSZ*{.importc, header: "<sys/ioctl.h>".}: culong
+  var TIOCGWINSZ* {.importc, header: "<sys/ioctl.h>".}: culong
 
 when defined(nimHasStyleChecks):
   {.push styleChecks: off.}
@@ -252,5 +265,6 @@ type IOctl_WinSize* = object
 when defined(nimHasStyleChecks):
   {.pop.}
 
-proc ioctl*(fd: cint, request: culong, reply: ptr IOctl_WinSize): int {.
-  importc: "ioctl", header: "<stdio.h>", varargs.}
+proc ioctl*(
+  fd: cint, request: culong, reply: ptr IOctl_WinSize
+): int {.importc: "ioctl", header: "<stdio.h>", varargs.}

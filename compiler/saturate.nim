@@ -28,14 +28,16 @@ proc `|-|`*(a, b: BiggestInt): BiggestInt =
   else:
     result = high(typeof(result))
 
-proc `|abs|`*(a: BiggestInt): BiggestInt =
+proc `| abs |`*(a: BiggestInt): BiggestInt =
   if a != low(typeof(a)):
-    if a >= 0: result = a
-    else: result = -a
+    if a >= 0:
+      result = a
+    else:
+      result = -a
   else:
     result = low(typeof(a))
 
-proc `|div|`*(a, b: BiggestInt): BiggestInt =
+proc `| div |`*(a, b: BiggestInt): BiggestInt =
   # (0..5) div (0..4) == (0..5) div (1..4) == (0 div 4)..(5 div 1)
   if b == 0'i64:
     # make the same as ``div 1``:
@@ -45,15 +47,14 @@ proc `|div|`*(a, b: BiggestInt): BiggestInt =
   else:
     result = a div b
 
-proc `|mod|`*(a, b: BiggestInt): BiggestInt =
+proc `| mod |`*(a, b: BiggestInt): BiggestInt =
   if b == 0'i64:
     result = a
   else:
     result = a mod b
 
 proc `|*|`*(a, b: BiggestInt): BiggestInt =
-  var
-    resAsFloat, floatProd: float64
+  var resAsFloat, floatProd: float64
   result = a *% b
   floatProd = toBiggestFloat(a) # conversion
   floatProd = floatProd * toBiggestFloat(b)
@@ -61,7 +62,8 @@ proc `|*|`*(a, b: BiggestInt): BiggestInt =
 
   # Fast path for normal case: small multiplicands, and no info
   # is lost in either method.
-  if resAsFloat == floatProd: return result
+  if resAsFloat == floatProd:
+    return result
 
   # Somebody somewhere lost info. Close enough, or way off? Note
   # that a != 0 and b != 0 (else resAsFloat == floatProd == 0).

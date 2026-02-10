@@ -26,12 +26,9 @@ runnableExamples:
   let jenny = numbers.join("-")
   assert jenny == "867-5309"
 
-  assert splitLines(multiLineString) ==
-         @["first line", "second line", "third line"]
-  assert split(multiLineString) == @["first", "line", "second",
-                                     "line", "third", "line"]
-  assert indent(multiLineString, 4) ==
-         "    first line\n    second line\n    third line"
+  assert splitLines(multiLineString) == @["first line", "second line", "third line"]
+  assert split(multiLineString) == @["first", "line", "second", "line", "third", "line"]
+  assert indent(multiLineString, 4) == "    first line\n    second line\n    third line"
   assert 'z'.repeat(5) == "zzzzz"
 
 ## The chaining of functions is possible thanks to the
@@ -43,8 +40,7 @@ runnableExamples:
   let jenny = "867-5309"
   assert jenny.split('-').map(parseInt) == @[867, 5309]
 
-  assert "Beetlejuice".indent(1).repeat(3).strip ==
-         "Beetlejuice Beetlejuice Beetlejuice"
+  assert "Beetlejuice".indent(1).repeat(3).strip == "Beetlejuice Beetlejuice Beetlejuice"
 
 ## This module is available for the `JavaScript target
 ## <backends.html#backends-the-javascript-target>`_.
@@ -69,7 +65,6 @@ runnableExamples:
 ## * `strscans<strscans.html>`_ for `scanf` and `scanp` macros, which offer
 ##   easier substring extraction than regular expressions
 
-
 import std/parseutils
 from std/math import pow, floor, log10
 from std/algorithm import fill, reverse
@@ -81,40 +76,34 @@ export toLower, toUpper
 
 include "system/inclrtl"
 import std/private/[since, jsutils]
-from std/private/strimpl import cmpIgnoreStyleImpl, cmpIgnoreCaseImpl,
-    startsWithImpl, endsWithImpl
+from std/private/strimpl import
+  cmpIgnoreStyleImpl, cmpIgnoreCaseImpl, startsWithImpl, endsWithImpl
 
 when defined(nimPreviewSlimSystem):
   import std/assertions
-
 
 const
   Whitespace* = {' ', '\t', '\v', '\r', '\l', '\f'}
     ## All the characters that count as whitespace (space, tab, vertical tab,
     ## carriage return, new line, form feed).
 
-  Letters* = {'A'..'Z', 'a'..'z'}
-    ## The set of letters.
+  Letters* = {'A' .. 'Z', 'a' .. 'z'} ## The set of letters.
 
-  UppercaseLetters* = {'A'..'Z'}
-    ## The set of uppercase ASCII letters.
+  UppercaseLetters* = {'A' .. 'Z'} ## The set of uppercase ASCII letters.
 
-  LowercaseLetters* = {'a'..'z'}
-    ## The set of lowercase ASCII letters.
+  LowercaseLetters* = {'a' .. 'z'} ## The set of lowercase ASCII letters.
 
-  PunctuationChars* = {'!'..'/', ':'..'@', '['..'`', '{'..'~'}
+  PunctuationChars* = {'!' .. '/', ':' .. '@', '[' .. '`', '{' .. '~'}
     ## The set of all ASCII punctuation characters.
 
-  Digits* = {'0'..'9'}
-    ## The set of digits.
+  Digits* = {'0' .. '9'} ## The set of digits.
 
-  HexDigits* = {'0'..'9', 'A'..'F', 'a'..'f'}
-    ## The set of hexadecimal digits.
+  HexDigits* = {'0' .. '9', 'A' .. 'F', 'a' .. 'f'} ## The set of hexadecimal digits.
 
-  IdentChars* = {'a'..'z', 'A'..'Z', '0'..'9', '_'}
+  IdentChars* = {'a' .. 'z', 'A' .. 'Z', '0' .. '9', '_'}
     ## The set of characters an identifier can consist of.
 
-  IdentStartChars* = {'a'..'z', 'A'..'Z', '_'}
+  IdentStartChars* = {'a' .. 'z', 'A' .. 'Z', '_'}
     ## The set of characters an identifier can start with.
 
   Newlines* = {'\13', '\10'}
@@ -124,7 +113,7 @@ const
   PrintableChars* = Letters + Digits + PunctuationChars + Whitespace
     ## The set of all printable ASCII characters (letters, digits, whitespace, and punctuation characters).
 
-  AllChars* = {'\x00'..'\xFF'}
+  AllChars* = {'\x00' .. '\xFF'}
     ## A set with all the possible characters.
     ##
     ## Not very useful by its own, you can use it to create *inverted* sets to
@@ -155,7 +144,7 @@ func isAlphaNumeric*(c: char): bool {.rtl, extern: "nsuIsAlphaNumericChar".} =
     doAssert isAlphaNumeric('n') == true
     doAssert isAlphaNumeric('8') == true
     doAssert isAlphaNumeric(' ') == false
-  return c in Letters+Digits
+  return c in Letters + Digits
 
 func isDigit*(c: char): bool {.rtl, extern: "nsuIsDigitChar".} =
   ## Checks whether or not `c` is a number.
@@ -222,7 +211,7 @@ func toLowerAscii*(c: char): char {.rtl, extern: "nsuToLowerAsciiChar".} =
 
 template toImpl(call) =
   result = newString(len(s))
-  for i in 0..len(s) - 1:
+  for i in 0 .. len(s) - 1:
     result[i] = call(s[i])
 
 func toLowerAscii*(s: string): string {.rtl, extern: "nsuToLowerAsciiStr".} =
@@ -281,8 +270,10 @@ func capitalizeAscii*(s: string): string {.rtl, extern: "nsuCapitalizeAscii".} =
   runnableExamples:
     doAssert capitalizeAscii("foo") == "Foo"
     doAssert capitalizeAscii("-bar") == "-bar"
-  if s.len == 0: result = ""
-  else: result = toUpperAscii(s[0]) & substr(s, 1)
+  if s.len == 0:
+    result = ""
+  else:
+    result = toUpperAscii(s[0]) & substr(s, 1)
 
 func nimIdentNormalize*(s: string): string =
   ## Normalizes the string `s` as a Nim identifier.
@@ -301,14 +292,15 @@ func nimIdentNormalize*(s: string): string =
     return
   result[0] = s[0]
   var j = 1
-  for i in 1..len(s) - 1:
+  for i in 1 .. len(s) - 1:
     if s[i] in UppercaseLetters:
       result[j] = chr(ord(s[i]) + (ord('a') - ord('A')))
       inc j
     elif s[i] != '_':
       result[j] = s[i]
       inc j
-  if j != s.len: setLen(result, j)
+  if j != s.len:
+    setLen(result, j)
 
 func normalize*(s: string): string {.rtl, extern: "nsuNormalize".} =
   ## Normalizes the string `s`.
@@ -323,14 +315,15 @@ func normalize*(s: string): string {.rtl, extern: "nsuNormalize".} =
     doAssert normalize("Foo Bar") == "foo bar"
   result = newString(s.len)
   var j = 0
-  for i in 0..len(s) - 1:
+  for i in 0 .. len(s) - 1:
     if s[i] in UppercaseLetters:
       result[j] = chr(ord(s[i]) + (ord('a') - ord('A')))
       inc j
     elif s[i] != '_':
       result[j] = s[i]
       inc j
-  if j != s.len: setLen(result, j)
+  if j != s.len:
+    setLen(result, j)
 
 func cmpIgnoreCase*(a, b: string): int {.rtl, extern: "nsuCmpIgnoreCase".} =
   ## Compares two strings in a case insensitive manner. Returns:
@@ -344,8 +337,9 @@ func cmpIgnoreCase*(a, b: string): int {.rtl, extern: "nsuCmpIgnoreCase".} =
     doAssert cmpIgnoreCase("Foo5", "foo4") > 0
   cmpIgnoreCaseImpl(a, b)
 
-{.push checks: off, line_trace: off.} # this is a hot-spot in the compiler!
-                                      # thus we compile without checks here
+{.push checks: off, line_trace: off.}
+  # this is a hot-spot in the compiler!
+  # thus we compile without checks here
 
 func cmpIgnoreStyle*(a, b: string): int {.rtl, extern: "nsuCmpIgnoreStyle".} =
   ## Semantically the same as `cmp(normalize(a), normalize(b))`. It
@@ -371,10 +365,11 @@ func substrEq(s: string, pos: int, substr: string): bool =
   var length = substr.len
   if length > 0:
     var i = 0
-    while i < length and pos+i < s.len and s[pos+i] == substr[i]:
+    while i < length and pos + i < s.len and s[pos + i] == substr[i]:
       inc i
     i == length
-  else: false
+  else:
+    false
 
 template stringHasSep(s: string, index: int, seps: set[char]): bool =
   s[index] in seps
@@ -394,9 +389,11 @@ template splitCommon(s, sep, maxsplit, sepLen) =
     var first = last
     while last < len(s) and not stringHasSep(s, last, sep):
       inc(last)
-    if splits == 0: last = len(s)
-    yield substr(s, first, last-1)
-    if splits == 0: break
+    if splits == 0:
+      last = len(s)
+    yield substr(s, first, last - 1)
+    if splits == 0:
+      break
     dec(splits)
     inc(last, sepLen)
 
@@ -405,19 +402,23 @@ template oldSplit(s, seps, maxsplit) =
   var splits = maxsplit
   assert(not ('\0' in seps))
   while last < len(s):
-    while last < len(s) and s[last] in seps: inc(last)
+    while last < len(s) and s[last] in seps:
+      inc(last)
     var first = last
-    while last < len(s) and s[last] notin seps: inc(last)
-    if first <= last-1:
-      if splits == 0: last = len(s)
-      yield substr(s, first, last-1)
-      if splits == 0: break
+    while last < len(s) and s[last] notin seps:
+      inc(last)
+    if first <= last - 1:
+      if splits == 0:
+        last = len(s)
+      yield substr(s, first, last - 1)
+      if splits == 0:
+        break
       dec(splits)
 
 template accResult(iter: untyped) =
   result = @[]
-  for x in iter: add(result, x)
-
+  for x in iter:
+    add(result, x)
 
 iterator split*(s: string, sep: char, maxsplit: int = -1): string =
   ## Splits the string `s` into substrings using a single separator.
@@ -449,8 +450,7 @@ iterator split*(s: string, sep: char, maxsplit: int = -1): string =
   ## * `split func<#split,string,char,int>`_
   splitCommon(s, sep, maxsplit, 1)
 
-iterator split*(s: string, seps: set[char] = Whitespace,
-                maxsplit: int = -1): string =
+iterator split*(s: string, seps: set[char] = Whitespace, maxsplit: int = -1): string =
   ## Splits the string `s` into substrings using a group of separators.
   ##
   ## Substrings are separated by a substring containing only `seps`.
@@ -533,10 +533,12 @@ iterator split*(s: string, sep: string, maxsplit: int = -1): string =
   ## * `splitLines iterator<#splitLines.i,string>`_
   ## * `splitWhitespace iterator<#splitWhitespace.i,string,int>`_
   ## * `split func<#split,string,string,int>`_
-  let sepLen = if sep.len == 0: 1 # prevents infinite loop
-    else: sep.len
+  let sepLen =
+    if sep.len == 0:
+      1 # prevents infinite loop
+    else:
+      sep.len
   splitCommon(s, sep, maxsplit, sepLen)
-
 
 template rsplitCommon(s, sep, maxsplit, sepLen) =
   ## Common code for rsplit functions
@@ -557,13 +559,13 @@ template rsplitCommon(s, sep, maxsplit, sepLen) =
     else:
       startPos = first + sepLen
     yield substr(s, startPos, last)
-    if splits == 0: break
+    if splits == 0:
+      break
     dec(splits)
     dec(first)
     last = first
 
-iterator rsplit*(s: string, sep: char,
-                 maxsplit: int = -1): string =
+iterator rsplit*(s: string, sep: char, maxsplit: int = -1): string =
   ## Splits the string `s` into substrings from the right using a
   ## string separator. Works exactly the same as `split iterator
   ## <#split.i,string,char,int>`_ except in **reverse** order.
@@ -589,8 +591,7 @@ iterator rsplit*(s: string, sep: char,
   ## * `rsplit func<#rsplit,string,char,int>`_
   rsplitCommon(s, sep, maxsplit, 1)
 
-iterator rsplit*(s: string, seps: set[char] = Whitespace,
-                 maxsplit: int = -1): string =
+iterator rsplit*(s: string, seps: set[char] = Whitespace, maxsplit: int = -1): string =
   ## Splits the string `s` into substrings from the right using a
   ## string separator. Works exactly the same as `split iterator
   ## <#split.i,string,char,int>`_ except in **reverse** order.
@@ -619,8 +620,9 @@ iterator rsplit*(s: string, seps: set[char] = Whitespace,
   ## * `rsplit func<#rsplit,string,set[char],int>`_
   rsplitCommon(s, seps, maxsplit, 1)
 
-iterator rsplit*(s: string, sep: string, maxsplit: int = -1,
-                 keepSeparators: bool = false): string =
+iterator rsplit*(
+    s: string, sep: string, maxsplit: int = -1, keepSeparators: bool = false
+): string =
   ## Splits the string `s` into substrings from the right using a
   ## string separator. Works exactly the same as `split iterator
   ## <#split.i,string,string,int>`_ except in **reverse** order.
@@ -647,8 +649,11 @@ iterator rsplit*(s: string, sep: string, maxsplit: int = -1,
   ## * `splitLines iterator<#splitLines.i,string>`_
   ## * `splitWhitespace iterator<#splitWhitespace.i,string,int>`_
   ## * `rsplit func<#rsplit,string,string,int>`_
-  let sepLen = if sep.len == 0: 1 # prevents infinite loop
-    else: sep.len
+  let sepLen =
+    if sep.len == 0:
+      1 # prevents infinite loop
+    else:
+      sep.len
   rsplitCommon(s, sep, maxsplit, sepLen)
 
 iterator splitLines*(s: string, keepEol = false): string =
@@ -685,16 +690,26 @@ iterator splitLines*(s: string, keepEol = false): string =
   var last = 0
   var eolpos = 0
   while true:
-    while last < s.len and s[last] notin {'\c', '\l'}: inc(last)
+    while last < s.len and s[last] notin {'\c', '\l'}:
+      inc(last)
 
     eolpos = last
     if last < s.len:
-      if s[last] == '\l': inc(last)
+      if s[last] == '\l':
+        inc(last)
       elif s[last] == '\c':
         inc(last)
-        if last < s.len and s[last] == '\l': inc(last)
+        if last < s.len and s[last] == '\l':
+          inc(last)
 
-    yield substr(s, first, if keepEol: last-1 else: eolpos-1)
+    yield substr(
+      s,
+      first,
+      if keepEol:
+        last - 1
+      else:
+        eolpos - 1,
+    )
 
     # no eol characters consumed means that the string is over
     if eolpos == last:
@@ -742,10 +757,9 @@ iterator splitWhitespace*(s: string, maxsplit: int = -1): string =
   ## * `splitWhitespace func<#splitWhitespace,string,int>`_
   oldSplit(s, Whitespace, maxsplit)
 
-
-
-func split*(s: string, sep: char, maxsplit: int = -1): seq[string] {.rtl,
-    extern: "nsuSplitChar".} =
+func split*(
+    s: string, sep: char, maxsplit: int = -1
+): seq[string] {.rtl, extern: "nsuSplitChar".} =
   ## The same as the `split iterator <#split.i,string,char,int>`_ (see its
   ## documentation), but is a func that returns a sequence of substrings.
   ##
@@ -759,8 +773,9 @@ func split*(s: string, sep: char, maxsplit: int = -1): seq[string] {.rtl,
     doAssert "".split(' ') == @[""]
   accResult(split(s, sep, maxsplit))
 
-func split*(s: string, seps: set[char] = Whitespace, maxsplit: int = -1): seq[
-    string] {.rtl, extern: "nsuSplitCharSet".} =
+func split*(
+    s: string, seps: set[char] = Whitespace, maxsplit: int = -1
+): seq[string] {.rtl, extern: "nsuSplitCharSet".} =
   ## The same as the `split iterator <#split.i,string,set[char],int>`_ (see its
   ## documentation), but is a func that returns a sequence of substrings.
   ##
@@ -778,8 +793,9 @@ func split*(s: string, seps: set[char] = Whitespace, maxsplit: int = -1): seq[
     doAssert "empty seps return unsplit s".split({}) == @["empty seps return unsplit s"]
   accResult(split(s, seps, maxsplit))
 
-func split*(s: string, sep: string, maxsplit: int = -1): seq[string] {.rtl,
-    extern: "nsuSplitString".} =
+func split*(
+    s: string, sep: string, maxsplit: int = -1
+): seq[string] {.rtl, extern: "nsuSplitString".} =
   ## Splits the string `s` into substrings using a string separator.
   ##
   ## Substrings are separated by the string `sep`. This is a wrapper around the
@@ -795,16 +811,19 @@ func split*(s: string, sep: string, maxsplit: int = -1): seq[string] {.rtl,
   ## * `splitWhitespace func<#splitWhitespace,string,int>`_
   runnableExamples:
     doAssert "a,b,c".split(",") == @["a", "b", "c"]
-    doAssert "a man a plan a canal panama".split("a ") == @["", "man ", "plan ", "canal panama"]
+    doAssert "a man a plan a canal panama".split("a ") ==
+      @["", "man ", "plan ", "canal panama"]
     doAssert "".split("Elon Musk") == @[""]
-    doAssert "a  largely    spaced sentence".split(" ") == @["a", "", "largely",
-        "", "", "", "spaced", "sentence"]
-    doAssert "a  largely    spaced sentence".split(" ", maxsplit = 1) == @["a", " largely    spaced sentence"]
+    doAssert "a  largely    spaced sentence".split(" ") ==
+      @["a", "", "largely", "", "", "", "spaced", "sentence"]
+    doAssert "a  largely    spaced sentence".split(" ", maxsplit = 1) ==
+      @["a", " largely    spaced sentence"]
     doAssert "empty sep returns unsplit s".split("") == @["empty sep returns unsplit s"]
   accResult(split(s, sep, maxsplit))
 
-func rsplit*(s: string, sep: char, maxsplit: int = -1): seq[string] {.rtl,
-    extern: "nsuRSplitChar".} =
+func rsplit*(
+    s: string, sep: char, maxsplit: int = -1
+): seq[string] {.rtl, extern: "nsuRSplitChar".} =
   ## The same as the `rsplit iterator <#rsplit.i,string,char,int>`_, but is a func
   ## that returns a sequence of substrings in original order.
   ##
@@ -832,9 +851,9 @@ func rsplit*(s: string, sep: char, maxsplit: int = -1): seq[string] {.rtl,
   accResult(rsplit(s, sep, maxsplit))
   result.reverse()
 
-func rsplit*(s: string, seps: set[char] = Whitespace,
-             maxsplit: int = -1): seq[string]
-             {.rtl, extern: "nsuRSplitCharSet".} =
+func rsplit*(
+    s: string, seps: set[char] = Whitespace, maxsplit: int = -1
+): seq[string] {.rtl, extern: "nsuRSplitCharSet".} =
   ## The same as the `rsplit iterator <#rsplit.i,string,set[char],int>`_, but is a
   ## func that returns a sequence of substrings in original order.
   ##
@@ -865,8 +884,9 @@ func rsplit*(s: string, seps: set[char] = Whitespace,
   accResult(rsplit(s, seps, maxsplit))
   result.reverse()
 
-func rsplit*(s: string, sep: string, maxsplit: int = -1): seq[string] {.rtl,
-    extern: "nsuRSplitString".} =
+func rsplit*(
+    s: string, sep: string, maxsplit: int = -1
+): seq[string] {.rtl, extern: "nsuRSplitString".} =
   ## The same as the `rsplit iterator <#rsplit.i,string,string,int,bool>`_, but is a func
   ## that returns a sequence of substrings in original order.
   ##
@@ -895,20 +915,23 @@ func rsplit*(s: string, sep: string, maxsplit: int = -1): seq[string] {.rtl,
   ## * `splitLines func<#splitLines,string>`_
   ## * `splitWhitespace func<#splitWhitespace,string,int>`_
   runnableExamples:
-    doAssert "a  largely    spaced sentence".rsplit(" ", maxsplit = 1) == @[
-        "a  largely    spaced", "sentence"]
+    doAssert "a  largely    spaced sentence".rsplit(" ", maxsplit = 1) ==
+      @["a  largely    spaced", "sentence"]
     doAssert "a,b,c".rsplit(",") == @["a", "b", "c"]
-    doAssert "a man a plan a canal panama".rsplit("a ") == @["", "man ",
-        "plan ", "canal panama"]
+    doAssert "a man a plan a canal panama".rsplit("a ") ==
+      @["", "man ", "plan ", "canal panama"]
     doAssert "".rsplit("Elon Musk") == @[""]
-    doAssert "a  largely    spaced sentence".rsplit(" ") == @["a", "",
-        "largely", "", "", "", "spaced", "sentence"]
-    doAssert "empty sep returns unsplit s".rsplit("") == @["empty sep returns unsplit s"]
+    doAssert "a  largely    spaced sentence".rsplit(" ") ==
+      @["a", "", "largely", "", "", "", "spaced", "sentence"]
+    doAssert "empty sep returns unsplit s".rsplit("") == @[
+      "empty sep returns unsplit s"
+    ]
   accResult(rsplit(s, sep, maxsplit))
   result.reverse()
 
-func splitLines*(s: string, keepEol = false): seq[string] {.rtl,
-    extern: "nsuSplitLines".} =
+func splitLines*(
+    s: string, keepEol = false
+): seq[string] {.rtl, extern: "nsuSplitLines".} =
   ## The same as the `splitLines iterator<#splitLines.i,string>`_ (see its
   ## documentation), but is a func that returns a sequence of substrings.
   ##
@@ -918,8 +941,9 @@ func splitLines*(s: string, keepEol = false): seq[string] {.rtl,
   ## * `countLines func<#countLines,string>`_
   accResult(splitLines(s, keepEol = keepEol))
 
-func splitWhitespace*(s: string, maxsplit: int = -1): seq[string] {.rtl,
-    extern: "nsuSplitWhitespace".} =
+func splitWhitespace*(
+    s: string, maxsplit: int = -1
+): seq[string] {.rtl, extern: "nsuSplitWhitespace".} =
   ## The same as the `splitWhitespace iterator <#splitWhitespace.i,string,int>`_
   ## (see its documentation), but is a func that returns a sequence of substrings.
   ##
@@ -945,7 +969,7 @@ func toBin*(x: BiggestInt, len: Positive): string {.rtl, extern: "nsuToBin".} =
     shift = BiggestUInt 0
   assert(len > 0)
   result = newString(len)
-  for j in countdown(len-1, 0):
+  for j in countdown(len - 1, 0):
     result[j] = chr(int((BiggestUInt(x) and mask) shr shift) + ord('0'))
     inc shift
     mask = mask shl BiggestUInt(1)
@@ -969,21 +993,21 @@ func toOct*(x: BiggestInt, len: Positive): string {.rtl, extern: "nsuToOct".} =
     shift = BiggestUInt 0
   assert(len > 0)
   result = newString(len)
-  for j in countdown(len-1, 0):
+  for j in countdown(len - 1, 0):
     result[j] = chr(int((BiggestUInt(x) and mask) shr shift) + ord('0'))
     inc shift, 3
     mask = mask shl BiggestUInt(3)
 
 func toHexImpl(x: BiggestUInt, len: Positive, handleNegative: bool): string =
-  const
-    HexChars = "0123456789ABCDEF"
+  const HexChars = "0123456789ABCDEF"
   var n = x
   result = newString(len)
-  for j in countdown(len-1, 0):
+  for j in countdown(len - 1, 0):
     result[j] = HexChars[int(n and 0xF)]
     n = n shr 4
     # handle negative overflow
-    if n == 0 and handleNegative: n = not(BiggestUInt 0)
+    if n == 0 and handleNegative:
+      n = not (BiggestUInt 0)
 
 func toHex*[T: SomeInteger](x: T, len: Positive): string =
   ## Converts `x` to its hexadecimal representation.
@@ -1013,12 +1037,12 @@ func toHex*[T: SomeInteger](x: T): string =
     doAssert toHex(1984'i64) == "00000000000007C0"
     doAssert toHex(1984'i16) == "07C0"
   when jsNoBigInt64:
-    toHexImpl(cast[BiggestUInt](x), 2*sizeof(T), x < 0)
+    toHexImpl(cast[BiggestUInt](x), 2 * sizeof(T), x < 0)
   else:
     when T is SomeSignedInt:
-      toHexImpl(cast[BiggestUInt](BiggestInt(x)), 2*sizeof(T), x < 0)
+      toHexImpl(cast[BiggestUInt](BiggestInt(x)), 2 * sizeof(T), x < 0)
     else:
-      toHexImpl(BiggestUInt(x), 2*sizeof(T), x < 0)
+      toHexImpl(BiggestUInt(x), 2 * sizeof(T), x < 0)
 
 func toHex*(s: string): string {.rtl.} =
   ## Converts a bytes string to its hexadecimal representation.
@@ -1080,8 +1104,8 @@ func fromBin*[T: SomeInteger](s: string): T =
     doAssert fromBin[int8](s) == 0b1001_1001'i8
     doAssert fromBin[int8](s) == -103'i8
     doAssert fromBin[uint8](s) == 153
-    doAssert s.fromBin[:int16] == 0b1110_1110_1001_1001'i16
-    doAssert s.fromBin[:uint64] == 1216933529'u64
+    doAssert fromBin[int16](s) == 0b1110_1110_1001_1001'i16
+    doAssert fromBin[uint64](s) == 1216933529'u64
   result = T(0)
   let p = parseutils.parseBin(s, result)
   if p != s.len or p == 0:
@@ -1103,8 +1127,8 @@ func fromOct*[T: SomeInteger](s: string): T =
     doAssert fromOct[int8](s) == 0o377'i8
     doAssert fromOct[int8](s) == -1'i8
     doAssert fromOct[uint8](s) == 255'u8
-    doAssert s.fromOct[:int16] == 24063'i16
-    doAssert s.fromOct[:uint64] == 21913087'u64
+    doAssert fromOct[int16](s) == 24063'i16
+    doAssert fromOct[uint64](s) == 21913087'u64
   result = T(0)
   let p = parseutils.parseOct(s, result)
   if p != s.len or p == 0:
@@ -1126,15 +1150,14 @@ func fromHex*[T: SomeInteger](s: string): T =
     doAssert fromHex[int8](s) == 0xf6'i8
     doAssert fromHex[int8](s) == -10'i8
     doAssert fromHex[uint8](s) == 246'u8
-    doAssert s.fromHex[:int16] == -29194'i16
-    doAssert s.fromHex[:uint64] == 305499638'u64
+    doAssert fromHex[int16](s) == -29194'i16
+    doAssert fromHex[uint64](s) == 305499638'u64
   result = T(0)
   let p = parseutils.parseHex(s, result)
   if p != s.len or p == 0:
     raise newException(ValueError, "invalid hex integer: " & s)
 
-func intToStr*(x: int, minchars: Positive = 1): string {.rtl,
-    extern: "nsuIntToStr".} =
+func intToStr*(x: int, minchars: Positive = 1): string {.rtl, extern: "nsuIntToStr".} =
   ## Converts `x` to its decimal representation.
   ##
   ## The resulting string will be minimally `minchars` characters long. This is
@@ -1159,8 +1182,7 @@ func parseInt*(s: string): int {.rtl, extern: "nsuParseInt".} =
   if L != s.len or L == 0:
     raise newException(ValueError, "invalid integer: " & s)
 
-func parseBiggestInt*(s: string): BiggestInt {.rtl,
-    extern: "nsuParseBiggestInt".} =
+func parseBiggestInt*(s: string): BiggestInt {.rtl, extern: "nsuParseBiggestInt".} =
   ## Parses a decimal integer value contained in `s`.
   ##
   ## If `s` is not a valid integer, `ValueError` is raised.
@@ -1178,8 +1200,7 @@ func parseUInt*(s: string): uint {.rtl, extern: "nsuParseUInt".} =
   if L != s.len or L == 0:
     raise newException(ValueError, "invalid unsigned integer: " & s)
 
-func parseBiggestUInt*(s: string): BiggestUInt {.rtl,
-    extern: "nsuParseBiggestUInt".} =
+func parseBiggestUInt*(s: string): BiggestUInt {.rtl, extern: "nsuParseBiggestUInt".} =
   ## Parses a decimal unsigned integer value contained in `s`.
   ##
   ## If `s` is not a valid integer, `ValueError` is raised.
@@ -1195,7 +1216,7 @@ func parseFloat*(s: string): float {.rtl, extern: "nsuParseFloat".} =
   ##`NAN`, `INF`, `-INF` are also supported (case insensitive comparison).
   runnableExamples:
     doAssert parseFloat("3.14") == 3.14
-    doAssert parseFloat("inf") == 1.0/0
+    doAssert parseFloat("inf") == 1.0 / 0
   result = 0.0
   let L = parseutils.parseFloat(s, result, 0)
   if L != s.len or L == 0:
@@ -1244,14 +1265,18 @@ func parseHexInt*(s: string): int {.rtl, extern: "nsuParseHexInt".} =
 func generateHexCharToValueMap(): string =
   ## Generates a string to map a hex digit to uint value.
   result = ""
-  for inp in 0..255:
+  for inp in 0 .. 255:
     let ch = chr(inp)
     let o =
       case ch
-      of '0'..'9': inp - ord('0')
-      of 'a'..'f': inp - ord('a') + 10
-      of 'A'..'F': inp - ord('A') + 10
-      else: 17 # indicates an invalid hex char
+      of '0' .. '9':
+        inp - ord('0')
+      of 'a' .. 'f':
+        inp - ord('a') + 10
+      of 'A' .. 'F':
+        inp - ord('A') + 10
+      else:
+        17 # indicates an invalid hex char
     result.add chr(o)
 
 const hexCharToValueMap = generateHexCharToValueMap()
@@ -1280,8 +1305,8 @@ func parseHexStr*(s: string): string {.rtl, extern: "nsuParseHexStr".} =
   for pos, c in s:
     let val = hexCharToValueMap[ord(c)].ord
     if val == 17:
-      raise newException(ValueError, "Invalid hex char `" &
-                         c & "` (ord " & $c.ord & ")")
+      raise
+        newException(ValueError, "Invalid hex char `" & c & "` (ord " & $c.ord & ")")
     if pos mod 2 == 0:
       buf = val
     else:
@@ -1299,9 +1324,12 @@ func parseBool*(s: string): bool =
     doAssert parseBool(a) == false
 
   case normalize(s)
-  of "y", "yes", "true", "1", "on": result = true
-  of "n", "no", "false", "0", "off": result = false
-  else: raise newException(ValueError, "cannot interpret as a bool: " & s)
+  of "y", "yes", "true", "1", "on":
+    result = true
+  of "n", "no", "false", "0", "off":
+    result = false
+  else:
+    raise newException(ValueError, "cannot interpret as a bool: " & s)
 
 func parseEnum*[T: enum](s: string): T =
   ## Parses an enum `T`. This errors at compile time, if the given enum
@@ -1310,11 +1338,10 @@ func parseEnum*[T: enum](s: string): T =
   ## Raises `ValueError` for an invalid value in `s`. The comparison is
   ## done in a style insensitive way (first letter is still case-sensitive).
   runnableExamples:
-    type
-      MyEnum = enum
-        first = "1st",
-        second,
-        third = "3rd"
+    type MyEnum = enum
+      first = "1st"
+      second
+      third = "3rd"
 
     doAssert parseEnum[MyEnum]("1_st") == first
     doAssert parseEnum[MyEnum]("second") == second
@@ -1330,11 +1357,10 @@ func parseEnum*[T: enum](s: string, default: T): T =
   ## Uses `default` for an invalid value in `s`. The comparison is done in a
   ## style insensitive way (first letter is still case-sensitive).
   runnableExamples:
-    type
-      MyEnum = enum
-        first = "1st",
-        second,
-        third = "3rd"
+    type MyEnum = enum
+      first = "1st"
+      second
+      third = "3rd"
 
     doAssert parseEnum[MyEnum]("1_st") == first
     doAssert parseEnum[MyEnum]("second") == second
@@ -1349,7 +1375,8 @@ func repeat*(c: char, count: Natural): string {.rtl, extern: "nsuRepeatChar".} =
     let a = 'z'
     doAssert a.repeat(5) == "zzzzz"
   result = newString(count)
-  for i in 0..count-1: result[i] = c
+  for i in 0 .. count - 1:
+    result[i] = c
 
 func repeat*(s: string, n: Natural): string {.rtl, extern: "nsuRepeatStr".} =
   ## Returns string `s` concatenated `n` times.
@@ -1357,7 +1384,8 @@ func repeat*(s: string, n: Natural): string {.rtl, extern: "nsuRepeatStr".} =
     doAssert "+ foo +".repeat(3) == "+ foo ++ foo ++ foo +"
 
   result = newStringOfCap(n * s.len)
-  for i in 1..n: result.add(s)
+  for i in 1 .. n:
+    result.add(s)
 
 func spaces*(n: Natural): string {.inline.} =
   ## Returns a string with `n` space characters. You can use this func
@@ -1373,14 +1401,14 @@ func spaces*(n: Natural): string {.inline.} =
       width = 15
       text1 = "Hello user!"
       text2 = "This is a very long string"
-    doAssert text1 & spaces(max(0, width - text1.len)) & "|" ==
-             "Hello user!    |"
+    doAssert text1 & spaces(max(0, width - text1.len)) & "|" == "Hello user!    |"
     doAssert text2 & spaces(max(0, width - text2.len)) & "|" ==
-             "This is a very long string|"
+      "This is a very long string|"
   repeat(' ', n)
 
-func align*(s: string, count: Natural, padding = ' '): string {.rtl,
-    extern: "nsuAlignString".} =
+func align*(
+    s: string, count: Natural, padding = ' '
+): string {.rtl, extern: "nsuAlignString".} =
   ## Aligns a string `s` with `padding`, so that it is of length `count`.
   ##
   ## `padding` characters (by default spaces) are added before `s` resulting in
@@ -1401,8 +1429,10 @@ func align*(s: string, count: Natural, padding = ' '): string {.rtl,
   if s.len < count:
     result = newString(count)
     let spaces = count - s.len
-    for i in 0..spaces-1: result[i] = padding
-    for i in spaces..count-1: result[i] = s[i-spaces]
+    for i in 0 .. spaces - 1:
+      result[i] = padding
+    for i in spaces .. count - 1:
+      result[i] = s[i - spaces]
   else:
     result = s
 
@@ -1433,8 +1463,9 @@ func alignLeft*(s: string, count: Natural, padding = ' '): string =
   else:
     result = s
 
-func center*(s: string, width: int, fillChar: char = ' '): string {.rtl,
-    extern: "nsuCenterString".} =
+func center*(
+    s: string, width: int, fillChar: char = ' '
+): string {.rtl, extern: "nsuCenterString".} =
   ## Return the contents of `s` centered in a string `width` long using
   ## `fillChar` (default: space) as padding.
   ##
@@ -1451,7 +1482,8 @@ func center*(s: string, width: int, fillChar: char = ' '): string {.rtl,
     doAssert a.center(2) == "foo"
     doAssert a.center(5) == " foo "
     doAssert a.center(6) == " foo  "
-  if width <= s.len: return s
+  if width <= s.len:
+    return s
   result = newString(width)
   # Left padding will be one fillChar
   # smaller if there are an odd number
@@ -1462,14 +1494,15 @@ func center*(s: string, width: int, fillChar: char = ' '): string {.rtl,
   for i in 0 ..< width:
     if i >= leftPadding and i < leftPadding + s.len:
       # we are where the string should be located
-      result[i] = s[i-leftPadding]
+      result[i] = s[i - leftPadding]
     else:
       # we are either before or after where
       # the string s should go
       result[i] = fillChar
 
-func indent*(s: string, count: Natural, padding: string = " "): string {.rtl,
-    extern: "nsuIndent".} =
+func indent*(
+    s: string, count: Natural, padding: string = " "
+): string {.rtl, extern: "nsuIndent".} =
   ## Indents each line in `s` by `count` amount of `padding`.
   ##
   ## **Note:** This does not preserve the new line characters used in `s`.
@@ -1482,19 +1515,20 @@ func indent*(s: string, count: Natural, padding: string = " "): string {.rtl,
   ## * `dedent func<#dedent,string,Natural>`_
   runnableExamples:
     doAssert indent("First line\c\l and second line.", 2) ==
-             "  First line\l   and second line."
+      "  First line\l   and second line."
   result = ""
   var i = 0
   for line in s.splitLines():
     if i != 0:
       result.add("\n")
-    for j in 1..count:
+    for j in 1 .. count:
       result.add(padding)
     result.add(line)
     i.inc
 
-func unindent*(s: string, count: Natural = int.high,
-               padding: string = " "): string {.rtl, extern: "nsuUnindent".} =
+func unindent*(
+    s: string, count: Natural = int.high, padding: string = " "
+): string {.rtl, extern: "nsuUnindent".} =
   ## Unindents each line in `s` by `count` amount of `padding`.
   ##
   ## **Note:** This does not preserve the new line characters used in `s`.
@@ -1518,12 +1552,12 @@ func unindent*(s: string, count: Natural = int.high,
     if i != 0:
       result.add("\n")
     var indentCount = 0
-    for j in 0..<count.int:
+    for j in 0 ..< count.int:
       indentCount.inc
-      if j + padding.len-1 >= line.len or line[j .. j + padding.len-1] != padding:
+      if j + padding.len - 1 >= line.len or line[j .. j + padding.len - 1] != padding:
         indentCount = j
         break
-    result.add(line[indentCount*padding.len .. ^1])
+    result.add(line[indentCount * padding.len .. ^1])
     i.inc
 
 func indentation*(s: string): Natural {.since: (1, 3).} =
@@ -1532,15 +1566,17 @@ func indentation*(s: string): Natural {.since: (1, 3).} =
   result = int.high
   for line in s.splitLines:
     for i, c in line:
-      if i >= result: break
+      if i >= result:
+        break
       elif c != ' ':
         result = i
         break
   if result == int.high:
     result = 0
 
-func dedent*(s: string, count: Natural = indentation(s)): string {.rtl,
-    extern: "nsuDedent", since: (1, 3).} =
+func dedent*(
+    s: string, count: Natural = indentation(s)
+): string {.rtl, extern: "nsuDedent", since: (1, 3).} =
   ## Unindents each line in `s` by `count` amount of `padding`.
   ## The only difference between this and the
   ## `unindent func<#unindent,string,Natural,string>`_ is that this by default
@@ -1572,13 +1608,14 @@ func delete*(s: var string, slice: Slice[int]) =
   ## is the string analog to `sequtils.delete`.
   runnableExamples:
     var a = "abcde"
-    doAssertRaises(IndexDefect): a.delete(4..5)
+    doAssertRaises(IndexDefect):
+      a.delete(4 .. 5)
     assert a == "abcde"
-    a.delete(4..4)
+    a.delete(4 .. 4)
     assert a == "abcd"
-    a.delete(1..2)
+    a.delete(1 .. 2)
     assert a == "ad"
-    a.delete(1..<1) # empty slice
+    a.delete(1 ..< 1) # empty slice
     assert a == "ad"
   when compileOption("boundChecks"):
     if not (slice.a < s.len and slice.a >= 0 and slice.b < s.len):
@@ -1594,8 +1631,9 @@ func delete*(s: var string, slice: Slice[int]) =
       inc(j)
     setLen(s, newLen)
 
-func delete*(s: var string, first, last: int) {.rtl, extern: "nsuDelete",
-    deprecated: "use `delete(s, first..last)`".} =
+func delete*(
+    s: var string, first, last: int
+) {.rtl, extern: "nsuDelete", deprecated: "use `delete(s, first..last)`".} =
   ## Deletes in `s` the characters at positions `first .. last` (both ends included).
   runnableExamples("--warning:deprecated:off"):
     var a = "abracadabra"
@@ -1610,8 +1648,8 @@ func delete*(s: var string, first, last: int) {.rtl, extern: "nsuDelete",
     doAssert a == "ar"
 
   var i = first
-  var j = min(len(s), last+1)
-  var newLen = len(s)-j+i
+  var j = min(len(s), last + 1)
+  var newLen = len(s) - j + i
   while i < newLen:
     s[i] = s[j]
     inc(i)
@@ -1676,8 +1714,9 @@ func endsWith*(s, suffix: string): bool {.rtl, extern: "nsuEndsWith".} =
   result = false
   endsWithImpl(s, suffix)
 
-func continuesWith*(s, substr: string, start: Natural): bool {.rtl,
-    extern: "nsuContinuesWith".} =
+func continuesWith*(
+    s, substr: string, start: Natural
+): bool {.rtl, extern: "nsuContinuesWith".} =
   ## Returns true if `s` continues with `substr` at position `start`.
   ##
   ## If `substr == ""` true is returned.
@@ -1693,13 +1732,15 @@ func continuesWith*(s, substr: string, start: Natural): bool {.rtl,
   result = false
   var i = 0
   while true:
-    if i >= substr.len: return true
-    if i+start >= s.len or s[i+start] != substr[i]: return false
+    if i >= substr.len:
+      return true
+    if i + start >= s.len or s[i + start] != substr[i]:
+      return false
     inc(i)
 
-
-func removePrefix*(s: var string, chars: set[char] = Newlines) {.rtl,
-    extern: "nsuRemovePrefixCharSet".} =
+func removePrefix*(
+    s: var string, chars: set[char] = Newlines
+) {.rtl, extern: "nsuRemovePrefixCharSet".} =
   ## Removes all characters from `chars` from the start of the string `s`
   ## (in-place).
   ##
@@ -1717,11 +1758,12 @@ func removePrefix*(s: var string, chars: set[char] = Newlines) {.rtl,
     doAssert otherInput == "Hello!?!"
 
   var start = 0
-  while start < s.len and s[start] in chars: start += 1
-  if start > 0: s.delete(0..start - 1)
+  while start < s.len and s[start] in chars:
+    start += 1
+  if start > 0:
+    s.delete(0 .. start - 1)
 
-func removePrefix*(s: var string, c: char) {.rtl,
-    extern: "nsuRemovePrefixChar".} =
+func removePrefix*(s: var string, c: char) {.rtl, extern: "nsuRemovePrefixChar".} =
   ## Removes all occurrences of a single character (in-place) from the start
   ## of a string.
   ##
@@ -1734,8 +1776,9 @@ func removePrefix*(s: var string, c: char) {.rtl,
     doAssert ident == "Control"
   removePrefix(s, chars = {c})
 
-func removePrefix*(s: var string, prefix: string) {.rtl,
-    extern: "nsuRemovePrefixString".} =
+func removePrefix*(
+    s: var string, prefix: string
+) {.rtl, extern: "nsuRemovePrefixString".} =
   ## Remove the first matching prefix (in-place) from a string.
   ##
   ## See also:
@@ -1746,10 +1789,11 @@ func removePrefix*(s: var string, prefix: string) {.rtl,
     answers.removePrefix("yes")
     doAssert answers == "yes"
   if s.startsWith(prefix) and prefix.len > 0:
-    s.delete(0..prefix.len - 1)
+    s.delete(0 .. prefix.len - 1)
 
-func removeSuffix*(s: var string, chars: set[char] = Newlines) {.rtl,
-    extern: "nsuRemoveSuffixCharSet".} =
+func removeSuffix*(
+    s: var string, chars: set[char] = Newlines
+) {.rtl, extern: "nsuRemoveSuffixCharSet".} =
   ## Removes all characters from `chars` from the end of the string `s`
   ## (in-place).
   ##
@@ -1766,13 +1810,14 @@ func removeSuffix*(s: var string, chars: set[char] = Newlines) {.rtl,
     otherInput.removeSuffix({'!', '?'})
     doAssert otherInput == "Hello"
 
-  if s.len == 0: return
+  if s.len == 0:
+    return
   var last = s.high
-  while last > -1 and s[last] in chars: last -= 1
+  while last > -1 and s[last] in chars:
+    last -= 1
   s.setLen(last + 1)
 
-func removeSuffix*(s: var string, c: char) {.rtl,
-    extern: "nsuRemoveSuffixChar".} =
+func removeSuffix*(s: var string, c: char) {.rtl, extern: "nsuRemoveSuffixChar".} =
   ## Removes all occurrences of a single character (in-place) from the end
   ## of a string.
   ##
@@ -1790,8 +1835,9 @@ func removeSuffix*(s: var string, c: char) {.rtl,
 
   removeSuffix(s, chars = {c})
 
-func removeSuffix*(s: var string, suffix: string) {.rtl,
-    extern: "nsuRemoveSuffixString".} =
+func removeSuffix*(
+    s: var string, suffix: string
+) {.rtl, extern: "nsuRemoveSuffixString".} =
   ## Remove the first matching suffix (in-place) from a string.
   ##
   ## See also:
@@ -1805,7 +1851,6 @@ func removeSuffix*(s: var string, suffix: string) {.rtl,
   if s.endsWith(suffix):
     newLen -= len(suffix)
     s.setLen(newLen)
-
 
 func addSep*(dest: var string, sep = ", ", startLen: Natural = 0) {.inline.} =
   ## Adds a separator to `dest` only if its length is bigger than `startLen`.
@@ -1828,7 +1873,8 @@ func addSep*(dest: var string, sep = ", ", startLen: Natural = 0) {.inline.} =
     add(arr, "]")
     doAssert arr == "[2, 3, 5, 7, 11]"
 
-  if dest.len > startLen: add(dest, sep)
+  if dest.len > startLen:
+    add(dest, sep)
 
 func allCharsInSet*(s: string, theSet: set[char]): bool =
   ## Returns true if every character of `s` is in the set `theSet`.
@@ -1837,7 +1883,8 @@ func allCharsInSet*(s: string, theSet: set[char]): bool =
     doAssert allCharsInSet("", {'a', 'e'}) == true
 
   for c in items(s):
-    if c notin theSet: return false
+    if c notin theSet:
+      return false
   return true
 
 func abbrev*(s: string, possibilities: openArray[string]): int =
@@ -1852,28 +1899,31 @@ func abbrev*(s: string, possibilities: openArray[string]): int =
     doAssert abbrev("college", ["college", "colleges", "industry"]) == 0
 
   result = -1 # none found
-  for i in 0..possibilities.len-1:
+  for i in 0 .. possibilities.len - 1:
     if possibilities[i].startsWith(s):
       if possibilities[i] == s:
         # special case: exact match shouldn't be ambiguous
         return i
-      if result >= 0: return -2 # ambiguous
+      if result >= 0:
+        return -2 # ambiguous
       result = i
 
 # ---------------------------------------------------------------------------
 
-func join*(a: openArray[string], sep: string = ""): string {.rtl,
-    extern: "nsuJoinSep".} =
+func join*(
+    a: openArray[string], sep: string = ""
+): string {.rtl, extern: "nsuJoinSep".} =
   ## Concatenates all strings in the container `a`, separating them with `sep`.
   runnableExamples:
     doAssert join(["A", "B", "Conclusion"], " -> ") == "A -> B -> Conclusion"
 
   if len(a) > 0:
-    var L = sep.len * (a.len-1)
-    for i in 0..high(a): inc(L, a[i].len)
+    var L = sep.len * (a.len - 1)
+    for i in 0 .. high(a):
+      inc(L, a[i].len)
     result = newStringOfCap(L)
     add(result, a[0])
-    for i in 1..high(a):
+    for i in 1 .. high(a):
       add(result, sep)
       add(result, a[i])
   else:
@@ -1891,11 +1941,9 @@ proc join*[T: not string](a: openArray[T], sep: string = ""): string =
       add(result, sep)
     add(result, $x)
 
-type
-  SkipTable* = array[char, int] ## Character table for efficient substring search.
+type SkipTable* = array[char, int] ## Character table for efficient substring search.
 
-func initSkipTable*(a: var SkipTable, sub: string) {.rtl,
-    extern: "nsuInitSkipTable".} =
+func initSkipTable*(a: var SkipTable, sub: string) {.rtl, extern: "nsuInitSkipTable".} =
   ## Initializes table `a` for efficient search of substring `sub`.
   ##
   ## See also:
@@ -1908,8 +1956,9 @@ func initSkipTable*(a: var SkipTable, sub: string) {.rtl,
   for i in 0 ..< m - 1:
     a[sub[i]] = m - 1 - i
 
-func initSkipTable*(sub: string): SkipTable {.noinit, rtl,
-    extern: "nsuInitNewSkipTable".} =
+func initSkipTable*(
+    sub: string
+): SkipTable {.noinit, rtl, extern: "nsuInitNewSkipTable".} =
   ## Returns a new table initialized for `sub`.
   ##
   ## See also:
@@ -1917,8 +1966,9 @@ func initSkipTable*(sub: string): SkipTable {.noinit, rtl,
   ## * `find func<#find,SkipTable,string,string,Natural,int>`_
   initSkipTable(result, sub)
 
-func find*(a: SkipTable, s, sub: string, start: Natural = 0, last = -1): int {.
-    rtl, extern: "nsuFindStrA".} =
+func find*(
+    a: SkipTable, s, sub: string, start: Natural = 0, last = -1
+): int {.rtl, extern: "nsuFindStrA".} =
   ## Searches for `sub` in `s` inside range `start..last` using preprocessed
   ## table `a`. If `last` is unspecified, it defaults to `s.high` (the last
   ## element).
@@ -1957,8 +2007,9 @@ when not (defined(js) or defined(nimdoc) or defined(nimscript)):
 else:
   const hasCStringBuiltin = false
 
-func find*(s: string, sub: char, start: Natural = 0, last = -1): int {.rtl,
-    extern: "nsuFindChar".} =
+func find*(
+    s: string, sub: char, start: Natural = 0, last = -1
+): int {.rtl, extern: "nsuFindChar".} =
   ## Searches for `sub` in `s` inside range `start..last` (both ends included).
   ## If `last` is unspecified or negative, it defaults to `s.high` (the last element).
   ##
@@ -1972,8 +2023,8 @@ func find*(s: string, sub: char, start: Natural = 0, last = -1): int {.rtl,
   result = -1
   let last = if last < 0: s.high else: last
 
-  template findImpl =
-    for i in int(start)..last:
+  template findImpl() =
+    for i in int(start) .. last:
       if s[i] == sub:
         return i
 
@@ -1981,7 +2032,7 @@ func find*(s: string, sub: char, start: Natural = 0, last = -1): int {.rtl,
     findImpl()
   else:
     when hasCStringBuiltin:
-      let length = last-start+1
+      let length = last - start + 1
       if length > 0:
         let found = c_memchr(s[start].unsafeAddr, cint(sub), cast[csize_t](length))
         if not found.isNil:
@@ -1989,8 +2040,9 @@ func find*(s: string, sub: char, start: Natural = 0, last = -1): int {.rtl,
     else:
       findImpl()
 
-func find*(s: string, chars: set[char], start: Natural = 0, last = -1): int {.
-    rtl, extern: "nsuFindCharSet".} =
+func find*(
+    s: string, chars: set[char], start: Natural = 0, last = -1
+): int {.rtl, extern: "nsuFindCharSet".} =
   ## Searches for `chars` in `s` inside range `start..last` (both ends included).
   ## If `last` is unspecified or negative, it defaults to `s.high` (the last element).
   ##
@@ -2003,22 +2055,29 @@ func find*(s: string, chars: set[char], start: Natural = 0, last = -1): int {.
   ## * `multiReplace func<#multiReplace,string,varargs[]>`_
   result = -1
   let last = if last < 0: s.high else: last
-  for i in int(start)..last:
+  for i in int(start) .. last:
     if s[i] in chars:
       return i
 
 when defined(linux):
-  proc memmem(haystack: pointer, haystacklen: csize_t,
-              needle: pointer, needlelen: csize_t): pointer {.importc, header: """#ifndef _GNU_SOURCE
+  proc memmem(
+    haystack: pointer, haystacklen: csize_t, needle: pointer, needlelen: csize_t
+  ): pointer {.
+    importc,
+    header: """#ifndef _GNU_SOURCE
 #define _GNU_SOURCE
 #endif
-#include <string.h>""".}
-elif defined(bsd) or (defined(macosx) and not defined(ios)):
-  proc memmem(haystack: pointer, haystacklen: csize_t,
-              needle: pointer, needlelen: csize_t): pointer {.importc, header: "#include <string.h>".}
+#include <string.h>"""
+  .}
 
-func find*(s, sub: string, start: Natural = 0, last = -1): int {.rtl,
-    extern: "nsuFindStr".} =
+elif defined(bsd) or (defined(macosx) and not defined(ios)):
+  proc memmem(
+    haystack: pointer, haystacklen: csize_t, needle: pointer, needlelen: csize_t
+  ): pointer {.importc, header: "#include <string.h>".}
+
+func find*(
+    s, sub: string, start: Natural = 0, last = -1
+): int {.rtl, extern: "nsuFindStr".} =
   ## Searches for `sub` in `s` inside range `start..last` (both ends included).
   ## If `last` is unspecified or negative, it defaults to `s.high` (the last element).
   ##
@@ -2029,10 +2088,12 @@ func find*(s, sub: string, start: Natural = 0, last = -1): int {.rtl,
   ## See also:
   ## * `rfind func<#rfind,string,string,Natural,int>`_
   ## * `replace func<#replace,string,string,string>`_
-  if sub.len > s.len - start: return -1
-  if sub.len == 1: return find(s, sub[0], start, last)
+  if sub.len > s.len - start:
+    return -1
+  if sub.len == 1:
+    return find(s, sub[0], start, last)
 
-  template useSkipTable =
+  template useSkipTable() =
     result = find(initSkipTable(sub), s, sub, start, last)
 
   when nimvm:
@@ -2041,8 +2102,11 @@ func find*(s, sub: string, start: Natural = 0, last = -1): int {.rtl,
     when declared(memmem):
       let subLen = sub.len
       if last < 0 and start < s.len and subLen != 0:
-        let found = memmem(s[start].unsafeAddr, csize_t(s.len - start), sub.cstring, csize_t(subLen))
-        result = if not found.isNil:
+        let found = memmem(
+          s[start].unsafeAddr, csize_t(s.len - start), sub.cstring, csize_t(subLen)
+        )
+        result =
+          if not found.isNil:
             cast[int](found) -% cast[int](s.cstring)
           else:
             -1
@@ -2051,8 +2115,9 @@ func find*(s, sub: string, start: Natural = 0, last = -1): int {.rtl,
     else:
       useSkipTable()
 
-func rfind*(s: string, sub: char, start: Natural = 0, last = -1): int {.rtl,
-    extern: "nsuRFindChar".} =
+func rfind*(
+    s: string, sub: char, start: Natural = 0, last = -1
+): int {.rtl, extern: "nsuRFindChar".} =
   ## Searches for `sub` in `s` inside range `start..last` (both ends included)
   ## in reverse -- starting at high indexes and moving lower to the first
   ## character or `start`.  If `last` is unspecified, it defaults to `s.high`
@@ -2066,11 +2131,13 @@ func rfind*(s: string, sub: char, start: Natural = 0, last = -1): int {.rtl,
   ## * `find func<#find,string,char,Natural,int>`_
   let last = if last == -1: s.high else: last
   for i in countdown(last, start):
-    if sub == s[i]: return i
+    if sub == s[i]:
+      return i
   return -1
 
-func rfind*(s: string, chars: set[char], start: Natural = 0, last = -1): int {.
-    rtl, extern: "nsuRFindCharSet".} =
+func rfind*(
+    s: string, chars: set[char], start: Natural = 0, last = -1
+): int {.rtl, extern: "nsuRFindCharSet".} =
   ## Searches for `chars` in `s` inside range `start..last` (both ends
   ## included) in reverse -- starting at high indexes and moving lower to the
   ## first character or `start`. If `last` is unspecified, it defaults to
@@ -2084,11 +2151,13 @@ func rfind*(s: string, chars: set[char], start: Natural = 0, last = -1): int {.
   ## * `find func<#find,string,set[char],Natural,int>`_
   let last = if last == -1: s.high else: last
   for i in countdown(last, start):
-    if s[i] in chars: return i
+    if s[i] in chars:
+      return i
   return -1
 
-func rfind*(s, sub: string, start: Natural = 0, last = -1): int {.rtl,
-    extern: "nsuRFindStr".} =
+func rfind*(
+    s, sub: string, start: Natural = 0, last = -1
+): int {.rtl, extern: "nsuRFindStr".} =
   ## Searches for `sub` in `s` inside range `start..last` (both ends included)
   ## included) in reverse -- starting at high indexes and moving lower to the
   ## first character or `start`. If `last` is unspecified, it defaults to
@@ -2108,14 +2177,14 @@ func rfind*(s, sub: string, start: Natural = 0, last = -1): int {.rtl,
   let last = if last == -1: s.high else: last
   result = 0
   for i in countdown(last - sub.len + 1, start):
-    for j in 0..sub.len-1:
+    for j in 0 .. sub.len - 1:
       result = i
-      if sub[j] != s[i+j]:
+      if sub[j] != s[i + j]:
         result = -1
         break
-    if result != -1: return
+    if result != -1:
+      return
   return -1
-
 
 func count*(s: string, sub: char): int {.rtl, extern: "nsuCountChar".} =
   ## Counts the occurrences of the character `sub` in the string `s`.
@@ -2124,10 +2193,10 @@ func count*(s: string, sub: char): int {.rtl, extern: "nsuCountChar".} =
   ## * `countLines func<#countLines,string>`_
   result = 0
   for c in s:
-    if c == sub: inc result
+    if c == sub:
+      inc result
 
-func count*(s: string, subs: set[char]): int {.rtl,
-    extern: "nsuCountCharSet".} =
+func count*(s: string, subs: set[char]): int {.rtl, extern: "nsuCountCharSet".} =
   ## Counts the occurrences of the group of character `subs` in the string `s`.
   ##
   ## See also:
@@ -2135,10 +2204,12 @@ func count*(s: string, subs: set[char]): int {.rtl,
   doAssert card(subs) > 0
   result = 0
   for c in s:
-    if c in subs: inc result
+    if c in subs:
+      inc result
 
-func count*(s: string, sub: string, overlapping: bool = false): int {.rtl,
-    extern: "nsuCountString".} =
+func count*(
+    s: string, sub: string, overlapping: bool = false
+): int {.rtl, extern: "nsuCountString".} =
   ## Counts the occurrences of a substring `sub` in the string `s`.
   ## Overlapping occurrences of `sub` only count when `overlapping`
   ## is set to true (default: false).
@@ -2150,9 +2221,12 @@ func count*(s: string, sub: string, overlapping: bool = false): int {.rtl,
   var i = 0
   while true:
     i = s.find(sub, i)
-    if i < 0: break
-    if overlapping: inc i
-    else: i += sub.len
+    if i < 0:
+      break
+    if overlapping:
+      inc i
+    else:
+      i += sub.len
     inc result
 
 func countLines*(s: string): int {.rtl, extern: "nsuCountLines".} =
@@ -2175,12 +2249,14 @@ func countLines*(s: string): int {.rtl, extern: "nsuCountLines".} =
   while i < s.len:
     case s[i]
     of '\c':
-      if i+1 < s.len and s[i+1] == '\l': inc i
+      if i + 1 < s.len and s[i + 1] == '\l':
+        inc i
       inc result
-    of '\l': inc result
-    else: discard
+    of '\l':
+      inc result
+    else:
+      discard
     inc i
-
 
 func contains*(s, sub: string): bool =
   ## Same as `find(s, sub) >= 0`.
@@ -2196,8 +2272,7 @@ func contains*(s: string, chars: set[char]): bool =
   ## * `find func<#find,string,set[char],Natural,int>`_
   return find(s, chars) >= 0
 
-func replace*(s, sub: string, by = ""): string {.rtl,
-    extern: "nsuReplaceStr".} =
+func replace*(s, sub: string, by = ""): string {.rtl, extern: "nsuReplaceStr".} =
   ## Replaces every occurrence of the string `sub` in `s` with the string `by`.
   ##
   ## See also:
@@ -2219,7 +2294,8 @@ func replace*(s, sub: string, by = ""): string {.rtl,
     var i = 0
     while true:
       let j = find(s, c, i, last)
-      if j < 0: break
+      if j < 0:
+        break
       add result, substr(s, i, j - 1)
       add result, by
       i = j + subLen
@@ -2231,15 +2307,15 @@ func replace*(s, sub: string, by = ""): string {.rtl,
     var i = 0
     while true:
       let j = find(a, s, sub, i, last)
-      if j < 0: break
+      if j < 0:
+        break
       add result, substr(s, i, j - 1)
       add result, by
       i = j + subLen
     # copy the rest:
     add result, substr(s, i)
 
-func replace*(s: string, sub, by: char): string {.rtl,
-    extern: "nsuReplaceChar".} =
+func replace*(s: string, sub, by: char): string {.rtl, extern: "nsuReplaceChar".} =
   ## Replaces every occurrence of the character `sub` in `s` with the character
   ## `by`.
   ##
@@ -2254,19 +2330,21 @@ func replace*(s: string, sub, by: char): string {.rtl,
   result = newString(s.len)
   var i = 0
   while i < s.len:
-    if s[i] == sub: result[i] = by
-    else: result[i] = s[i]
+    if s[i] == sub:
+      result[i] = by
+    else:
+      result[i] = s[i]
     inc(i)
 
-func replaceWord*(s, sub: string, by = ""): string {.rtl,
-    extern: "nsuReplaceWord".} =
+func replaceWord*(s, sub: string, by = ""): string {.rtl, extern: "nsuReplaceWord".} =
   ## Replaces every occurrence of the string `sub` in `s` with the string `by`.
   ##
   ## Each occurrence of `sub` has to be surrounded by word boundaries
   ## (comparable to `\b` in regular expressions), otherwise it is not
   ## replaced.
-  if sub.len == 0: return s
-  const wordChars = {'a'..'z', 'A'..'Z', '0'..'9', '_', '\128'..'\255'}
+  if sub.len == 0:
+    return s
+  const wordChars = {'a' .. 'z', 'A' .. 'Z', '0' .. '9', '_', '\128' .. '\255'}
   result = ""
   var a = initSkipTable(sub)
   var i = 0
@@ -2275,10 +2353,11 @@ func replaceWord*(s, sub: string, by = ""): string {.rtl,
   if sublen > 0:
     while true:
       var j = find(a, s, sub, i, last)
-      if j < 0: break
+      if j < 0:
+        break
       # word boundary?
-      if (j == 0 or s[j-1] notin wordChars) and
-          (j+sub.len >= s.len or s[j+sub.len] notin wordChars):
+      if (j == 0 or s[j - 1] notin wordChars) and
+          (j + sub.len >= s.len or s[j + sub.len] notin wordChars):
         add result, substr(s, i, j - 1)
         add result, by
         i = j + sublen
@@ -2335,7 +2414,9 @@ func multiReplace*(s: string, replacements: varargs[(string, string)]): string =
       add result, s[i]
       inc(i)
 
-func multiReplace*(s: openArray[char]; replacements: varargs[(set[char], char)]): string {.noinit.} =
+func multiReplace*(
+    s: openArray[char], replacements: varargs[(set[char], char)]
+): string {.noinit.} =
   ## Performs multiple character replacements in a single pass through the input.
   ##
   ## `multiReplace` scans the input `s` from left to right and replaces
@@ -2351,7 +2432,7 @@ func multiReplace*(s: openArray[char]; replacements: varargs[(set[char], char)])
   ## - `multiReplace(s: string; replacements: varargs[(string, string)]) <#multiReplace,string,varargs[]>`_,
   runnableExamples:
     const WinSanitationRules = [
-      ({'\0'..'\31'}, ' '),
+      ({'\0' .. '\31'}, ' '),
       ({'"'}, '\''),
       ({'/', '\\', ':', '|'}, '-'),
       ({'*', '?', '<', '>'}, '_'),
@@ -2360,7 +2441,7 @@ func multiReplace*(s: openArray[char]; replacements: varargs[(set[char], char)])
     const file = "a/file:with?invalid*chars.txt"
     doAssert file.multiReplace(WinSanitationRules) == "a-file-with_invalid_chars.txt"
   result = newStringUninit(s.len)
-  for i in 0..<s.len:
+  for i in 0 ..< s.len:
     var nextChar = s[i]
     for subs, by in replacements.items:
       if nextChar in subs:
@@ -2368,8 +2449,9 @@ func multiReplace*(s: openArray[char]; replacements: varargs[(set[char], char)])
         break
     result[i] = nextChar
 
-func insertSep*(s: string, sep = '_', digits = 3): string {.rtl,
-    extern: "nsuInsertSep".} =
+func insertSep*(
+    s: string, sep = '_', digits = 3
+): string {.rtl, extern: "nsuInsertSep".} =
   ## Inserts the separator `sep` after `digits` characters (default: 3)
   ## from right to left.
   ##
@@ -2382,18 +2464,18 @@ func insertSep*(s: string, sep = '_', digits = 3): string {.rtl,
   var idx: int = 0
   if hasPrefix:
     result.add s[s.low]
-    for i in (s.low + 1)..s.high:
+    for i in (s.low + 1) .. s.high:
       idx = i
       if not isDigit(s[i]):
         result.add s[i]
       else:
         break
   let partsLen = s.len - idx
-  var L = (partsLen-1) div digits + partsLen
+  var L = (partsLen - 1) div digits + partsLen
   result.setLen(L + idx)
   var j = 0
   dec(L)
-  for i in countdown(partsLen-1, 0):
+  for i in countdown(partsLen - 1, 0):
     if j == digits:
       result[L + idx] = sep
       dec(L)
@@ -2402,8 +2484,9 @@ func insertSep*(s: string, sep = '_', digits = 3): string {.rtl,
     inc(j)
     dec(L)
 
-func escape*(s: string, prefix = "\"", suffix = "\""): string {.rtl,
-    extern: "nsuEscape".} =
+func escape*(
+    s: string, prefix = "\"", suffix = "\""
+): string {.rtl, extern: "nsuEscape".} =
   ## Escapes a string `s`.
   ##
   ## .. note:: The escaping scheme is different from
@@ -2425,17 +2508,22 @@ func escape*(s: string, prefix = "\"", suffix = "\""): string {.rtl,
   result.add(prefix)
   for c in items(s):
     case c
-    of '\0'..'\31', '\127'..'\255':
+    of '\0' .. '\31', '\127' .. '\255':
       add(result, "\\x")
       add(result, toHex(ord(c), 2))
-    of '\\': add(result, "\\\\")
-    of '\'': add(result, "\\'")
-    of '\"': add(result, "\\\"")
-    else: add(result, c)
+    of '\\':
+      add(result, "\\\\")
+    of '\'':
+      add(result, "\\'")
+    of '\"':
+      add(result, "\\\"")
+    else:
+      add(result, c)
   add(result, suffix)
 
-func unescape*(s: string, prefix = "\"", suffix = "\""): string {.rtl,
-    extern: "nsuUnescape".} =
+func unescape*(
+    s: string, prefix = "\"", suffix = "\""
+): string {.rtl, extern: "nsuUnescape".} =
   ## Unescapes a string `s`.
   ##
   ## This complements `escape func<#escape,string,string,string>`_
@@ -2446,15 +2534,15 @@ func unescape*(s: string, prefix = "\"", suffix = "\""): string {.rtl,
   result = newStringOfCap(s.len)
   var i = prefix.len
   if not s.startsWith(prefix):
-    raise newException(ValueError,
-                       "String does not start with: " & prefix)
+    raise newException(ValueError, "String does not start with: " & prefix)
   while true:
-    if i >= s.len-suffix.len: break
+    if i >= s.len - suffix.len:
+      break
     if s[i] == '\\':
-      if i+1 >= s.len:
+      if i + 1 >= s.len:
         result.add('\\')
         break
-      case s[i+1]:
+      case s[i + 1]
       of 'x':
         inc i, 2
         var c = 0
@@ -2468,14 +2556,13 @@ func unescape*(s: string, prefix = "\"", suffix = "\""): string {.rtl,
       of '\"':
         result.add('\"')
       else:
-        result.add("\\" & s[i+1])
+        result.add("\\" & s[i + 1])
       inc(i, 2)
     else:
       result.add(s[i])
       inc(i)
   if not s.endsWith(suffix):
-    raise newException(ValueError,
-                       "String does not end in: " & suffix)
+    raise newException(ValueError, "String does not end in: " & suffix)
 
 func validIdentifier*(s: string): bool {.rtl, extern: "nsuValidIdentifier".} =
   ## Returns true if `s` is a valid identifier.
@@ -2486,26 +2573,29 @@ func validIdentifier*(s: string): bool {.rtl, extern: "nsuValidIdentifier".} =
     doAssert "abc_def08".validIdentifier
   result = false
   if s.len > 0 and s[0] in IdentStartChars:
-    for i in 1..s.len-1:
-      if s[i] notin IdentChars: return false
+    for i in 1 .. s.len - 1:
+      if s[i] notin IdentChars:
+        return false
     return true
-
 
 # floating point formatting:
 when not defined(js):
-  func c_snprintf(buf: cstring, n: csize_t, frmt: cstring): cint {.header: "<stdio.h>",
-                                     importc: "snprintf", varargs.}
+  func c_snprintf(
+    buf: cstring, n: csize_t, frmt: cstring
+  ): cint {.header: "<stdio.h>", importc: "snprintf", varargs.}
 
-type
-  FloatFormatMode* = enum
-    ## The different modes of floating point formatting.
-    ffDefault,   ## use the shorter floating point notation
-    ffDecimal,   ## use decimal floating point notation
-    ffScientific ## use scientific notation (using `e` character)
+type FloatFormatMode* = enum
+  ## The different modes of floating point formatting.
+  ffDefault ## use the shorter floating point notation
+  ffDecimal ## use decimal floating point notation
+  ffScientific ## use scientific notation (using `e` character)
 
-func formatBiggestFloat*(f: BiggestFloat, format: FloatFormatMode = ffDefault,
-                         precision: range[-1..32] = 16;
-                         decimalSep = '.'): string {.rtl, extern: "nsu$1".} =
+func formatBiggestFloat*(
+    f: BiggestFloat,
+    format: FloatFormatMode = ffDefault,
+    precision: range[-1 .. 32] = 16,
+    decimalSep = '.',
+): string {.rtl, extern: "nsu$1".} =
   ## Converts a floating point value `f` to a string.
   ##
   ## If `format == ffDecimal` then precision is the number of digits to
@@ -2544,12 +2634,13 @@ func formatBiggestFloat*(f: BiggestFloat, format: FloatFormatMode = ffDefault,
       for i in 0 ..< result.len:
         # Depending on the locale either dot or comma is produced,
         # but nothing else is possible:
-        if result[i] in {'.', ','}: result[i] = decimalSep
+        if result[i] in {'.', ','}:
+          result[i] = decimalSep
     else:
       const floatFormatToChar: array[FloatFormatMode, char] = ['g', 'f', 'e']
       var
-        frmtstr {.noinit.}: array[0..5, char]
-        buf {.noinit.}: array[0..2500, char]
+        frmtstr {.noinit.}: array[0 .. 5, char]
+        buf {.noinit.}: array[0 .. 2500, char]
         L: cint
       frmtstr[0] = '%'
       if precision >= 0:
@@ -2558,17 +2649,27 @@ func formatBiggestFloat*(f: BiggestFloat, format: FloatFormatMode = ffDefault,
         frmtstr[3] = '*'
         frmtstr[4] = floatFormatToChar[format]
         frmtstr[5] = '\0'
-        L = c_snprintf(cast[cstring](addr buf), csize_t(2501), cast[cstring](addr frmtstr), precision, f)
+        L = c_snprintf(
+          cast[cstring](addr buf),
+          csize_t(2501),
+          cast[cstring](addr frmtstr),
+          precision,
+          f,
+        )
       else:
         frmtstr[1] = floatFormatToChar[format]
         frmtstr[2] = '\0'
-        L = c_snprintf(cast[cstring](addr buf), csize_t(2501), cast[cstring](addr frmtstr), f)
+        L = c_snprintf(
+          cast[cstring](addr buf), csize_t(2501), cast[cstring](addr frmtstr), f
+        )
       result = newString(L)
       for i in 0 ..< L:
         # Depending on the locale either dot or comma is produced,
         # but nothing else is possible:
-        if buf[i] in {'.', ','}: result[i] = decimalSep
-        else: result[i] = buf[i]
+        if buf[i] in {'.', ','}:
+          result[i] = decimalSep
+        else:
+          result[i] = buf[i]
       when defined(windows):
         # VS pre 2015 violates the C standard: "The exponent always contains at
         # least two digits, and only as many more digits as necessary to
@@ -2579,9 +2680,12 @@ func formatBiggestFloat*(f: BiggestFloat, format: FloatFormatMode = ffDefault,
           result[^2] = result[^1]
           result.setLen(result.len - 1)
 
-func formatFloat*(f: float, format: FloatFormatMode = ffDefault,
-                  precision: range[-1..32] = 16; decimalSep = '.'): string {.
-                  rtl, extern: "nsu$1".} =
+func formatFloat*(
+    f: float,
+    format: FloatFormatMode = ffDefault,
+    precision: range[-1 .. 32] = 16,
+    decimalSep = '.',
+): string {.rtl, extern: "nsu$1".} =
   ## Converts a floating point value `f` to a string.
   ##
   ## If `format == ffDecimal` then precision is the number of digits to
@@ -2600,7 +2704,7 @@ func formatFloat*(f: float, format: FloatFormatMode = ffDefault,
 
   result = formatBiggestFloat(f, format, precision, decimalSep)
 
-func trimZeros*(x: var string; decimalSep = '.') =
+func trimZeros*(x: var string, decimalSep = '.') =
   ## Trim trailing zeros from a formatted floating point
   ## value `x` (must be declared as `var`).
   ##
@@ -2613,22 +2717,26 @@ func trimZeros*(x: var string; decimalSep = '.') =
   let sPos = find(x, decimalSep)
   if sPos >= 0:
     var last = find(x, 'e', start = sPos)
-    last = if last >= 0: last - 1 else: high(x)
+    last =
+      if last >= 0:
+        last - 1
+      else:
+        high(x)
     var pos = last
-    while pos >= 0 and x[pos] == '0': dec(pos)
-    if pos > sPos: inc(pos)
+    while pos >= 0 and x[pos] == '0':
+      dec(pos)
+    if pos > sPos:
+      inc(pos)
     if last >= pos:
-      x.delete(pos..last)
+      x.delete(pos .. last)
 
-type
-  BinaryPrefixMode* = enum ## The different names for binary prefixes.
-    bpIEC,                 # use the IEC/ISO standard prefixes such as kibi
-    bpColloquial           # use the colloquial kilo, mega etc
+type BinaryPrefixMode* = enum ## The different names for binary prefixes.
+  bpIEC # use the IEC/ISO standard prefixes such as kibi
+  bpColloquial # use the colloquial kilo, mega etc
 
-func formatSize*(bytes: int64,
-                 decimalSep = '.',
-                 prefix = bpIEC,
-                 includeSpace = false): string =
+func formatSize*(
+    bytes: int64, decimalSep = '.', prefix = bpIEC, includeSpace = false
+): string =
   ## Rounds and formats `bytes`.
   ##
   ## By default, uses the IEC/ISO standard binary prefixes, so 1024 will be
@@ -2642,7 +2750,7 @@ func formatSize*(bytes: int64,
   ## * `strformat module<strformat.html>`_ for string interpolation and formatting
   runnableExamples:
     doAssert formatSize((1'i64 shl 31) + (300'i64 shl 20)) == "2.293GiB"
-    doAssert formatSize((2.234*1024*1024).int) == "2.233MiB"
+    doAssert formatSize((2.234 * 1024 * 1024).int) == "2.233MiB"
     doAssert formatSize(4096, includeSpace = true) == "4 KiB"
     doAssert formatSize(4096, prefix = bpColloquial, includeSpace = true) == "4 kB"
     doAssert formatSize(4096) == "4KiB"
@@ -2652,7 +2760,8 @@ func formatSize*(bytes: int64,
   const iecPrefixes = ["", "Ki", "Mi", "Gi", "Ti", "Pi", "Ei"]
   const collPrefixes = ["", "k", "M", "G", "T", "P", "E"]
 
-  let lg2 = if bytes == 0:
+  let lg2 =
+    if bytes == 0:
       0
     else:
       when hasWorkingInt64:
@@ -2670,22 +2779,30 @@ func formatSize*(bytes: int64,
   else:
     prefixes = iecPrefixes
 
-  let fbytes = if lg2 < 10: bytes.float elif lg2 < 20: bytes.float / 1024.0 else: (bytes shr discardBits).float / 1024.0
-  result = formatFloat(fbytes, format = ffDecimal, precision = 3,
-      decimalSep = decimalSep)
+  let fbytes =
+    if lg2 < 10:
+      bytes.float
+    elif lg2 < 20:
+      bytes.float / 1024.0
+    else:
+      (bytes shr discardBits).float / 1024.0
+  result =
+    formatFloat(fbytes, format = ffDecimal, precision = 3, decimalSep = decimalSep)
   result.trimZeros(decimalSep)
   if includeSpace:
     result &= " "
   result &= prefixes[matchedIndex]
   result &= "B"
 
-func formatEng*(f: BiggestFloat,
-                precision: range[0..32] = 10,
-                trim: bool = true,
-                siPrefix: bool = false,
-                unit: string = "",
-                decimalSep = '.',
-                useUnitSpace = false): string =
+func formatEng*(
+    f: BiggestFloat,
+    precision: range[0 .. 32] = 10,
+    trim: bool = true,
+    siPrefix: bool = false,
+    unit: string = "",
+    decimalSep = '.',
+    useUnitSpace = false,
+): string =
   ## Converts a floating point value `f` to a string using engineering notation.
   ##
   ## Numbers in of the range -1000.0<f<1000.0 will be formatted without an
@@ -2756,11 +2873,10 @@ func formatEng*(f: BiggestFloat,
     ## Get the SI prefix for a given exponent
     ##
     ## Assumes exponent is a multiple of 3; returns ' ' if no prefix found
-    const siPrefixes = ['a', 'f', 'p', 'n', 'u', 'm', ' ', 'k', 'M', 'G', 'T',
-        'P', 'E']
+    const siPrefixes = ['a', 'f', 'p', 'n', 'u', 'm', ' ', 'k', 'M', 'G', 'T', 'P', 'E']
     var index: int = (exp div 3) + 6
     result = ' '
-    if index in low(siPrefixes)..high(siPrefixes):
+    if index in low(siPrefixes) .. high(siPrefixes):
       result = siPrefixes[index]
 
   # Most of the work is done with the sign ignored, so get the absolute value
@@ -2770,8 +2886,7 @@ func formatEng*(f: BiggestFloat,
   if absolute == 0.0:
     # Simple case: just format it and force the exponent to 0
     exponent = 0
-    result = significand.formatBiggestFloat(ffDecimal, precision,
-        decimalSep = '.')
+    result = significand.formatBiggestFloat(ffDecimal, precision, decimalSep = '.')
   else:
     # Find the best exponent that's a multiple of 3
     fexponent = floor(log10(absolute))
@@ -2786,8 +2901,7 @@ func formatEng*(f: BiggestFloat,
       significand *= 0.001
       fexponent += 3
     # Components of the result:
-    result = significand.formatBiggestFloat(ffDecimal, precision,
-        decimalSep = '.')
+    result = significand.formatBiggestFloat(ffDecimal, precision, decimalSep = '.')
     exponent = fexponent.int()
 
   splitResult = result.split('.')
@@ -2800,7 +2914,7 @@ func formatEng*(f: BiggestFloat,
     if trim:
       while splitResult[1].endsWith("0"):
         # Trim last character
-        splitResult[1].setLen(splitResult[1].len-1)
+        splitResult[1].setLen(splitResult[1].len - 1)
       if splitResult[1].len() > 0:
         result &= decimalSep & splitResult[1]
     else:
@@ -2822,70 +2936,92 @@ func formatEng*(f: BiggestFloat,
 func findNormalized(x: string, inArray: openArray[string]): int =
   var i = 0
   while i < high(inArray):
-    if cmpIgnoreStyle(x, inArray[i]) == 0: return i
-    inc(i, 2) # incrementing by 1 would probably lead to a
-              # security hole...
+    if cmpIgnoreStyle(x, inArray[i]) == 0:
+      return i
+    inc(i, 2)
+      # incrementing by 1 would probably lead to a
+      # security hole...
   return -1
 
 func invalidFormatString(formatstr: string) {.noinline.} =
   raise newException(ValueError, "invalid format string: " & formatstr)
 
-func addf*(s: var string, formatstr: string, a: varargs[string, `$`]) {.rtl,
-    extern: "nsuAddf".} =
+func addf*(
+    s: var string, formatstr: string, a: varargs[string, `$`]
+) {.rtl, extern: "nsuAddf".} =
   ## The same as `add(s, formatstr % a)`, but more efficient.
-  const PatternChars = {'a'..'z', 'A'..'Z', '0'..'9', '\128'..'\255', '_'}
+  const PatternChars = {'a' .. 'z', 'A' .. 'Z', '0' .. '9', '\128' .. '\255', '_'}
   var i = 0
   var num = 0
   while i < len(formatstr):
-    if formatstr[i] == '$' and i+1 < len(formatstr):
-      case formatstr[i+1]
+    if formatstr[i] == '$' and i + 1 < len(formatstr):
+      case formatstr[i + 1]
       of '#':
-        if num > a.high: invalidFormatString(formatstr)
+        if num > a.high:
+          invalidFormatString(formatstr)
         add s, a[num]
         inc i, 2
         inc num
       of '$':
         add s, '$'
         inc(i, 2)
-      of '1'..'9', '-':
+      of '1' .. '9', '-':
         var j = 0
         inc(i) # skip $
         var negative = formatstr[i] == '-'
-        if negative: inc i
+        if negative:
+          inc i
         while i < formatstr.len and formatstr[i] in Digits:
           j = j * 10 + ord(formatstr[i]) - ord('0')
           inc(i)
-        let idx = if not negative: j-1 else: a.len-j
-        if idx < 0 or idx > a.high: invalidFormatString(formatstr)
+        let idx =
+          if not negative:
+            j - 1
+          else:
+            a.len - j
+        if idx < 0 or idx > a.high:
+          invalidFormatString(formatstr)
         add s, a[idx]
       of '{':
-        var j = i+2
+        var j = i + 2
         var k = 0
         var negative = formatstr[j] == '-'
-        if negative: inc j
+        if negative:
+          inc j
         var isNumber = 0
         while j < formatstr.len and formatstr[j] notin {'\0', '}'}:
           if formatstr[j] in Digits:
             k = k * 10 + ord(formatstr[j]) - ord('0')
-            if isNumber == 0: isNumber = 1
+            if isNumber == 0:
+              isNumber = 1
           else:
             isNumber = -1
           inc(j)
         if isNumber == 1:
-          let idx = if not negative: k-1 else: a.len-k
-          if idx < 0 or idx > a.high: invalidFormatString(formatstr)
+          let idx =
+            if not negative:
+              k - 1
+            else:
+              a.len - k
+          if idx < 0 or idx > a.high:
+            invalidFormatString(formatstr)
           add s, a[idx]
         else:
-          var x = findNormalized(substr(formatstr, i+2, j-1), a)
-          if x >= 0 and x < high(a): add s, a[x+1]
-          else: invalidFormatString(formatstr)
-        i = j+1
-      of 'a'..'z', 'A'..'Z', '\128'..'\255', '_':
-        var j = i+1
-        while j < formatstr.len and formatstr[j] in PatternChars: inc(j)
-        var x = findNormalized(substr(formatstr, i+1, j-1), a)
-        if x >= 0 and x < high(a): add s, a[x+1]
-        else: invalidFormatString(formatstr)
+          var x = findNormalized(substr(formatstr, i + 2, j - 1), a)
+          if x >= 0 and x < high(a):
+            add s, a[x + 1]
+          else:
+            invalidFormatString(formatstr)
+        i = j + 1
+      of 'a' .. 'z', 'A' .. 'Z', '\128' .. '\255', '_':
+        var j = i + 1
+        while j < formatstr.len and formatstr[j] in PatternChars:
+          inc(j)
+        var x = findNormalized(substr(formatstr, i + 1, j - 1), a)
+        if x >= 0 and x < high(a):
+          add s, a[x + 1]
+        else:
+          invalidFormatString(formatstr)
         i = j
       else:
         invalidFormatString(formatstr)
@@ -2893,8 +3029,9 @@ func addf*(s: var string, formatstr: string, a: varargs[string, `$`]) {.rtl,
       add s, formatstr[i]
       inc(i)
 
-func `%`*(formatstr: string, a: openArray[string]): string {.rtl,
-    extern: "nsuFormatOpenArray".} =
+func `%`*(
+    formatstr: string, a: openArray[string]
+): string {.rtl, extern: "nsuFormatOpenArray".} =
   ## Interpolates a format string with the values from `a`.
   ##
   ## The `substitution`:idx: operator performs string substitutions in
@@ -2946,15 +3083,15 @@ func `%`*(formatstr: string, a: openArray[string]): string {.rtl,
   result = newStringOfCap(formatstr.len + a.len shl 4)
   addf(result, formatstr, a)
 
-func `%`*(formatstr, a: string): string {.rtl,
-    extern: "nsuFormatSingleElem".} =
+func `%`*(formatstr, a: string): string {.rtl, extern: "nsuFormatSingleElem".} =
   ## This is the same as `formatstr % [a]` (see
   ## `% func<#%25,string,openArray[string]>`_).
   result = newStringOfCap(formatstr.len + a.len)
   addf(result, formatstr, [a])
 
-func format*(formatstr: string, a: varargs[string, `$`]): string {.rtl,
-    extern: "nsuFormatVarargs".} =
+func format*(
+    formatstr: string, a: varargs[string, `$`]
+): string {.rtl, extern: "nsuFormatVarargs".} =
   ## This is the same as `formatstr % a` (see
   ## `% func<#%25,string,openArray[string]>`_) except that it supports
   ## auto stringification.
@@ -2964,9 +3101,9 @@ func format*(formatstr: string, a: varargs[string, `$`]): string {.rtl,
   result = newStringOfCap(formatstr.len + a.len)
   addf(result, formatstr, a)
 
-
-func strip*(s: string, leading = true, trailing = true,
-            chars: set[char] = Whitespace): string {.rtl, extern: "nsuStrip".} =
+func strip*(
+    s: string, leading = true, trailing = true, chars: set[char] = Whitespace
+): string {.rtl, extern: "nsuStrip".} =
   ## Strips leading or trailing `chars` (default: whitespace characters)
   ## from `s` and returns the resulting string.
   ##
@@ -2994,11 +3131,13 @@ func strip*(s: string, leading = true, trailing = true,
 
   var
     first = 0
-    last = len(s)-1
+    last = len(s) - 1
   if leading:
-    while first <= last and s[first] in chars: inc(first)
+    while first <= last and s[first] in chars:
+      inc(first)
   if trailing:
-    while last >= first and s[last] in chars: dec(last)
+    while last >= first and s[last] in chars:
+      dec(last)
   result = substr(s, first, last)
 
 func stripLineEnd*(s: var string) =
@@ -3018,17 +3157,17 @@ func stripLineEnd*(s: var string) =
     case s[^1]
     of '\n':
       if s.len > 1 and s[^2] == '\r':
-        s.setLen s.len-2
+        s.setLen s.len - 2
       else:
-        s.setLen s.len-1
+        s.setLen s.len - 1
     of '\r', '\v', '\f':
-      s.setLen s.len-1
+      s.setLen s.len - 1
     else:
       discard
 
-
-iterator tokenize*(s: string, seps: set[char] = Whitespace): tuple[
-  token: string, isSep: bool] =
+iterator tokenize*(
+    s: string, seps: set[char] = Whitespace
+): tuple[token: string, isSep: bool] =
   ## Tokenizes the string `s` into substrings.
   ##
   ## Substrings are separated by a substring containing only `seps`.
@@ -3056,14 +3195,14 @@ iterator tokenize*(s: string, seps: set[char] = Whitespace): tuple[
   while true:
     var j = i
     var isSep = j < s.len and s[j] in seps
-    while j < s.len and (s[j] in seps) == isSep: inc(j)
+    while j < s.len and (s[j] in seps) == isSep:
+      inc(j)
     if j > i:
-      yield (substr(s, i, j-1), isSep)
+      yield (substr(s, i, j - 1), isSep)
     else:
       break
     i = j
 
-func isEmptyOrWhitespace*(s: string): bool {.rtl,
-    extern: "nsuIsEmptyOrWhitespace".} =
+func isEmptyOrWhitespace*(s: string): bool {.rtl, extern: "nsuIsEmptyOrWhitespace".} =
   ## Checks if `s` is empty or consists entirely of whitespace characters.
   result = s.allCharsInSet(Whitespace)

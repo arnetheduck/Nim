@@ -6,15 +6,21 @@ when not defined(js):
 when defined(nimPreviewSlimSystem):
   import std/assertions
 
-type JsBigIntImpl {.importjs: "bigint".} = int # https://github.com/nim-lang/Nim/pull/16606
-type JsBigInt* = distinct JsBigIntImpl         ## Arbitrary precision integer for JavaScript target.
+type JsBigIntImpl {.importjs: "bigint".} = int
+  # https://github.com/nim-lang/Nim/pull/16606
+
+type JsBigInt* = distinct JsBigIntImpl
+  ## Arbitrary precision integer for JavaScript target.
 
 func big*(integer: SomeInteger): JsBigInt {.importjs: "BigInt(#)".} =
   ## Constructor for `JsBigInt`.
   runnableExamples:
     doAssert big(1234567890) == big"1234567890"
     doAssert 0b1111100111.big == 0o1747.big and 0o1747.big == 999.big
-  when nimvm: raiseAssert "JsBigInt can not be used at compile-time nor static context" else: discard
+  when nimvm:
+    raiseAssert "JsBigInt can not be used at compile-time nor static context"
+  else:
+    discard
 
 func `'big`*(num: cstring): JsBigInt {.importjs: "BigInt(#)".} =
   ## Constructor for `JsBigInt`.
@@ -28,13 +34,19 @@ func `'big`*(num: cstring): JsBigInt {.importjs: "BigInt(#)".} =
     doAssert 0xdeadbeaf'big == 0xdeadbeaf.big
     doAssert 0xffffffffffffffff'big == (1'big shl 64'big) - 1'big
     doAssert not compiles(static(12'big))
-  when nimvm: raiseAssert "JsBigInt can not be used at compile-time nor static context" else: discard
+  when nimvm:
+    raiseAssert "JsBigInt can not be used at compile-time nor static context"
+  else:
+    discard
 
 func big*(integer: cstring): JsBigInt {.importjs: "BigInt(#)".} =
   ## Alias for `'big`
-  when nimvm: raiseAssert "JsBigInt can not be used at compile-time nor static context" else: discard
+  when nimvm:
+    raiseAssert "JsBigInt can not be used at compile-time nor static context"
+  else:
+    discard
 
-func toCstring*(this: JsBigInt; radix: 2..36): cstring {.importjs: "#.toString(#)".} =
+func toCstring*(this: JsBigInt, radix: 2 .. 36): cstring {.importjs: "#.toString(#)".} =
   ## Converts from `JsBigInt` to `cstring` representation.
   ## * `radix` Base to use for representing numeric values.
   ## https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/BigInt/toString
@@ -47,18 +59,23 @@ func toCstring*(this: JsBigInt): cstring {.importjs: "#.toString()".}
 
 func `$`*(this: JsBigInt): string =
   ## Returns a `string` representation of `JsBigInt`.
-  runnableExamples: doAssert $big"1024" == "1024n"
+  runnableExamples:
+    doAssert $big"1024" == "1024n"
   $toCstring(this) & 'n'
 
-func wrapToInt*(this: JsBigInt; bits: Natural): JsBigInt {.importjs:
-  "(() => { const i = #, b = #; return BigInt.asIntN(b, i) })()".} =
+func wrapToInt*(
+    this: JsBigInt, bits: Natural
+): JsBigInt {.importjs: "(() => { const i = #, b = #; return BigInt.asIntN(b, i) })()".} =
   ## Wraps `this` to a signed `JsBigInt` of `bits` bits in `-2 ^ (bits - 1)` .. `2 ^ (bits - 1) - 1`.
   ## https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/BigInt/asIntN
   runnableExamples:
     doAssert (big("3") + big("2") ** big("66")).wrapToInt(13) == big("3")
 
-func wrapToUint*(this: JsBigInt; bits: Natural): JsBigInt {.importjs:
-  "(() => { const i = #, b = #; return BigInt.asUintN(b, i) })()".} =
+func wrapToUint*(
+    this: JsBigInt, bits: Natural
+): JsBigInt {.
+    importjs: "(() => { const i = #, b = #; return BigInt.asUintN(b, i) })()"
+.} =
   ## Wraps `this` to an unsigned `JsBigInt` of `bits` bits in 0 ..  `2 ^ bits - 1`.
   ## https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/BigInt/asUintN
   runnableExamples:
@@ -117,8 +134,10 @@ func `**`*(x, y: JsBigInt): JsBigInt {.importjs: "((#) $1 #)".} =
     doAssert -big"2" ** big"2" == big"4" # parsed as: (-2n) ** 2n
     doAssert big"0" ** big"0" == big"1" # edge case
     var ok = false
-    try: discard big"2" ** big"-1" # raises foreign `RangeError`
-    except: ok = true
+    try:
+      discard big"2" ** big"-1" # raises foreign `RangeError`
+    except:
+      ok = true
     doAssert ok
 
 func `and`*(x, y: JsBigInt): JsBigInt {.importjs: "(# & #)".} =
@@ -157,53 +176,61 @@ func dec*(this: var JsBigInt) {.importjs: "(--[#][0][0])".} =
     dec big1
     doAssert big1 == big"1"
 
-func inc*(this: var JsBigInt; amount: JsBigInt) {.importjs: "([#][0][0] += #)".} =
+func inc*(this: var JsBigInt, amount: JsBigInt) {.importjs: "([#][0][0] += #)".} =
   runnableExamples:
     var big1: JsBigInt = big"1"
     inc big1, big"2"
     doAssert big1 == big"3"
 
-func dec*(this: var JsBigInt; amount: JsBigInt) {.importjs: "([#][0][0] -= #)".} =
+func dec*(this: var JsBigInt, amount: JsBigInt) {.importjs: "([#][0][0] -= #)".} =
   runnableExamples:
     var big1: JsBigInt = big"1"
     dec big1, big"2"
     doAssert big1 == big"-1"
 
-func `+=`*(x: var JsBigInt; y: JsBigInt) {.importjs: "([#][0][0] $1 #)".} =
+func `+=`*(x: var JsBigInt, y: JsBigInt) {.importjs: "([#][0][0] $1 #)".} =
   runnableExamples:
     var big1: JsBigInt = big"1"
     big1 += big"2"
     doAssert big1 == big"3"
 
-func `-=`*(x: var JsBigInt; y: JsBigInt) {.importjs: "([#][0][0] $1 #)".} =
+func `-=`*(x: var JsBigInt, y: JsBigInt) {.importjs: "([#][0][0] $1 #)".} =
   runnableExamples:
     var big1: JsBigInt = big"1"
     big1 -= big"2"
     doAssert big1 == big"-1"
 
-func `*=`*(x: var JsBigInt; y: JsBigInt) {.importjs: "([#][0][0] $1 #)".} =
+func `*=`*(x: var JsBigInt, y: JsBigInt) {.importjs: "([#][0][0] $1 #)".} =
   runnableExamples:
     var big1: JsBigInt = big"2"
     big1 *= big"4"
     doAssert big1 == big"8"
 
-func `/=`*(x: var JsBigInt; y: JsBigInt) {.importjs: "([#][0][0] $1 #)".} =
+func `/=`*(x: var JsBigInt, y: JsBigInt) {.importjs: "([#][0][0] $1 #)".} =
   ## Same as `x = x div y`.
   runnableExamples:
     var big1: JsBigInt = big"11"
     big1 /= big"2"
     doAssert big1 == big"5"
 
-proc `+`*(_: JsBigInt): JsBigInt {.error:
-  "See https://github.com/tc39/proposal-bigint/blob/master/ADVANCED.md#dont-break-asmjs".} # Can not be used by design
+proc `+`*(
+  _: JsBigInt
+): JsBigInt {.
+  error:
+    "See https://github.com/tc39/proposal-bigint/blob/master/ADVANCED.md#dont-break-asmjs"
+.}
+  # Can not be used by design
   ## **Do NOT use.** https://github.com/tc39/proposal-bigint/blob/master/ADVANCED.md#dont-break-asmjs
 
-proc low*(_: typedesc[JsBigInt]): JsBigInt {.error:
-  "Arbitrary precision integers do not have a known low.".} ## **Do NOT use.**
+proc low*(
+  _: typedesc[JsBigInt]
+): JsBigInt {.error: "Arbitrary precision integers do not have a known low.".}
+  ## **Do NOT use.**
 
-proc high*(_: typedesc[JsBigInt]): JsBigInt {.error:
-  "Arbitrary precision integers do not have a known high.".} ## **Do NOT use.**
-
+proc high*(
+  _: typedesc[JsBigInt]
+): JsBigInt {.error: "Arbitrary precision integers do not have a known high.".}
+  ## **Do NOT use.**
 
 runnableExamples:
   block:
@@ -215,7 +242,7 @@ runnableExamples:
     doAssert big1 >= big2
     doAssert big2 < big1
     doAssert big2 <= big1
-    doAssert not(big1 == big2)
+    doAssert not (big1 == big2)
     let z = JsBigInt.default
     doAssert $z == "0n"
   block:

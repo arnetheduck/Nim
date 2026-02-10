@@ -11,10 +11,8 @@
 ## language.
 
 import
-  ast, modules, idents, condsyms,
-  options, llstream, vm, vmdef, commands,
-  wordrecg, modulegraphs,
-  pathutils, pipelines
+  ast, modules, idents, condsyms, options, llstream, vm, vmdef, commands, wordrecg,
+  modulegraphs, pathutils, pipelines
 
 when defined(nimPreviewSlimSystem):
   import std/[syncio, assertions]
@@ -28,11 +26,17 @@ proc listDirs(a: VmArgs, filter: set[PathComponent]) =
   let dir = getString(a, 0)
   var result: seq[string] = @[]
   for kind, path in walkDir(dir):
-    if kind in filter: result.add path
+    if kind in filter:
+      result.add path
   setResult(a, result)
 
-proc setupVM*(module: PSym; cache: IdentCache; scriptName: string;
-              graph: ModuleGraph; idgen: IdGenerator): PEvalContext =
+proc setupVM*(
+    module: PSym,
+    cache: IdentCache,
+    scriptName: string,
+    graph: ModuleGraph,
+    idgen: IdGenerator,
+): PEvalContext =
   # For Nimble we need to export 'setupVM'.
   result = newCtx(module, cache, graph, idgen)
   result.mode = emRepl
@@ -45,12 +49,12 @@ proc setupVM*(module: PSym; cache: IdentCache; scriptName: string;
 
   template cbconf(name, body) {.dirty.} =
     result.registerCallback "stdlib.system." & astToStr(name),
-      proc (a: VmArgs) =
+      proc(a: VmArgs) =
         body
 
   template cbexc(name, exc, body) {.dirty.} =
     result.registerCallback "stdlib.system." & astToStr(name),
-      proc (a: VmArgs) =
+      proc(a: VmArgs) =
         errorMsg = ""
         try:
           body
@@ -80,7 +84,8 @@ proc setupVM*(module: PSym; cache: IdentCache; scriptName: string;
     os.createDir getString(a, 0)
 
   result.registerCallback "stdlib.system.getError",
-    proc (a: VmArgs) = setResult(a, errorMsg)
+    proc(a: VmArgs) =
+      setResult(a, errorMsg)
 
   cbos setCurrentDir:
     os.setCurrentDir getString(a, 0)
@@ -158,18 +163,19 @@ proc setupVM*(module: PSym; cache: IdentCache; scriptName: string;
     conf.setCommandEarly(a.getString 0)
     let arg = a.getString 1
     incl(conf.globalOptions, optWasNimscript)
-    if arg.len > 0: setFromProjectName(conf, arg)
+    if arg.len > 0:
+      setFromProjectName(conf, arg)
   cbconf getCommand:
     setResult(a, conf.command)
   cbconf switch:
     conf.currentConfigDir = vthisDir
     processSwitch(a.getString 0, a.getString 1, passPP, module.info, conf)
   cbconf hintImpl:
-    processSpecificNote(a.getString 0, wHint, passPP, module.info,
-      a.getString 1, conf)
+    processSpecificNote(a.getString 0, wHint, passPP, module.info, a.getString 1, conf)
   cbconf warningImpl:
-    processSpecificNote(a.getString 0, wWarning, passPP, module.info,
-      a.getString 1, conf)
+    processSpecificNote(
+      a.getString 0, wWarning, passPP, module.info, a.getString 1, conf
+    )
   cbconf patchFile:
     let key = a.getString(0) & "_" & a.getString(1)
     var val = a.getString(2).addFileExt(NimExt)
@@ -193,15 +199,21 @@ proc setupVM*(module: PSym; cache: IdentCache; scriptName: string;
     else:
       setResult(a, stdin.readAll())
 
-proc runNimScript*(cache: IdentCache; scriptName: AbsoluteFile;
-                   idgen: IdGenerator;
-                   freshDefines=true; conf: ConfigRef, stream: PLLStream) =
+proc runNimScript*(
+    cache: IdentCache,
+    scriptName: AbsoluteFile,
+    idgen: IdGenerator,
+    freshDefines = true,
+    conf: ConfigRef,
+    stream: PLLStream,
+) =
   let oldSymbolFiles = conf.symbolFiles
   conf.symbolFiles = disabledSf
 
   let graph = newModuleGraph(cache, conf)
   connectPipelineCallbacks(graph)
-  if freshDefines: initDefines(conf.symbols)
+  if freshDefines:
+    initDefines(conf.symbols)
 
   defineSymbol(conf.symbols, "nimscript")
   defineSymbol(conf.symbols, "nimconfig")

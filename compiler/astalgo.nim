@@ -11,9 +11,7 @@
 # and sets of nodes are supported. Efficiency is important as
 # the data structures here are used in various places of the compiler.
 
-import
-  ast, astyaml, options, lineinfos, idents, rodutils,
-  msgs
+import ast, astyaml, options, lineinfos, idents, rodutils, msgs
 
 import std/[hashes, intsets]
 import std/strutils except addf
@@ -27,11 +25,11 @@ proc hashNode*(p: RootRef): Hash
 
 # these are for debugging only: They are not really deprecated, but I want
 # the warning so that release versions do not contain debugging statements:
-proc debug*(n: PSym; conf: ConfigRef = nil) {.exportc: "debugSym", deprecated.}
-proc debug*(n: PType; conf: ConfigRef = nil) {.exportc: "debugType", deprecated.}
-proc debug*(n: PNode; conf: ConfigRef = nil) {.exportc: "debugNode", deprecated.}
+proc debug*(n: PSym, conf: ConfigRef = nil) {.exportc: "debugSym", deprecated.}
+proc debug*(n: PType, conf: ConfigRef = nil) {.exportc: "debugType", deprecated.}
+proc debug*(n: PNode, conf: ConfigRef = nil) {.exportc: "debugNode", deprecated.}
 
-template debug*(x: PSym|PType|PNode) {.deprecated.} =
+template debug*(x: PSym | PType | PNode) {.deprecated.} =
   when compiles(c.config):
     debug(c.config, x)
   elif compiles(c.graph.config):
@@ -42,7 +40,7 @@ template debug*(x: PSym|PType|PNode) {.deprecated.} =
 template debug*(x: auto) {.deprecated.} =
   echo x
 
-template mdbg*: bool {.deprecated.} =
+template mdbg*(): bool {.deprecated.} =
   when compiles(c.graph):
     c.module.fileIdx == c.graph.config.projectMainIdx
   elif compiles(c.module):
@@ -72,18 +70,16 @@ proc mustRehash*(length, counter: int): bool
 proc nextTry*(h, maxHash: Hash): Hash {.inline.}
 
 # ------------- table[int, int] ---------------------------------------------
-const
-  InvalidKey* = low(int)
+const InvalidKey* = low(int)
 
 type
-  TIIPair*{.final.} = object
+  TIIPair* {.final.} = object
     key*, val*: int
 
   TIIPairSeq* = seq[TIIPair]
-  TIITable*{.final.} = object # table[int, int]
+  TIITable* {.final.} = object # table[int, int]
     counter*: int
     data*: TIIPairSeq
-
 
 proc initIITable*(x: var TIITable)
 proc iiTableGet*(t: TIITable, key: int): int
@@ -95,22 +91,25 @@ proc skipConvCastAndClosure*(n: PNode): PNode =
   result = n
   while true:
     case result.kind
-    of nkObjUpConv, nkObjDownConv, nkChckRange, nkChckRangeF, nkChckRange64,
-       nkClosure:
+    of nkObjUpConv, nkObjDownConv, nkChckRange, nkChckRangeF, nkChckRange64, nkClosure:
       result = result[0]
     of nkHiddenStdConv, nkHiddenSubConv, nkConv, nkCast:
       result = result[1]
-    else: break
+    else:
+      break
 
 proc sameValue*(a, b: PNode): bool =
   result = false
   case a.kind
-  of nkCharLit..nkUInt64Lit:
-    if b.kind in {nkCharLit..nkUInt64Lit}: result = getInt(a) == getInt(b)
-  of nkFloatLit..nkFloat64Lit:
-    if b.kind in {nkFloatLit..nkFloat64Lit}: result = a.floatVal == b.floatVal
-  of nkStrLit..nkTripleStrLit:
-    if b.kind in {nkStrLit..nkTripleStrLit}: result = a.strVal == b.strVal
+  of nkCharLit .. nkUInt64Lit:
+    if b.kind in {nkCharLit .. nkUInt64Lit}:
+      result = getInt(a) == getInt(b)
+  of nkFloatLit .. nkFloat64Lit:
+    if b.kind in {nkFloatLit .. nkFloat64Lit}:
+      result = a.floatVal == b.floatVal
+  of nkStrLit .. nkTripleStrLit:
+    if b.kind in {nkStrLit .. nkTripleStrLit}:
+      result = a.strVal == b.strVal
   else:
     # don't raise an internal error for 'nim check':
     #InternalError(a.info, "SameValue")
@@ -120,12 +119,15 @@ proc leValue*(a, b: PNode): bool =
   # a <= b?
   result = false
   case a.kind
-  of nkCharLit..nkUInt64Lit:
-    if b.kind in {nkCharLit..nkUInt64Lit}: result = getInt(a) <= getInt(b)
-  of nkFloatLit..nkFloat64Lit:
-    if b.kind in {nkFloatLit..nkFloat64Lit}: result = a.floatVal <= b.floatVal
-  of nkStrLit..nkTripleStrLit:
-    if b.kind in {nkStrLit..nkTripleStrLit}: result = a.strVal <= b.strVal
+  of nkCharLit .. nkUInt64Lit:
+    if b.kind in {nkCharLit .. nkUInt64Lit}:
+      result = getInt(a) <= getInt(b)
+  of nkFloatLit .. nkFloat64Lit:
+    if b.kind in {nkFloatLit .. nkFloat64Lit}:
+      result = a.floatVal <= b.floatVal
+  of nkStrLit .. nkTripleStrLit:
+    if b.kind in {nkStrLit .. nkTripleStrLit}:
+      result = a.strVal <= b.strVal
   else:
     # don't raise an internal error for 'nim check':
     #InternalError(a.info, "leValue")
@@ -141,57 +143,84 @@ proc lookupInRecord(n: PNode, field: PIdent): PSym =
   result = nil
   case n.kind
   of nkRecList:
-    for i in 0..<n.len:
+    for i in 0 ..< n.len:
       result = lookupInRecord(n[i], field)
-      if result != nil: return
+      if result != nil:
+        return
   of nkRecCase:
-    if (n[0].kind != nkSym): return nil
+    if (n[0].kind != nkSym):
+      return nil
     result = lookupInRecord(n[0], field)
-    if result != nil: return
-    for i in 1..<n.len:
+    if result != nil:
+      return
+    for i in 1 ..< n.len:
       case n[i].kind
       of nkOfBranch, nkElse:
         result = lookupInRecord(lastSon(n[i]), field)
-        if result != nil: return
-      else: return nil
+        if result != nil:
+          return
+      else:
+        return nil
   of nkSym:
-    if n.sym.name.id == field.id: result = n.sym
-  else: return nil
+    if n.sym.name.id == field.id:
+      result = n.sym
+  else:
+    return nil
 
 proc getModule*(s: PSym): PSym =
   result = s
   assert((result.kind == skModule) or (result.owner != result))
-  while result != nil and result.kind != skModule: result = result.owner
+  while result != nil and result.kind != skModule:
+    result = result.owner
 
-proc fromSystem*(op: PSym): bool {.inline.} = sfSystemModule in getModule(op).flags
+proc fromSystem*(op: PSym): bool {.inline.} =
+  sfSystemModule in getModule(op).flags
+
 proc getSymFromList*(list: PNode, ident: PIdent, start: int = 0): PSym =
-  for i in start..<list.len:
+  for i in start ..< list.len:
     if list[i].kind == nkSym:
       result = list[i].sym
-      if result.name.id == ident.id: return
-    else: return nil
+      if result.name.id == ident.id:
+        return
+    else:
+      return nil
   result = nil
 
 proc sameIgnoreBacktickGensymInfo(a, b: string): bool =
   result = false
-  if a[0] != b[0]: return false
+  if a[0] != b[0]:
+    return false
   var alen = a.len - 1
-  while alen > 0 and a[alen] != '`': dec(alen)
-  if alen <= 0: alen = a.len
+  while alen > 0 and a[alen] != '`':
+    dec(alen)
+  if alen <= 0:
+    alen = a.len
 
   var i = 1
   var j = 1
   while true:
-    while i < alen and a[i] == '_': inc i
-    while j < b.len and b[j] == '_': inc j
-    var aa = if i < alen: toLowerAscii(a[i]) else: '\0'
-    var bb = if j < b.len: toLowerAscii(b[j]) else: '\0'
-    if aa != bb: return false
+    while i < alen and a[i] == '_':
+      inc i
+    while j < b.len and b[j] == '_':
+      inc j
+    var aa =
+      if i < alen:
+        toLowerAscii(a[i])
+      else:
+        '\0'
+    var bb =
+      if j < b.len:
+        toLowerAscii(b[j])
+      else:
+        '\0'
+    if aa != bb:
+      return false
 
     # the characters are identical:
     if i >= alen:
       # both cursors at the end:
-      if j >= b.len: return true
+      if j >= b.len:
+        return true
       # not yet at the end of 'b':
       return false
     elif j >= b.len:
@@ -208,10 +237,10 @@ proc getNamedParamFromList*(list: PNode, ident: PIdent): PSym =
   ##            if c.instLines: actual.info else: templ.info)
   ##   ```
   result = nil
-  for i in 1..<list.len:
+  for i in 1 ..< list.len:
     let it = list[i].sym
-    if it.name.id == ident.id or
-        sameIgnoreBacktickGensymInfo(it.name.s, ident.s): return it
+    if it.name.id == ident.id or sameIgnoreBacktickGensymInfo(it.name.s, ident.s):
+      return it
 
 proc hashNode(p: RootRef): Hash =
   result = hash(cast[pointer](p))
@@ -226,18 +255,17 @@ const backrefStyle = "\e[90m"
 const enumStyle = "\e[34m"
 const numberStyle = "\e[33m"
 const stringStyle = "\e[32m"
-const resetStyle  = "\e[0m"
+const resetStyle = "\e[0m"
 
-type
-  DebugPrinter = object
-    conf: ConfigRef
-    visited: Table[pointer, int]
-    renderSymType: bool
-    indent: int
-    currentLine: int
-    firstItem: bool
-    useColor: bool
-    res: string
+type DebugPrinter = object
+  conf: ConfigRef
+  visited: Table[pointer, int]
+  renderSymType: bool
+  indent: int
+  currentLine: int
+  firstItem: bool
+  useColor: bool
+  res: string
 
 proc indentMore(this: var DebugPrinter) =
   this.indent += 2
@@ -248,7 +276,7 @@ proc indentLess(this: var DebugPrinter) =
 proc newlineAndIndent(this: var DebugPrinter) =
   this.res.add "\n"
   this.currentLine += 1
-  for i in 0..<this.indent:
+  for i in 0 ..< this.indent:
     this.res.add ' '
 
 proc openCurly(this: var DebugPrinter) =
@@ -272,7 +300,7 @@ proc closeBracket(this: var DebugPrinter) =
   #this.indentLess
   this.res.add "]"
 
-proc key(this: var DebugPrinter; key: string) =
+proc key(this: var DebugPrinter, key: string) =
   if not this.firstItem:
     this.res.add ","
   this.firstItem = false
@@ -282,7 +310,7 @@ proc key(this: var DebugPrinter; key: string) =
   this.res.add key
   this.res.add "\": "
 
-proc value(this: var DebugPrinter; value: string) =
+proc value(this: var DebugPrinter, value: string) =
   if this.useColor:
     this.res.add stringStyle
   this.res.add "\""
@@ -291,14 +319,14 @@ proc value(this: var DebugPrinter; value: string) =
   if this.useColor:
     this.res.add resetStyle
 
-proc value(this: var DebugPrinter; value: BiggestInt) =
+proc value(this: var DebugPrinter, value: BiggestInt) =
   if this.useColor:
     this.res.add numberStyle
   this.res.addInt value
   if this.useColor:
     this.res.add resetStyle
 
-proc value[T: enum](this: var DebugPrinter; value: T) =
+proc value[T: enum](this: var DebugPrinter, value: T) =
   if this.useColor:
     this.res.add enumStyle
   this.res.add "\""
@@ -307,9 +335,9 @@ proc value[T: enum](this: var DebugPrinter; value: T) =
   if this.useColor:
     this.res.add resetStyle
 
-proc value[T: enum](this: var DebugPrinter; value: set[T]) =
+proc value[T: enum](this: var DebugPrinter, value: set[T]) =
   this.openBracket
-  let high = card(value)-1
+  let high = card(value) - 1
   var i = 0
   for v in value:
     this.value v
@@ -318,7 +346,7 @@ proc value[T: enum](this: var DebugPrinter; value: set[T]) =
     inc i
   this.closeBracket
 
-template earlyExit(this: var DebugPrinter; n: PType | PNode | PSym) =
+template earlyExit(this: var DebugPrinter, n: PType | PNode | PSym) =
   if n == nil:
     this.res.add "null"
     return
@@ -335,9 +363,9 @@ template earlyExit(this: var DebugPrinter; n: PType | PNode | PSym) =
       this.res.add resetStyle
     return
 
-proc value(this: var DebugPrinter; value: PType)
-proc value(this: var DebugPrinter; value: PNode)
-proc value(this: var DebugPrinter; value: PSym) =
+proc value(this: var DebugPrinter, value: PType)
+proc value(this: var DebugPrinter, value: PNode)
+proc value(this: var DebugPrinter, value: PSym) =
   earlyExit(this, value)
 
   this.openCurly
@@ -361,7 +389,7 @@ proc value(this: var DebugPrinter; value: PSym) =
 
   this.closeCurly
 
-proc value(this: var DebugPrinter; value: PType) =
+proc value(this: var DebugPrinter, value: PType) =
   earlyExit(this, value)
 
   this.openCurly
@@ -387,7 +415,8 @@ proc value(this: var DebugPrinter; value: PType) =
   this.key "sons"
   this.openBracket
   for i, a in value.ikids:
-    if i > 0: this.comma
+    if i > 0:
+      this.comma
     this.value a
   this.closeBracket
 
@@ -397,15 +426,15 @@ proc value(this: var DebugPrinter; value: PType) =
 
   this.closeCurly
 
-proc value(this: var DebugPrinter; value: PNode) =
+proc value(this: var DebugPrinter, value: PNode) =
   earlyExit(this, value)
 
   this.openCurly
   this.key "kind"
-  this.value  value.kind
+  this.value value.kind
   if value.comment.len > 0:
     this.key "comment"
-    this.value  value.comment
+    this.value value.comment
   when defined(useNodeIds):
     this.key "id"
     this.value value.id
@@ -424,13 +453,13 @@ proc value(this: var DebugPrinter; value: PNode) =
     this.value "nil"
 
   case value.kind
-  of nkCharLit..nkUInt64Lit:
+  of nkCharLit .. nkUInt64Lit:
     this.key "intVal"
     this.value value.intVal
   of nkFloatLit, nkFloat32Lit, nkFloat64Lit:
     this.key "floatVal"
     this.value value.floatVal.toStrMaxPrecision
-  of nkStrLit..nkTripleStrLit:
+  of nkStrLit .. nkTripleStrLit:
     this.key "strVal"
     this.value value.strVal
   of nkSym:
@@ -448,7 +477,7 @@ proc value(this: var DebugPrinter; value: PNode) =
     if value.len > 0:
       this.key "sons"
       this.openBracket
-      for i in 0..<value.len:
+      for i in 0 ..< value.len:
         this.value value[i]
         if i != value.len - 1:
           this.comma
@@ -456,30 +485,29 @@ proc value(this: var DebugPrinter; value: PNode) =
 
   this.closeCurly
 
-
-proc debug(n: PSym; conf: ConfigRef) =
+proc debug(n: PSym, conf: ConfigRef) =
   var this = DebugPrinter(
     visited: initTable[pointer, int](),
     renderSymType: true,
-    useColor: not defined(windows)
+    useColor: not defined(windows),
   )
   this.value(n)
   echo($this.res)
 
-proc debug(n: PType; conf: ConfigRef) =
+proc debug(n: PType, conf: ConfigRef) =
   var this = DebugPrinter(
     visited: initTable[pointer, int](),
     renderSymType: true,
-    useColor: not defined(windows)
+    useColor: not defined(windows),
   )
   this.value(n)
   echo($this.res)
 
-proc debug(n: PNode; conf: ConfigRef) =
+proc debug(n: PNode, conf: ConfigRef) =
   var this = DebugPrinter(
     visited: initTable[pointer, int](),
     renderSymType: false,
-    useColor: not defined(windows)
+    useColor: not defined(windows),
   )
   this.value(n)
   echo($this.res)
@@ -510,12 +538,14 @@ proc objectSetRawInsert(data: var TObjectSeq, obj: RootRef) =
 proc objectSetEnlarge(t: var TObjectSet) =
   var n: TObjectSeq
   newSeq(n, t.data.len * GrowthFactor)
-  for i in 0..high(t.data):
-    if t.data[i] != nil: objectSetRawInsert(n, t.data[i])
+  for i in 0 .. high(t.data):
+    if t.data[i] != nil:
+      objectSetRawInsert(n, t.data[i])
   swap(t.data, n)
 
 proc objectSetIncl*(t: var TObjectSet, obj: RootRef) =
-  if mustRehash(t.data.len, t.counter): objectSetEnlarge(t)
+  if mustRehash(t.data.len, t.counter):
+    objectSetEnlarge(t)
   objectSetRawInsert(t.data, obj)
   inc(t.counter)
 
@@ -524,9 +554,10 @@ proc objectSetContainsOrIncl*(t: var TObjectSet, obj: RootRef): bool =
   var h: Hash = hashNode(obj) and high(t.data)
   while true:
     var it = t.data[h]
-    if it == nil: break
+    if it == nil:
+      break
     if it == obj:
-      return true             # found it
+      return true # found it
     h = nextTry(h, high(t.data))
   if mustRehash(t.data.len, t.counter):
     objectSetEnlarge(t)
@@ -572,17 +603,20 @@ proc symTabReplace*(t: var TStrTable, prevSym: PSym, newSym: PSym) =
 proc strTableEnlarge(t: var TStrTable) =
   var n: seq[PSym]
   newSeq(n, t.data.len * GrowthFactor)
-  for i in 0..high(t.data):
-    if t.data[i] != nil: strTableRawInsert(n, t.data[i])
+  for i in 0 .. high(t.data):
+    if t.data[i] != nil:
+      strTableRawInsert(n, t.data[i])
   swap(t.data, n)
 
 proc strTableAdd*(t: var TStrTable, n: PSym) =
-  if mustRehash(t.data.len, t.counter): strTableEnlarge(t)
+  if mustRehash(t.data.len, t.counter):
+    strTableEnlarge(t)
   strTableRawInsert(t.data, n)
   inc(t.counter)
 
-proc strTableInclReportConflict*(t: var TStrTable, n: PSym;
-                                 onConflictKeepOld = false): PSym =
+proc strTableInclReportConflict*(
+    t: var TStrTable, n: PSym, onConflictKeepOld = false
+): PSym =
   # if `t` has a conflicting symbol (same identifier as `n`), return it
   # otherwise return `nil`. Incl `n` to `t` unless `onConflictKeepOld = true`
   # and a conflict was found.
@@ -591,13 +625,15 @@ proc strTableInclReportConflict*(t: var TStrTable, n: PSym;
   var replaceSlot = -1
   while true:
     var it = t.data[h]
-    if it == nil: break
+    if it == nil:
+      break
     # Semantic checking can happen multiple times thanks to templates
     # and overloading: (var x=@[]; x).mapIt(it).
     # So it is possible the very same sym is added multiple
     # times to the symbol table which we allow here with the 'it == n' check.
     if it.name.id == n.name.id:
-      if it == n: return nil
+      if it == n:
+        return nil
       replaceSlot = h
     h = nextTry(h, high(t.data))
   if replaceSlot >= 0:
@@ -614,23 +650,24 @@ proc strTableInclReportConflict*(t: var TStrTable, n: PSym;
   inc(t.counter)
   result = nil
 
-proc strTableIncl*(t: var TStrTable, n: PSym;
-                   onConflictKeepOld = false): bool {.discardable.} =
+proc strTableIncl*(
+    t: var TStrTable, n: PSym, onConflictKeepOld = false
+): bool {.discardable.} =
   result = strTableInclReportConflict(t, n, onConflictKeepOld) != nil
 
 proc strTableGet*(t: TStrTable, name: PIdent): PSym =
   var h: Hash = name.h and high(t.data)
   while true:
     result = t.data[h]
-    if result == nil: break
-    if result.name.id == name.id: break
+    if result == nil:
+      break
+    if result.name.id == name.id:
+      break
     h = nextTry(h, high(t.data))
 
-
-type
-  TIdentIter* = object # iterator over all syms with same identifier
-    h*: Hash           # current hash
-    name*: PIdent
+type TIdentIter* = object # iterator over all syms with same identifier
+  h*: Hash # current hash
+  name*: PIdent
 
 proc nextIdentIter*(ti: var TIdentIter, tab: TStrTable): PSym =
   # hot spots
@@ -638,7 +675,8 @@ proc nextIdentIter*(ti: var TIdentIter, tab: TStrTable): PSym =
   var start = h
   var p {.cursor.} = tab.data[h]
   while p != nil:
-    if p.name.id == ti.name.id: break
+    if p.name.id == ti.name.id:
+      break
     h = nextTry(h, high(tab.data))
     if h == start:
       p = nil
@@ -653,11 +691,12 @@ proc nextIdentIter*(ti: var TIdentIter, tab: TStrTable): PSym =
 proc initIdentIter*(ti: var TIdentIter, tab: TStrTable, s: PIdent): PSym =
   ti.h = s.h
   ti.name = s
-  if tab.counter == 0: result = nil
-  else: result = nextIdentIter(ti, tab)
+  if tab.counter == 0:
+    result = nil
+  else:
+    result = nextIdentIter(ti, tab)
 
-proc nextIdentExcluding*(ti: var TIdentIter, tab: TStrTable,
-                         excluding: IntSet): PSym =
+proc nextIdentExcluding*(ti: var TIdentIter, tab: TStrTable, excluding: IntSet): PSym =
   var h: Hash = ti.h and high(tab.data)
   var start = h
   result = tab.data[h]
@@ -670,18 +709,21 @@ proc nextIdentExcluding*(ti: var TIdentIter, tab: TStrTable,
       break
     result = tab.data[h]
   ti.h = nextTry(h, high(tab.data))
-  if result != nil and contains(excluding, result.id): result = nil
+  if result != nil and contains(excluding, result.id):
+    result = nil
 
-proc firstIdentExcluding*(ti: var TIdentIter, tab: TStrTable, s: PIdent,
-                          excluding: IntSet): PSym =
+proc firstIdentExcluding*(
+    ti: var TIdentIter, tab: TStrTable, s: PIdent, excluding: IntSet
+): PSym =
   ti.h = s.h
   ti.name = s
-  if tab.counter == 0: result = nil
-  else: result = nextIdentExcluding(ti, tab, excluding)
+  if tab.counter == 0:
+    result = nil
+  else:
+    result = nextIdentExcluding(ti, tab, excluding)
 
-type
-  TTabIter* = object
-    h: Hash
+type TTabIter* = object
+  h: Hash
 
 proc nextIter*(ti: var TTabIter, tab: TStrTable): PSym =
   # usage:
@@ -696,8 +738,9 @@ proc nextIter*(ti: var TTabIter, tab: TStrTable): PSym =
   result = nil
   while (ti.h <= high(tab.data)):
     result = tab.data[ti.h]
-    inc(ti.h)                 # ... and increment by one always
-    if result != nil: break
+    inc(ti.h) # ... and increment by one always
+    if result != nil:
+      break
 
 proc initTabIter*(ti: var TTabIter, tab: TStrTable): PSym =
   ti.h = 0
@@ -717,24 +760,26 @@ proc isNil(x: ItemId): bool {.inline.} =
   x.module == 0 and x.item == 0
 
 proc hasEmptySlot[T](data: TIdPairSeq[T]): bool =
-  for h in 0..high(data):
+  for h in 0 .. high(data):
     if isNil(data[h].key):
       return true
   result = false
 
 proc idTableRawGet[T](t: TIdTable[T], key: int): int =
   var h: Hash
-  h = key and high(t.data)    # start with real hash value
+  h = key and high(t.data) # start with real hash value
   while not isNil(t.data[h].key):
     if toId(t.data[h].key) == key:
       return h
     h = nextTry(h, high(t.data))
-  result = - 1
+  result = -1
 
 proc getOrDefault*[T](t: TIdTable[T], key: ItemId): T =
   var index = idTableRawGet(t, toId(key))
-  if index >= 0: result = t.data[index].val
-  else: result = default(T)
+  if index >= 0:
+    result = t.data[index].val
+  else:
+    result = default(T)
 
 template idTableGet*[T](t: TIdTable[T], key: PType | PSym): T =
   getOrDefault(t, key.itemId)
@@ -761,7 +806,7 @@ proc `[]=`*[T](t: var TIdTable[T], key: ItemId, val: T) =
   else:
     if mustRehash(t.data.len, t.counter):
       newSeq(n, t.data.len * GrowthFactor)
-      for i in 0..high(t.data):
+      for i in 0 .. high(t.data):
         if not isNil(t.data[i].key):
           idTableRawInsert(n, t.data[i].key, t.data[i].val)
       assert(hasEmptySlot(n))
@@ -773,27 +818,31 @@ template idTablePut*[T](t: var TIdTable[T], key: PType | PSym, val: T) =
   t[key.itemId] = val
 
 iterator idTablePairs*[T](t: TIdTable[T]): tuple[key: ItemId, val: T] =
-  for i in 0..high(t.data):
+  for i in 0 .. high(t.data):
     if not isNil(t.data[i].key):
       yield (t.data[i].key, t.data[i].val)
 
 proc initIITable(x: var TIITable) =
   x.counter = 0
   newSeq(x.data, StartSize)
-  for i in 0..<StartSize: x.data[i].key = InvalidKey
+  for i in 0 ..< StartSize:
+    x.data[i].key = InvalidKey
 
 proc iiTableRawGet(t: TIITable, key: int): int =
   var h: Hash
-  h = key and high(t.data)    # start with real hash value
+  h = key and high(t.data) # start with real hash value
   while t.data[h].key != InvalidKey:
-    if t.data[h].key == key: return h
+    if t.data[h].key == key:
+      return h
     h = nextTry(h, high(t.data))
   result = -1
 
 proc iiTableGet(t: TIITable, key: int): int =
   var index = iiTableRawGet(t, key)
-  if index >= 0: result = t.data[index].val
-  else: result = InvalidKey
+  if index >= 0:
+    result = t.data[index].val
+  else:
+    result = InvalidKey
 
 proc iiTableRawInsert(data: var TIIPairSeq, key, val: int) =
   var h: Hash
@@ -814,8 +863,9 @@ proc iiTablePut(t: var TIITable, key, val: int) =
     if mustRehash(t.data.len, t.counter):
       var n: TIIPairSeq
       newSeq(n, t.data.len * GrowthFactor)
-      for i in 0..high(n): n[i].key = InvalidKey
-      for i in 0..high(t.data):
+      for i in 0 .. high(n):
+        n[i].key = InvalidKey
+      for i in 0 .. high(t.data):
         if t.data[i].key != InvalidKey:
           iiTableRawInsert(n, t.data[i].key, t.data[i].val)
       swap(t.data, n)
@@ -830,6 +880,9 @@ proc listSymbolNames*(symbols: openArray[PSym]): string =
     result.add sym.name.s
 
 proc isDiscriminantField*(n: PNode): bool =
-  if n.kind == nkCheckedFieldExpr: sfDiscriminant in n[0][1].sym.flags
-  elif n.kind == nkDotExpr: sfDiscriminant in n[1].sym.flags
-  else: false
+  if n.kind == nkCheckedFieldExpr:
+    sfDiscriminant in n[0][1].sym.flags
+  elif n.kind == nkDotExpr:
+    sfDiscriminant in n[1].sym.flags
+  else:
+    false

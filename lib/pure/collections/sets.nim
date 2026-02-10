@@ -48,9 +48,7 @@
 ## * `intsets module <intsets.html>`_ for efficient int sets
 ## * `tables module <tables.html>`_ for hash tables
 
-
-import
-  std/[hashes, math]
+import std/[hashes, math]
 
 when not defined(nimHasEffectsOf):
   {.pragma: effectsOf.}
@@ -63,7 +61,8 @@ when not defined(nimHasEffectsOf):
 type
   KeyValuePair[A] = tuple[hcode: Hash, key: A]
   KeyValuePairSeq[A] = seq[KeyValuePair[A]]
-  HashSet*[A] {.myShallow.} = object ## \
+  HashSet*[A] {.myShallow.} = object
+    ## \
     ## A generic hash set.
     ##
     ## Use `init proc <#init,HashSet[A]>`_ or `initHashSet proc <#initHashSet>`_
@@ -72,28 +71,27 @@ type
     counter: int
 
 type
-  OrderedKeyValuePair[A] = tuple[
-    hcode: Hash, next: int, key: A]
+  OrderedKeyValuePair[A] = tuple[hcode: Hash, next: int, key: A]
   OrderedKeyValuePairSeq[A] = seq[OrderedKeyValuePair[A]]
-  OrderedSet*[A] {.myShallow.} = object ## \
+  OrderedSet*[A] {.myShallow.} = object
+    ## \
     ## A generic hash set that remembers insertion order.
     ##
     ## Use `init proc <#init,OrderedSet[A]>`_ or `initOrderedSet proc
     ## <#initOrderedSet>`_ before calling other procs on it.
     data: OrderedKeyValuePairSeq[A]
     counter, first, last: int
+
   SomeSet*[A] = HashSet[A] | OrderedSet[A]
     ## Type union representing `HashSet` or `OrderedSet`.
 
-const
-  defaultInitialSize* = 64
+const defaultInitialSize* = 64
 
 include setimpl
 
 # ---------------------------------------------------------------------
 # ------------------------------ HashSet ------------------------------
 # ---------------------------------------------------------------------
-
 
 proc init*[A](s: var HashSet[A], initialSize = defaultInitialSize) =
   ## Initializes a hash set.
@@ -141,7 +139,8 @@ proc `[]`*[A](s: var HashSet[A], key: A): var A =
   ## reference semantics for sharing.
   var hc: Hash
   var index = rawGet(s, key, hc)
-  if index >= 0: result = s.data[index].key
+  if index >= 0:
+    result = s.data[index].key
   else:
     when compiles($key):
       raise newException(KeyError, "key not found: " & $key)
@@ -223,7 +222,8 @@ proc incl*[A](s: var HashSet[A], other: HashSet[A]) =
     values.incl(others)
     assert values.len == 5
 
-  for item in other: incl(s, item)
+  for item in other:
+    incl(s, item)
 
 proc toHashSet*[A](keys: openArray[A]): HashSet[A] =
   ## Creates a new hash set that contains the members of the given
@@ -243,7 +243,8 @@ proc toHashSet*[A](keys: openArray[A]): HashSet[A] =
     ## b == {'a', 'b', 'c', 'd', 'r'}
 
   result = initHashSet[A](keys.len)
-  for key in items(keys): result.incl(key)
+  for key in items(keys):
+    result.incl(key)
 
 iterator items*[A](s: HashSet[A]): A =
   ## Iterates over elements of the set `s`.
@@ -269,7 +270,9 @@ iterator items*[A](s: HashSet[A]): A =
   for h in 0 .. high(s.data):
     if isFilled(s.data[h].hcode):
       yield s.data[h].key
-      assert(len(s) == length, "the length of the HashSet changed while iterating over it")
+      assert(
+        len(s) == length, "the length of the HashSet changed while iterating over it"
+      )
 
 proc containsOrIncl*[A](s: var HashSet[A], key: A): bool =
   ## Includes `key` in the set `s` and tells if `key` was already in `s`.
@@ -325,7 +328,8 @@ proc excl*[A](s: var HashSet[A], other: HashSet[A]) =
     assert len(numbers) == 3
     ## numbers == {1, 3, 5}
 
-  for item in other: discard exclImpl(s, item)
+  for item in other:
+    discard exclImpl(s, item)
 
 proc missingOrExcl*[A](s: var HashSet[A], key: A): bool =
   ## Excludes `key` in the set `s` and tells if `key` was already missing from `s`.
@@ -356,7 +360,7 @@ proc pop*[A](s: var HashSet[A]): A =
   ## * `clear proc <#clear,HashSet[A]>`_
   runnableExamples:
     var s = toHashSet([2, 1])
-    assert [s.pop, s.pop] in [[1, 2], [2,1]] # order unspecified
+    assert [s.pop, s.pop] in [[1, 2], [2, 1]] # order unspecified
     doAssertRaises(KeyError, echo s.pop)
 
   for h in 0 .. high(s.data):
@@ -382,10 +386,9 @@ proc clear*[A](s: var HashSet[A]) =
   s.counter = 0
   for i in 0 ..< s.data.len:
     s.data[i].hcode = 0
-    {.push warning[UnsafeDefault]:off.}
+    {.push warning[UnsafeDefault]: off.}
     reset(s.data[i].key)
     {.pop.}
-
 
 proc union*[A](s1, s2: HashSet[A]): HashSet[A] =
   ## Returns the union of the sets `s1` and `s2`.
@@ -434,11 +437,12 @@ proc intersection*[A](s1, s2: HashSet[A]): HashSet[A] =
   # iterate over the elements of the smaller set
   if s1.data.len < s2.data.len:
     for item in s1:
-      if item in s2: incl(result, item)
+      if item in s2:
+        incl(result, item)
   else:
     for item in s2:
-      if item in s1: incl(result, item)
-
+      if item in s1:
+        incl(result, item)
 
 proc difference*[A](s1, s2: HashSet[A]): HashSet[A] =
   ## Returns the difference of the sets `s1` and `s2`.
@@ -486,7 +490,8 @@ proc symmetricDifference*[A](s1, s2: HashSet[A]): HashSet[A] =
 
   result = s1
   for item in s2:
-    if containsOrIncl(result, item): excl(result, item)
+    if containsOrIncl(result, item):
+      excl(result, item)
 
 proc `+`*[A](s1, s2: HashSet[A]): HashSet[A] {.inline.} =
   ## Alias for `union(s1, s2) <#union,HashSet[A],HashSet[A]>`_.
@@ -515,7 +520,8 @@ proc disjoint*[A](s1, s2: HashSet[A]): bool =
     assert disjoint(a, b - a) == true
 
   for item in s1:
-    if item in s2: return false
+    if item in s2:
+      return false
   return true
 
 proc `<`*[A](s, t: HashSet[A]): bool =
@@ -547,10 +553,11 @@ proc `<=`*[A](s, t: HashSet[A]): bool =
     assert a <= a
 
   result = false
-  if s.counter > t.counter: return
+  if s.counter > t.counter:
+    return
   result = true
   for item in items(s):
-    if not(t.contains(item)):
+    if not (t.contains(item)):
       result = false
       return
 
@@ -564,7 +571,9 @@ proc `==`*[A](s, t: HashSet[A]): bool =
 
   s.counter == t.counter and s <= t
 
-proc map*[A, B](data: HashSet[A], op: proc (x: A): B {.closure.}): HashSet[B] {.effectsOf: op.} =
+proc map*[A, B](
+    data: HashSet[A], op: proc(x: A): B {.closure.}
+): HashSet[B] {.effectsOf: op.} =
   ## Returns a new set after applying `op` proc on each of the elements of
   ##`data` set.
   ##
@@ -572,11 +581,15 @@ proc map*[A, B](data: HashSet[A], op: proc (x: A): B {.closure.}): HashSet[B] {.
   runnableExamples:
     let
       a = toHashSet([1, 2, 3])
-      b = a.map(proc (x: int): string = $x)
+      b = a.map(
+        proc(x: int): string =
+          $x
+      )
     assert b == toHashSet(["1", "2", "3"])
 
   result = initHashSet[B]()
-  for item in items(data): result.incl(op(item))
+  for item in items(data):
+    result.incl(op(item))
 
 proc hash*[A](s: HashSet[A]): Hash =
   ## Hashing of HashSet.
@@ -599,15 +612,19 @@ proc `$`*[A](s: HashSet[A]): string =
   ##   ```
   dollarImpl()
 
+proc initSet*[A](
+    initialSize = defaultInitialSize
+): HashSet[A] {.deprecated: "Deprecated since v0.20, use 'initHashSet'".} =
+  initHashSet[A](initialSize)
 
-proc initSet*[A](initialSize = defaultInitialSize): HashSet[A] {.deprecated:
-     "Deprecated since v0.20, use 'initHashSet'".} = initHashSet[A](initialSize)
+proc toSet*[A](
+    keys: openArray[A]
+): HashSet[A] {.deprecated: "Deprecated since v0.20, use 'toHashSet'".} =
+  toHashSet[A](keys)
 
-proc toSet*[A](keys: openArray[A]): HashSet[A] {.deprecated:
-     "Deprecated since v0.20, use 'toHashSet'".} = toHashSet[A](keys)
-
-proc isValid*[A](s: HashSet[A]): bool {.deprecated:
-     "Deprecated since v0.20; sets are initialized by default".} =
+proc isValid*[A](
+    s: HashSet[A]
+): bool {.deprecated: "Deprecated since v0.20; sets are initialized by default".} =
   ## Returns `true` if the set has been initialized (with `initHashSet proc
   ## <#initHashSet>`_ or `init proc <#init,HashSet[A]>`_).
   ##
@@ -615,9 +632,8 @@ proc isValid*[A](s: HashSet[A]): bool {.deprecated:
     proc savePreferences(options: HashSet[string]) =
       assert options.isValid, "Pass an initialized set!"
       # Do stuff here, may crash in release builds!
+
   result = s.data.len > 0
-
-
 
 # ---------------------------------------------------------------------
 # --------------------------- OrderedSet ------------------------------
@@ -633,7 +649,6 @@ template forAllOrderedPairs(yieldStmt: untyped) {.dirty.} =
         yieldStmt
         inc(idx)
       h = nxt
-
 
 proc init*[A](s: var OrderedSet[A], initialSize = defaultInitialSize) =
   ## Initializes an ordered hash set.
@@ -691,7 +706,8 @@ proc toOrderedSet*[A](keys: openArray[A]): OrderedSet[A] =
     ## b == {'a', 'b', 'r', 'c', 'd'} # different than in HashSet
 
   result = initOrderedSet[A](keys.len)
-  for key in items(keys): result.incl(key)
+  for key in items(keys):
+    result.incl(key)
 
 proc contains*[A](s: OrderedSet[A], key: A): bool =
   ## Returns true if `key` is in `s`.
@@ -745,7 +761,8 @@ proc incl*[A](s: var HashSet[A], other: OrderedSet[A]) =
     values.incl(others)
     assert values.len == 5
 
-  for item in items(other): incl(s, item)
+  for item in items(other):
+    incl(s, item)
 
 proc containsOrIncl*[A](s: var OrderedSet[A], key: A): bool =
   ## Includes `key` in the set `s` and tells if `key` was already in `s`.
@@ -818,7 +835,7 @@ proc clear*[A](s: var OrderedSet[A]) =
   for i in 0 ..< s.data.len:
     s.data[i].hcode = 0
     s.data[i].next = 0
-    {.push warning[UnsafeDefault]:off.}
+    {.push warning[UnsafeDefault]: off.}
     reset(s.data[i].key)
     {.pop.}
 
@@ -851,7 +868,8 @@ proc `==`*[A](s, t: OrderedSet[A]): bool =
       b = toOrderedSet([2, 1])
     assert(not (a == b))
 
-  if s.counter != t.counter: return false
+  if s.counter != t.counter:
+    return false
   var h = s.first
   var g = t.first
   var compared = 0
@@ -889,8 +907,6 @@ proc `$`*[A](s: OrderedSet[A]): string =
   ##   ```
   dollarImpl()
 
-
-
 iterator items*[A](s: OrderedSet[A]): A =
   ## Iterates over keys in the ordered set `s` in insertion order.
   ##
@@ -913,7 +929,9 @@ iterator items*[A](s: OrderedSet[A]): A =
   let length = s.len
   forAllOrderedPairs:
     yield s.data[h].key
-    assert(len(s) == length, "the length of the OrderedSet changed while iterating over it")
+    assert(
+      len(s) == length, "the length of the OrderedSet changed while iterating over it"
+    )
 
 iterator pairs*[A](s: OrderedSet[A]): tuple[a: int, b: A] =
   ## Iterates through (position, value) tuples of OrderedSet `s`.
@@ -927,4 +945,6 @@ iterator pairs*[A](s: OrderedSet[A]): tuple[a: int, b: A] =
   let length = s.len
   forAllOrderedPairs:
     yield (idx, s.data[h].key)
-    assert(len(s) == length, "the length of the OrderedSet changed while iterating over it")
+    assert(
+      len(s) == length, "the length of the OrderedSet changed while iterating over it"
+    )

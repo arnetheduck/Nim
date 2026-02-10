@@ -12,11 +12,12 @@
 {.deprecated: "use `std/os` instead".}
 
 import std/os
-export ReadEnvEffect, WriteEnvEffect, ReadDirEffect, WriteDirEffect, OSErrorCode,
+export
+  ReadEnvEffect, WriteEnvEffect, ReadDirEffect, WriteDirEffect, OSErrorCode,
   doslikeFileSystem, CurDir, ParDir, DirSep, AltSep, PathSep, FileSystemCaseSensitive,
-  ExeExt, ScriptExt, DynlibFormat, ExtSep, joinPath, `/`, splitPath, parentDir,
-  tailDir, isRootDir, parentDirs, `/../`, searchExtPos, splitFile, extractFilename,
-  lastPathPart, changeFileExt, addFileExt, cmpPaths, isAbsolute, unixToNativePath,
-  `==`, `$`, osErrorMsg, raiseOSError, osLastError, getEnv, existsEnv, putEnv,
-  getHomeDir, getConfigDir, getTempDir, expandTilde, quoteShellWindows,
-  quoteShellPosix, quoteShell, quoteShellCommand
+  ExeExt, ScriptExt, DynlibFormat, ExtSep, joinPath, `/`, splitPath, parentDir, tailDir,
+  isRootDir, parentDirs, `/../`, searchExtPos, splitFile, extractFilename, lastPathPart,
+  changeFileExt, addFileExt, cmpPaths, isAbsolute, unixToNativePath, `==`, `$`,
+  osErrorMsg, raiseOSError, osLastError, getEnv, existsEnv, putEnv, getHomeDir,
+  getConfigDir, getTempDir, expandTilde, quoteShellWindows, quoteShellPosix, quoteShell,
+  quoteShellCommand

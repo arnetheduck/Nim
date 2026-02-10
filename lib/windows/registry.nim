@@ -14,8 +14,7 @@ import std/oserrors
 when defined(nimPreviewSlimSystem):
   import std/widestrs
 
-type
-  HKEY* = uint
+type HKEY* = uint
 
 const
   HKEY_LOCAL_MACHINE* = HKEY(0x80000002u)
@@ -27,26 +26,33 @@ const
   KEY_READ = 0x00020019
   REG_SZ = 1
 
-proc regOpenKeyEx(hKey: HKEY, lpSubKey: WideCString, ulOptions: int32,
-                  samDesired: int32,
-                  phkResult: var HKEY): int32 {.
-  importc: "RegOpenKeyExW", dynlib: "Advapi32.dll", stdcall.}
+proc regOpenKeyEx(
+  hKey: HKEY,
+  lpSubKey: WideCString,
+  ulOptions: int32,
+  samDesired: int32,
+  phkResult: var HKEY,
+): int32 {.importc: "RegOpenKeyExW", dynlib: "Advapi32.dll", stdcall.}
 
-proc regCloseKey(hkey: HKEY): int32 {.
-  importc: "RegCloseKey", dynlib: "Advapi32.dll", stdcall.}
+proc regCloseKey(
+  hkey: HKEY
+): int32 {.importc: "RegCloseKey", dynlib: "Advapi32.dll", stdcall.}
 
-proc regGetValue(key: HKEY, lpSubKey, lpValue: WideCString;
-                 dwFlags: int32 = RRF_RT_ANY, pdwType: ptr int32,
-                 pvData: pointer,
-                 pcbData: ptr int32): int32 {.
-  importc: "RegGetValueW", dynlib: "Advapi32.dll", stdcall.}
+proc regGetValue(
+  key: HKEY,
+  lpSubKey, lpValue: WideCString,
+  dwFlags: int32 = RRF_RT_ANY,
+  pdwType: ptr int32,
+  pvData: pointer,
+  pcbData: ptr int32,
+): int32 {.importc: "RegGetValueW", dynlib: "Advapi32.dll", stdcall.}
 
 template call(f) =
   let err = f
   if err != 0:
     raiseOSError(err.OSErrorCode, astToStr(f))
 
-proc getUnicodeValue*(path, key: string; handle: HKEY): string =
+proc getUnicodeValue*(path, key: string, handle: HKEY): string =
   result = ""
   let hh = newWideCString path
   let kk = newWideCString key
@@ -60,24 +66,25 @@ proc getUnicodeValue*(path, key: string; handle: HKEY): string =
     call regGetValue(newHandle, nil, kk, flags, nil, nil, addr bufSize)
     if bufSize > 0:
       var res = newWideCString(bufSize)
-      call regGetValue(newHandle, nil, kk, flags, nil, addr res[0],
-                    addr bufSize)
+      call regGetValue(newHandle, nil, kk, flags, nil, addr res[0], addr bufSize)
       result = res $ bufSize
     call regCloseKey(newHandle)
   else:
     if bufSize > 0:
       var res = newWideCString(bufSize)
-      call regGetValue(handle, hh, kk, flags, nil, addr res[0],
-                    addr bufSize)
+      call regGetValue(handle, hh, kk, flags, nil, addr res[0], addr bufSize)
       result = res $ bufSize
 
-proc regSetValue(key: HKEY, lpSubKey, lpValueName: WideCString,
-                 dwType: int32; lpData: WideCString; cbData: int32): int32 {.
-  importc: "RegSetKeyValueW", dynlib: "Advapi32.dll", stdcall.}
+proc regSetValue(
+  key: HKEY,
+  lpSubKey, lpValueName: WideCString,
+  dwType: int32,
+  lpData: WideCString,
+  cbData: int32,
+): int32 {.importc: "RegSetKeyValueW", dynlib: "Advapi32.dll", stdcall.}
 
-proc setUnicodeValue*(path, key, val: string; handle: HKEY) =
+proc setUnicodeValue*(path, key, val: string, handle: HKEY) =
   let hh = newWideCString path
   let kk = newWideCString key
   let vv = newWideCString val
-  call regSetValue(handle, hh, kk, REG_SZ, vv, (vv.len.int32+1)*2)
-
+  call regSetValue(handle, hh, kk, REG_SZ, vv, (vv.len.int32 + 1) * 2)

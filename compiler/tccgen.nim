@@ -7,23 +7,22 @@
 #    distribution, for details about the copyright.
 #
 
-import
-  os, strutils, options, msgs, tinyc, lineinfos, sequtils
+import os, strutils, options, msgs, tinyc, lineinfos, sequtils
 
 const tinyPrefix = "dist/nim-tinyc-archive".unixToNativePath
 const nimRoot = currentSourcePath.parentDir.parentDir
 const tinycRoot = nimRoot / tinyPrefix
 when not dirExists(tinycRoot):
-  static: raiseAssert $(tinycRoot, "requires: ./koch installdeps tinyc")
+  static:
+    raiseAssert $(tinycRoot, "requires: ./koch installdeps tinyc")
 {.compile: tinycRoot / "tinyc/libtcc.c".}
 
-var
-  gConf: ConfigRef # ugly but can be cleaned up if this is revived
+var gConf: ConfigRef # ugly but can be cleaned up if this is revived
 
 proc tinyCErrorHandler(closure: pointer, msg: cstring) {.cdecl.} =
   rawMessage(gConf, errGenerated, $msg)
 
-proc initTinyCState: PccState =
+proc initTinyCState(): PccState =
   result = openCCState()
   setErrorFunc(result, nil, tinyCErrorHandler)
 
@@ -35,7 +34,7 @@ proc addFile(filename: string) =
   if addFile(gTinyC, filename) != 0'i32:
     rawMessage(gConf, errCannotOpenFile, filename)
 
-proc setupEnvironment =
+proc setupEnvironment() =
   when defined(amd64):
     defineSymbol(gTinyC, "__x86_64__", nil)
   elif defined(i386):
@@ -82,8 +81,14 @@ proc compileCCode*(ccode: string, conf: ConfigRef) =
 
 proc run*(conf: ConfigRef, args: string) =
   doAssert gConf == conf
-  var s = @[cstring(conf.projectName)] & map(split(args), proc(x: string): cstring = cstring(x))
+  var s =
+    @[cstring(conf.projectName)] &
+    map(
+      split(args),
+      proc(x: string): cstring =
+        cstring(x),
+    )
   var err = tinyc.run(gTinyC, cint(s.len), cast[cstringArray](addr(s[0]))) != 0'i32
   closeCCState(gTinyC)
-  if err: rawMessage(conf, errUnknown, "")
-
+  if err:
+    rawMessage(conf, errUnknown, "")

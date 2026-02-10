@@ -1,8 +1,6 @@
 # This module is inspired by Python's `ntpath.py` module.
 
-import std/[
-  strutils,
-]
+import std/[strutils]
 
 # Adapted `splitdrive` function from the following commits in Python source
 # code:
@@ -26,7 +24,8 @@ func splitDrive*(p: string): tuple[drive, path: string] =
     doAssert splitDrive("C:") == ("C:", "")
     doAssert splitDrive(r"C:\") == (r"C:", r"\")
     doAssert splitDrive(r"\\server\drive\foo\bar") == (r"\\server\drive", r"\foo\bar")
-    doAssert splitDrive(r"\\?\UNC\server\share\dir") == (r"\\?\UNC\server\share", r"\dir")
+    doAssert splitDrive(r"\\?\UNC\server\share\dir") ==
+      (r"\\?\UNC\server\share", r"\dir")
 
   result = ("", p)
   if p.len < 2:
@@ -34,7 +33,6 @@ func splitDrive*(p: string): tuple[drive, path: string] =
   const sep = '\\'
   let normp = p.replace('/', sep)
   if p.len > 2 and normp[0] == sep and normp[1] == sep and normp[2] != sep:
-
     # is a UNC path:
     # vvvvvvvvvvvvvvvvvvvv drive letter or UNC path
     # \\machine\mountpoint\directory\etc\...
@@ -42,7 +40,7 @@ func splitDrive*(p: string): tuple[drive, path: string] =
     let start = block:
       const unc = "\\\\?\\UNC" # Length is 7
       let idx = min(8, normp.len)
-      if unc == normp[0..<idx].strip(chars = {sep}, leading = false).toUpperAscii:
+      if unc == normp[0 ..< idx].strip(chars = {sep}, leading = false).toUpperAscii:
         8
       else:
         2
@@ -56,6 +54,6 @@ func splitDrive*(p: string): tuple[drive, path: string] =
       return
     if index2 == -1:
       index2 = p.len
-    return (p[0..<index2], p[index2..^1])
+    return (p[0 ..< index2], p[index2 ..^ 1])
   if p[1] == ':':
-    return (p[0..1], p[2..^1])
+    return (p[0 .. 1], p[2 ..^ 1])

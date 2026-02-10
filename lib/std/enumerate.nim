@@ -13,7 +13,6 @@
 import std/private/since
 import std/macros
 
-
 macro enumerate*(x: ForLoopStmt): untyped {.since: (1, 3).} =
   ## Enumerating iterator for collections.
   ##
@@ -43,7 +42,11 @@ macro enumerate*(x: ForLoopStmt): untyped {.since: (1, 3).} =
 
   expectKind x, nnkForStmt
   # check if the starting count is specified:
-  var countStart = if x[^2].len == 2: newLit(0) else: x[^2][1]
+  var countStart =
+    if x[^2].len == 2:
+      newLit(0)
+    else:
+      x[^2][1]
   result = newStmtList()
   var body = x[^1]
   if body.kind != nnkStmtList:
@@ -53,14 +56,14 @@ macro enumerate*(x: ForLoopStmt): untyped {.since: (1, 3).} =
     if x[0].kind == nnkVarTuple: # for (x, y, ...) in iter
       result.add genCounter(x[0][0])
       body.insert(0, genInc(x[0][0]))
-      for i in 1 .. x[0].len-2:
+      for i in 1 .. x[0].len - 2:
         newFor.add x[0][i]
     else:
       error("Missing second for loop variable") # for x in iter
   else: # for x, y, ... in iter
     result.add genCounter(x[0])
     body.insert(0, genInc(x[0]))
-    for i in 1 .. x.len-3:
+    for i in 1 .. x.len - 3:
       newFor.add x[i]
   # transform enumerate(X) to 'X'
   newFor.add x[^2][^1]

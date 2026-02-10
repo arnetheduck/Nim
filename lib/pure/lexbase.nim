@@ -11,8 +11,7 @@
 ## handling. Only at line endings checks are necessary if the buffer
 ## needs refilling.
 
-import
-  std/[strutils, streams]
+import std/[strutils, streams]
 
 when defined(nimPreviewSlimSystem):
   import std/assertions
@@ -27,17 +26,17 @@ const
 #   ^pos = 0     ^ sentinel = 12
 #
 
-type
-  BaseLexer* = object of RootObj ## the base lexer. Inherit your lexer from
-                                 ## this object.
-    bufpos*: int                 ## the current position within the buffer
-    buf*: string                 ## the buffer itself
-    input: Stream                ## the input stream
-    lineNumber*: int             ## the current line number
-    sentinel: int
-    lineStart: int               # index of last line start in buffer
-    offsetBase*: int             # use `offsetBase + bufpos` to get the offset
-    refillChars: set[char]
+type BaseLexer* = object of RootObj
+  ## the base lexer. Inherit your lexer from
+  ## this object.
+  bufpos*: int ## the current position within the buffer
+  buf*: string ## the buffer itself
+  input: Stream ## the input stream
+  lineNumber*: int ## the current line number
+  sentinel: int
+  lineStart: int # index of last line start in buffer
+  offsetBase*: int # use `offsetBase + bufpos` to get the offset
+  refillChars: set[char]
 
 proc close*(L: var BaseLexer) =
   ## closes the base lexer. This closes `L`'s associated stream too.
@@ -45,9 +44,10 @@ proc close*(L: var BaseLexer) =
 
 proc fillBuffer(L: var BaseLexer) =
   var
-    charsRead, toCopy, s: int # all are in characters,
-                              # not bytes (in case this
-                              # is not the same)
+    charsRead, toCopy, s: int
+      # all are in characters,
+      # not bytes (in case this
+      # is not the same)
     oldBufLen: int
   # we know here that pos == L.sentinel, but not if this proc
   # is called the first time by initBaseLexer()
@@ -76,7 +76,8 @@ proc fillBuffer(L: var BaseLexer) =
     dec(s) # BUGFIX (valgrind)
     while true:
       assert(s < L.buf.len)
-      while s >= 0 and L.buf[s] notin L.refillChars: dec(s)
+      while s >= 0 and L.buf[s] notin L.refillChars:
+        dec(s)
       if s >= 0:
         # we found an appropriate character for a sentinel:
         L.sentinel = s
@@ -134,8 +135,12 @@ proc skipUtf8Bom(L: var BaseLexer) =
     inc(L.bufpos, 3)
     inc(L.lineStart, 3)
 
-proc open*(L: var BaseLexer, input: Stream, bufLen: int = 8192;
-           refillChars: set[char] = NewLines) =
+proc open*(
+    L: var BaseLexer,
+    input: Stream,
+    bufLen: int = 8192,
+    refillChars: set[char] = NewLines,
+) =
   ## inits the BaseLexer with a stream to read from.
   assert(bufLen > 0)
   assert(input != nil)

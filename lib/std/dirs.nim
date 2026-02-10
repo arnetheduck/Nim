@@ -2,10 +2,9 @@
 
 from std/paths import Path, ReadDirEffect, WriteDirEffect
 
-from std/private/osdirs import dirExists, createDir, existsOrCreateDir, removeDir,
-                               moveDir, walkDir, setCurrentDir,
-                               copyDir, copyDirWithPermissions,
-                               walkDirRec, PathComponent
+from std/private/osdirs import
+  dirExists, createDir, existsOrCreateDir, removeDir, moveDir, walkDir, setCurrentDir,
+  copyDir, copyDirWithPermissions, walkDirRec, PathComponent
 
 export PathComponent
 
@@ -29,7 +28,9 @@ proc createDir*(dir: Path) {.inline, tags: [WriteDirEffect, ReadDirEffect].} =
   ## * `moveDir proc`_
   createDir(dir.string)
 
-proc existsOrCreateDir*(dir: Path): bool {.inline, tags: [WriteDirEffect, ReadDirEffect].} =
+proc existsOrCreateDir*(
+    dir: Path
+): bool {.inline, tags: [WriteDirEffect, ReadDirEffect].} =
   ## Checks if a `directory`:idx: `dir` exists, and creates it otherwise.
   ##
   ## Does not create parent directories (raises `OSError` if parent directories do not exist).
@@ -41,8 +42,9 @@ proc existsOrCreateDir*(dir: Path): bool {.inline, tags: [WriteDirEffect, ReadDi
   ## * `moveDir proc`_
   result = existsOrCreateDir(dir.string)
 
-proc removeDir*(dir: Path, checkDir = false
-                ) {.inline, tags: [WriteDirEffect, ReadDirEffect].} =
+proc removeDir*(
+    dir: Path, checkDir = false
+) {.inline, tags: [WriteDirEffect, ReadDirEffect].} =
   ## Removes the directory `dir` including all subdirectories and files
   ## in `dir` (recursively).
   ##
@@ -71,9 +73,9 @@ proc moveDir*(source, dest: Path) {.inline, tags: [ReadIOEffect, WriteIOEffect].
   ## * `createDir proc`_
   moveDir(source.string, dest.string)
 
-iterator walkDir*(dir: Path; relative = false, checkDir = false,
-                 skipSpecial = false):
-    tuple[kind: PathComponent, path: Path] {.tags: [ReadDirEffect].} =
+iterator walkDir*(
+    dir: Path, relative = false, checkDir = false, skipSpecial = false
+): tuple[kind: PathComponent, path: Path] {.tags: [ReadDirEffect].} =
   ## Walks over the directory `dir` and yields for each directory or file in
   ## `dir`. The component type and full path for each item are returned.
   ##
@@ -89,10 +91,14 @@ iterator walkDir*(dir: Path; relative = false, checkDir = false,
   for (k, p) in walkDir(dir.string, relative, checkDir, skipSpecial):
     yield (k, Path(p))
 
-iterator walkDirRec*(dir: Path,
-                     yieldFilter = {pcFile}, followFilter = {pcDir},
-                     relative = false, checkDir = false, skipSpecial = false):
-                    Path {.tags: [ReadDirEffect].} =
+iterator walkDirRec*(
+    dir: Path,
+    yieldFilter = {pcFile},
+    followFilter = {pcDir},
+    relative = false,
+    checkDir = false,
+    skipSpecial = false,
+): Path {.tags: [ReadDirEffect].} =
   ## Recursively walks over the directory `dir` and yields for each file
   ## or directory in `dir`.
   ##
@@ -123,8 +129,9 @@ iterator walkDirRec*(dir: Path,
   ##
   ## See also:
   ## * `walkDir iterator`_
-  for p in walkDirRec(dir.string, yieldFilter, followFilter, relative,
-                      checkDir, skipSpecial):
+  for p in walkDirRec(
+    dir.string, yieldFilter, followFilter, relative, checkDir, skipSpecial
+  ):
     yield Path(p)
 
 proc setCurrentDir*(newDir: Path) {.inline, tags: [].} =
@@ -135,8 +142,9 @@ proc setCurrentDir*(newDir: Path) {.inline, tags: [].} =
   ## * `getCurrentDir proc <paths.html#getCurrentDir>`_
   osdirs.setCurrentDir(newDir.string)
 
-proc copyDir*(source, dest: Path; skipSpecial = false) {.inline,
-  tags: [ReadDirEffect, WriteIOEffect, ReadIOEffect].} =
+proc copyDir*(
+    source, dest: Path, skipSpecial = false
+) {.inline, tags: [ReadDirEffect, WriteIOEffect, ReadIOEffect].} =
   ## Copies a directory from `source` to `dest`.
   ##
   ## On non-Windows OSes, symlinks are copied as symlinks. On Windows, symlinks
@@ -160,10 +168,9 @@ proc copyDir*(source, dest: Path; skipSpecial = false) {.inline,
   ## * `copyDirWithPermissions proc`_
   copyDir(source.string, dest.string, skipSpecial)
 
-proc copyDirWithPermissions*(source, dest: Path;
-                             ignorePermissionErrors = true,
-                             skipSpecial = false)
-  {.inline, tags: [ReadDirEffect, WriteIOEffect, ReadIOEffect].} =
+proc copyDirWithPermissions*(
+    source, dest: Path, ignorePermissionErrors = true, skipSpecial = false
+) {.inline, tags: [ReadDirEffect, WriteIOEffect, ReadIOEffect].} =
   ## Copies a directory from `source` to `dest` preserving file permissions.
   ##
   ## On non-Windows OSes, symlinks are copied as symlinks. On Windows, symlinks
@@ -188,5 +195,6 @@ proc copyDirWithPermissions*(source, dest: Path;
   ##
   ## See also:
   ## * `copyDir proc`_
-  copyDirWithPermissions(source.string, dest.string,
-                              ignorePermissionErrors, skipSpecial)
+  copyDirWithPermissions(
+    source.string, dest.string, ignorePermissionErrors, skipSpecial
+  )

@@ -22,7 +22,6 @@ import std/[os, strutils]
 when defined(nimPreviewSlimSystem):
   import std/assertions
 
-
 const
   docCss* = "$nimr/doc/nimdoc.css"
   docCls* = "$nimr/doc/nimdoc.cls"
@@ -34,20 +33,26 @@ const
   nimdocOutCls* = "nimdoc.cls"
     # `out` to make it easier to use with gitignore in user's repos
   htmldocsDirname* = "htmldocs"
-  dotdotMangle* = "_._"  ## refs #13223
+  dotdotMangle* = "_._"
+    ## refs #13223
     # if this changes, make sure it's consistent with `esc` and `escapeLink`
     # lots of other obvious options won't work, see #14454; `_` could work too
 
 proc interp*(path: string, nimr: string): string =
   result = path % ["nimr", nimr]
-  doAssert '$' notin result, $(path, nimr, result) # avoids un-interpolated variables in output
+  doAssert '$' notin result, $(path, nimr, result)
+    # avoids un-interpolated variables in output
 
-proc getDocHacksJs*(nimr: string, nim = getCurrentCompilerExe(), forceRebuild = false): string =
+proc getDocHacksJs*(
+    nimr: string, nim = getCurrentCompilerExe(), forceRebuild = false
+): string =
   ## return absolute path to dochack.js, rebuilding if it doesn't exist or if
   ## `forceRebuild`.
   let docHackJs2 = docHackJs.interp(nimr = nimr)
   if forceRebuild or not docHackJs2.fileExists:
-    let cmd =  "$nim js -d:release $file" % ["nim", nim.quoteShell, "file", docHackNim.interp(nimr = nimr).quoteShell]
+    let cmd =
+      "$nim js -d:release $file" %
+      ["nim", nim.quoteShell, "file", docHackNim.interp(nimr = nimr).quoteShell]
     echo "getDocHacksJs: cmd: " & cmd
     doAssert execShellCmd(cmd) == 0, $(cmd)
   doAssert docHackJs2.fileExists

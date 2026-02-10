@@ -14,13 +14,12 @@
 ## .. warning:: This module is experimental and its interface may change.
 ##
 
-type
-  Isolated*[T] {.sendable.} = object ## Isolated data can only be moved, not copied.
-    value: T
+type Isolated*[T] {.sendable.} = object ## Isolated data can only be moved, not copied.
+  value: T
 
-proc `=copy`*[T](dest: var Isolated[T]; src: Isolated[T]) {.error.}
+proc `=copy`*[T](dest: var Isolated[T], src: Isolated[T]) {.error.}
 
-proc `=sink`*[T](dest: var Isolated[T]; src: Isolated[T]) {.inline.} =
+proc `=sink`*[T](dest: var Isolated[T], src: Isolated[T]) {.inline.} =
   # delegate to value's sink operation
   `=sink`(dest.value, src.value)
 

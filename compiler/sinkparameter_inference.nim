@@ -7,7 +7,7 @@
 #    distribution, for details about the copyright.
 #
 
-proc checkForSink*(config: ConfigRef; idgen: IdGenerator; owner: PSym; arg: PNode) =
+proc checkForSink*(config: ConfigRef, idgen: IdGenerator, owner: PSym, arg: PNode) =
   #[ Patterns we seek to detect:
 
     someLocation = p # ---> p: sink T
@@ -21,10 +21,8 @@ proc checkForSink*(config: ConfigRef; idgen: IdGenerator; owner: PSym; arg: PNod
   ]#
   case arg.kind
   of nkSym:
-    if arg.sym.kind == skParam and
-        arg.sym.owner == owner and
-        owner.typ != nil and owner.typ.kind == tyProc and
-        arg.sym.typ.hasDestructor and
+    if arg.sym.kind == skParam and arg.sym.owner == owner and owner.typ != nil and
+        owner.typ.kind == tyProc and arg.sym.typ.hasDestructor and
         arg.sym.typ.kind notin {tyVar, tySink, tyOwned}:
       # Watch out: cannot do this inference for procs with forward
       # declarations.
@@ -38,7 +36,7 @@ proc checkForSink*(config: ConfigRef; idgen: IdGenerator; owner: PSym; arg: PNod
         sinkType.add argType
 
         arg.sym.typ = sinkType
-        owner.typ[arg.sym.position+1] = sinkType
+        owner.typ[arg.sym.position + 1] = sinkType
 
         #message(config, arg.info, warnUser,
         #  ("turned '$1' to a sink parameter") % [$arg])
@@ -46,8 +44,12 @@ proc checkForSink*(config: ConfigRef; idgen: IdGenerator; owner: PSym; arg: PNod
       elif sfWasForwarded notin arg.sym.flags:
         # we only report every potential 'sink' parameter only once:
         incl arg.sym.flags, sfWasForwarded
-        message(config, arg.info, hintPerformance,
-          "could not turn '$1' to a sink parameter" % [arg.sym.name.s])
+        message(
+          config,
+          arg.info,
+          hintPerformance,
+          "could not turn '$1' to a sink parameter" % [arg.sym.name.s],
+        )
       #echo config $ arg.info, " candidate for a sink parameter here"
   of nkStmtList, nkStmtListExpr, nkBlockStmt, nkBlockExpr:
     if not isEmptyType(arg.typ):
@@ -58,7 +60,7 @@ proc checkForSink*(config: ConfigRef; idgen: IdGenerator; owner: PSym; arg: PNod
       if not isEmptyType(value.typ):
         checkForSink(config, idgen, owner, value)
   of nkCaseStmt:
-    for i in 1..<arg.len:
+    for i in 1 ..< arg.len:
       let value = arg[i].lastSon
       if not isEmptyType(value.typ):
         checkForSink(config, idgen, owner, value)

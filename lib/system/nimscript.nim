@@ -21,40 +21,73 @@ const
     ## The CPU this build is running on. Can be different from `system.hostCPU`
     ## for cross compilations.
 
-template builtin = discard
+template builtin() =
+  discard
 
 # We know the effects better than the compiler:
 {.push hint[XDeclaredButNotUsed]: off.}
 
-proc listDirsImpl(dir: string): seq[string] {.
-  tags: [ReadIOEffect], raises: [OSError].} = builtin
-proc listFilesImpl(dir: string): seq[string] {.
-  tags: [ReadIOEffect], raises: [OSError].} = builtin
-proc removeDir(dir: string, checkDir = true) {.
-  tags: [ReadIOEffect, WriteIOEffect], raises: [OSError].} = builtin
-proc removeFile(dir: string) {.
-  tags: [ReadIOEffect, WriteIOEffect], raises: [OSError].} = builtin
-proc moveFile(src, dest: string) {.
-  tags: [ReadIOEffect, WriteIOEffect], raises: [OSError].} = builtin
-proc moveDir(src, dest: string) {.
-  tags: [ReadIOEffect, WriteIOEffect], raises: [OSError].} = builtin
-proc copyFile(src, dest: string) {.
-  tags: [ReadIOEffect, WriteIOEffect], raises: [OSError].} = builtin
-proc copyDir(src, dest: string) {.
-  tags: [ReadIOEffect, WriteIOEffect], raises: [OSError].} = builtin
+proc listDirsImpl(
+    dir: string
+): seq[string] {.tags: [ReadIOEffect], raises: [OSError].} =
+  builtin
+
+proc listFilesImpl(
+    dir: string
+): seq[string] {.tags: [ReadIOEffect], raises: [OSError].} =
+  builtin
+
+proc removeDir(
+    dir: string, checkDir = true
+) {.tags: [ReadIOEffect, WriteIOEffect], raises: [OSError].} =
+  builtin
+
+proc removeFile(
+    dir: string
+) {.tags: [ReadIOEffect, WriteIOEffect], raises: [OSError].} =
+  builtin
+
+proc moveFile(
+    src, dest: string
+) {.tags: [ReadIOEffect, WriteIOEffect], raises: [OSError].} =
+  builtin
+
+proc moveDir(
+    src, dest: string
+) {.tags: [ReadIOEffect, WriteIOEffect], raises: [OSError].} =
+  builtin
+
+proc copyFile(
+    src, dest: string
+) {.tags: [ReadIOEffect, WriteIOEffect], raises: [OSError].} =
+  builtin
+
+proc copyDir(
+    src, dest: string
+) {.tags: [ReadIOEffect, WriteIOEffect], raises: [OSError].} =
+  builtin
+
 proc createDir(dir: string) {.tags: [WriteIOEffect], raises: [OSError].} =
   builtin
 
-proc getError: string = builtin
-proc setCurrentDir(dir: string) = builtin
+proc getError(): string =
+  builtin
+
+proc setCurrentDir(dir: string) =
+  builtin
+
 proc getCurrentDir*(): string =
   ## Retrieves the current working directory.
   builtin
+
 proc rawExec(cmd: string): int {.tags: [ExecIOEffect], raises: [OSError].} =
   builtin
 
-proc warningImpl(arg, orig: string) = discard
-proc hintImpl(arg, orig: string) = discard
+proc warningImpl(arg, orig: string) =
+  discard
+
+proc hintImpl(arg, orig: string) =
+  discard
 
 proc paramStr*(i: int): string =
   ## Retrieves the `i`'th command line parameter.
@@ -64,17 +97,17 @@ proc paramCount*(): int =
   ## Retrieves the number of command line parameters.
   builtin
 
-proc switch*(key: string, val="") =
+proc switch*(key: string, val = "") =
   ## Sets a Nim compiler command line switch, for
   ## example `switch("checks", "on")`.
   builtin
 
-proc warning*(name: string; val: bool) =
+proc warning*(name: string, val: bool) =
   ## Disables or enables a specific warning.
   let v = if val: "on" else: "off"
   warningImpl(name & ":" & v, "warning:" & name & ":" & v)
 
-proc hint*(name: string; val: bool) =
+proc hint*(name: string, val: bool) =
   ## Disables or enables a specific hint.
   let v = if val: "on" else: "off"
   hintImpl(name & ":" & v, "hint:" & name & ":" & v)
@@ -99,19 +132,22 @@ proc getCommand*(): string =
   ## "c", "js", "build", "help".
   builtin
 
-proc setCommand*(cmd: string; project="") =
+proc setCommand*(cmd: string, project = "") =
   ## Sets the Nim command that should be continued with after this Nimscript
   ## has finished.
   builtin
 
-proc cmpIgnoreStyle(a, b: string): int = builtin
-proc cmpIgnoreCase(a, b: string): int = builtin
+proc cmpIgnoreStyle(a, b: string): int =
+  builtin
+
+proc cmpIgnoreCase(a, b: string): int =
+  builtin
 
 proc cmpic*(a, b: string): int =
   ## Compares `a` and `b` ignoring case.
   cmpIgnoreCase(a, b)
 
-proc getEnv*(key: string; default = ""): string {.tags: [ReadIOEffect].} =
+proc getEnv*(key: string, default = ""): string {.tags: [ReadIOEffect].} =
   ## Retrieves the environment variable of name `key`.
   builtin
 
@@ -131,12 +167,13 @@ proc fileExists*(filename: string): bool {.tags: [ReadIOEffect].} =
   ## Checks if the file exists.
   builtin
 
-proc dirExists*(dir: string): bool {.
-  tags: [ReadIOEffect].} =
+proc dirExists*(dir: string): bool {.tags: [ReadIOEffect].} =
   ## Checks if the directory `dir` exists.
   builtin
 
-proc selfExe*(): string {.deprecated: "Deprecated since v1.7; Use getCurrentCompilerExe".} =
+proc selfExe*(): string {.
+    deprecated: "Deprecated since v1.7; Use getCurrentCompilerExe"
+.} =
   ## Returns the currently running nim or nimble executable.
   builtin
 
@@ -146,14 +183,16 @@ proc toExe*(filename: string): string =
 
 proc toDll*(filename: string): string =
   ## On Windows adds ".dll" to `filename`, on Posix produces "lib$filename.so".
-  (when defined(windows): filename & ".dll" else: "lib" & filename & ".so")
+  (when defined(windows): filename & ".dll"
+  else: "lib" & filename & ".so")
 
 proc strip(s: string): string =
   var i = 0
-  while s[i] in {' ', '\c', '\n'}: inc i
+  while s[i] in {' ', '\c', '\n'}:
+    inc i
   result = s.substr(i)
   if result[0] == '"' and result[^1] == '"':
-    result = result[1..^2]
+    result = result[1 ..^ 2]
 
 template `--`*(key, val: untyped) =
   ## A shortcut for `switch <#switch,string,string>`_
@@ -173,22 +212,23 @@ template `--`*(key: untyped) =
   ##   ```
   switch(strip(astToStr(key)))
 
-type
-  ScriptMode* {.pure.} = enum ## Controls the behaviour of the script.
-    Silent,                   ## Be silent.
-    Verbose,                  ## Be verbose.
-    Whatif                    ## Do not run commands, instead just echo what
-                              ## would have been done.
+type ScriptMode* {.pure.} = enum ## Controls the behaviour of the script.
+  Silent ## Be silent.
+  Verbose ## Be verbose.
+  Whatif
+    ## Do not run commands, instead just echo what
+    ## would have been done.
 
-var
-  mode*: ScriptMode ## Set this to influence how mkDir, rmDir, rmFile etc.
-                    ## behave
+var mode*: ScriptMode
+  ## Set this to influence how mkDir, rmDir, rmFile etc.
+  ## behave
 
 template checkError(exc: untyped): untyped =
   let err = getError()
-  if err.len > 0: raise newException(exc, err)
+  if err.len > 0:
+    raise newException(exc, err)
 
-template checkOsError =
+template checkOsError() =
   checkError(OSError)
 
 template log(msg: string, body: untyped) =
@@ -250,8 +290,7 @@ proc cpDir*(`from`, to: string) {.raises: [OSError].} =
     copyDir `from`, to
     checkOsError()
 
-proc exec*(command: string) {.
-  raises: [OSError], tags: [ExecIOEffect, WriteIOEffect].} =
+proc exec*(command: string) {.raises: [OSError], tags: [ExecIOEffect, WriteIOEffect].} =
   ## Executes an external process. If the external process terminates with
   ## a non-zero exit code, an OSError exception is raised. The command is
   ## executed relative to the current source path.
@@ -264,8 +303,9 @@ proc exec*(command: string) {.
       raise newException(OSError, "FAILED: " & command)
     checkOsError()
 
-proc exec*(command: string, input: string, cache = "") {.
-  raises: [OSError], tags: [ExecIOEffect, WriteIOEffect].} =
+proc exec*(
+    command: string, input: string, cache = ""
+) {.raises: [OSError], tags: [ExecIOEffect, WriteIOEffect].} =
   ## Executes an external process. If the external process terminates with
   ## a non-zero exit code, an OSError exception is raised.
   ##
@@ -280,8 +320,9 @@ proc exec*(command: string, input: string, cache = "") {.
     if exitCode != 0:
       raise newException(OSError, "FAILED: " & command)
 
-proc selfExec*(command: string) {.
-  raises: [OSError], tags: [ExecIOEffect, WriteIOEffect].} =
+proc selfExec*(
+    command: string
+) {.raises: [OSError], tags: [ExecIOEffect, WriteIOEffect].} =
   ## Executes an external command with the current nim/nimble executable.
   ## `Command` must not contain the "nim " part.
   let c = selfExe() & " " & command
@@ -341,7 +382,7 @@ proc findExe*(bin: string): string =
   ## found.
   builtin
 
-template withDir*(dir: string; body: untyped): untyped =
+template withDir*(dir: string, body: untyped): untyped =
   ## Changes the current directory temporarily.
   ##
   ## If you need a permanent change, use the `cd() <#cd,string>`_ proc.
@@ -362,7 +403,8 @@ template withDir*(dir: string; body: untyped): untyped =
 proc writeTask(name, desc: string) =
   if desc.len > 0:
     var spaces = " "
-    for i in 0 ..< 20 - name.len: spaces.add ' '
+    for i in 0 ..< 20 - name.len:
+      spaces.add ' '
     echo name, spaces, desc
 
 proc cppDefine*(define: string) =
@@ -370,12 +412,10 @@ proc cppDefine*(define: string) =
   ## needs to be mangled.
   builtin
 
-proc stdinReadLine(): string {.
-  tags: [ReadIOEffect], raises: [IOError].} =
+proc stdinReadLine(): string {.tags: [ReadIOEffect], raises: [IOError].} =
   builtin
 
-proc stdinReadAll(): string {.
-  tags: [ReadIOEffect], raises: [IOError].} =
+proc stdinReadAll(): string {.tags: [ReadIOEffect], raises: [IOError].} =
   builtin
 
 proc readLineFromStdin*(): string {.raises: [IOError].} =
@@ -391,8 +431,10 @@ proc readAllFromStdin*(): string {.raises: [IOError].} =
     checkError(EOFError)
 
 when not defined(nimble):
-  template `==?`(a, b: string): bool = cmpIgnoreStyle(a, b) == 0
-  template task*(name: untyped; description: string; body: untyped): untyped =
+  template `==?`(a, b: string): bool =
+    cmpIgnoreStyle(a, b) == 0
+
+  template task*(name: untyped, description: string, body: untyped): untyped =
     ## Defines a task. Hidden tasks are supported via an empty description.
     ##
     ## Example:
@@ -428,25 +470,28 @@ when not defined(nimble):
 
   # nimble has its own implementation for these things.
   var
-    packageName* = ""    ## Nimble support: Set this to the package name. It
-                         ## is usually not required to do that, nims' filename is
-                         ## the default.
-    version*: string     ## Nimble support: The package's version.
-    author*: string      ## Nimble support: The package's author.
+    packageName* = ""
+      ## Nimble support: Set this to the package name. It
+      ## is usually not required to do that, nims' filename is
+      ## the default.
+    version*: string ## Nimble support: The package's version.
+    author*: string ## Nimble support: The package's author.
     description*: string ## Nimble support: The package's description.
-    license*: string     ## Nimble support: The package's license.
-    srcDir*: string      ## Nimble support: The package's source directory.
-    binDir*: string      ## Nimble support: The package's binary directory.
-    backend*: string     ## Nimble support: The package's backend.
+    license*: string ## Nimble support: The package's license.
+    srcDir*: string ## Nimble support: The package's source directory.
+    binDir*: string ## Nimble support: The package's binary directory.
+    backend*: string ## Nimble support: The package's backend.
 
-    skipDirs*, skipFiles*, skipExt*, installDirs*, installFiles*,
-      installExt*, bin*: seq[string] = @[] ## Nimble metadata.
-    requiresData*: seq[string] = @[] ## Exposes the list of requirements for read
-                                     ## and write accesses.
+    skipDirs*, skipFiles*, skipExt*, installDirs*, installFiles*, installExt*, bin*:
+      seq[string] = @[] ## Nimble metadata.
+    requiresData*: seq[string] = @[]
+      ## Exposes the list of requirements for read
+      ## and write accesses.
 
   proc requires*(deps: varargs[string]) =
     ## Nimble support: Call this to set the list of requirements of your Nimble
     ## package.
-    for d in deps: requiresData.add(d)
+    for d in deps:
+      requiresData.add(d)
 
 {.pop.}

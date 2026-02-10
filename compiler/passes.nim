@@ -11,13 +11,8 @@
 ## `TPass` interface.
 
 import
-  options, ast, llstream, msgs,
-  idents,
-  syntaxes, modulegraphs, reorder,
-  lineinfos,
-  pipelineutils,
-  modules, pathutils, packages,
-  sem, semdata
+  options, ast, llstream, msgs, idents, syntaxes, modulegraphs, reorder, lineinfos,
+  pipelineutils, modules, pathutils, packages, sem, semdata
 
 import ic/replayer
 
@@ -31,57 +26,64 @@ when defined(nimPreviewSlimSystem):
 
 import std/tables
 
-type
-  TPassData* = tuple[input: PNode, closeOutput: PNode]
+type TPassData* = tuple[input: PNode, closeOutput: PNode]
 
 # a pass is a tuple of procedure vars ``TPass.close`` may produce additional
 # nodes. These are passed to the other close procedures.
 # This mechanism used to be used for the instantiation of generics.
 
-proc makePass*(open: TPassOpen = nil,
-               process: TPassProcess = nil,
-               close: TPassClose = nil,
-               isFrontend = false): TPass =
+proc makePass*(
+    open: TPassOpen = nil,
+    process: TPassProcess = nil,
+    close: TPassClose = nil,
+    isFrontend = false,
+): TPass =
   result = (open, process, close, isFrontend)
 
-const
-  maxPasses = 10
+const maxPasses = 10
 
-type
-  TPassContextArray = array[0..maxPasses - 1, PPassContext]
+type TPassContextArray = array[0 .. maxPasses - 1, PPassContext]
 
 proc clearPasses*(g: ModuleGraph) =
   g.passes.setLen(0)
 
-proc registerPass*(g: ModuleGraph; p: TPass) =
+proc registerPass*(g: ModuleGraph, p: TPass) =
   internalAssert g.config, g.passes.len < maxPasses
   g.passes.add(p)
 
-proc openPasses(g: ModuleGraph; a: var TPassContextArray;
-                module: PSym; idgen: IdGenerator) =
-  for i in 0..<g.passes.len:
+proc openPasses(
+    g: ModuleGraph, a: var TPassContextArray, module: PSym, idgen: IdGenerator
+) =
+  for i in 0 ..< g.passes.len:
     if not isNil(g.passes[i].open):
       a[i] = g.passes[i].open(g, module, idgen)
-    else: a[i] = nil
+    else:
+      a[i] = nil
 
-proc closePasses(graph: ModuleGraph; a: var TPassContextArray) =
+proc closePasses(graph: ModuleGraph, a: var TPassContextArray) =
   var m: PNode = nil
-  for i in 0..<graph.passes.len:
+  for i in 0 ..< graph.passes.len:
     if not isNil(graph.passes[i].close):
       m = graph.passes[i].close(graph, a[i], m)
-    a[i] = nil                # free the memory here
+    a[i] = nil # free the memory here
 
 proc processTopLevelStmt(graph: ModuleGraph, n: PNode, a: var TPassContextArray): bool =
   # this implements the code transformation pipeline
   var m = n
-  for i in 0..<graph.passes.len:
+  for i in 0 ..< graph.passes.len:
     if not isNil(graph.passes[i].process):
       m = graph.passes[i].process(a[i], m)
-      if isNil(m): return false
+      if isNil(m):
+        return false
   result = true
 
-proc processImplicits(graph: ModuleGraph; implicits: seq[string], nodeKind: TNodeKind,
-                      a: var TPassContextArray; m: PSym) =
+proc processImplicits(
+    graph: ModuleGraph,
+    implicits: seq[string],
+    nodeKind: TNodeKind,
+    a: var TPassContextArray,
+    m: PSym,
+) =
   # XXX fixme this should actually be relative to the config file!
   let relativeTo = toFullPath(graph.config, m.info)
   for module in items(implicits):
@@ -91,11 +93,14 @@ proc processImplicits(graph: ModuleGraph; implicits: seq[string], nodeKind: TNod
       var str = newStrNode(nkStrLit, module)
       str.info = m.info
       importStmt.add str
-      if not processTopLevelStmt(graph, importStmt, a): break
+      if not processTopLevelStmt(graph, importStmt, a):
+        break
 
-proc processModule*(graph: ModuleGraph; module: PSym; idgen: IdGenerator;
-                    stream: PLLStream): bool {.discardable.} =
-  if graph.stopCompile(): return true
+proc processModule*(
+    graph: ModuleGraph, module: PSym, idgen: IdGenerator, stream: PLLStream
+): bool {.discardable.} =
+  if graph.stopCompile():
+    return true
   var
     p: Parser = default(Parser)
     a: TPassContextArray = default(TPassContextArray)
@@ -130,23 +135,27 @@ proc processModule*(graph: ModuleGraph; module: PSym; idgen: IdGenerator;
 
     checkFirstLineIndentation(p)
     block processCode:
-      if graph.stopCompile(): break processCode
+      if graph.stopCompile():
+        break processCode
       var n = parseTopLevelStmt(p)
-      if n.kind == nkEmpty: break processCode
+      if n.kind == nkEmpty:
+        break processCode
 
       # read everything, no streaming possible
       var sl = newNodeI(nkStmtList, n.info)
       sl.add n
       while true:
         var n = parseTopLevelStmt(p)
-        if n.kind == nkEmpty: break
+        if n.kind == nkEmpty:
+          break
         sl.add n
       if sfReorder in module.flags or codeReordering in graph.config.features:
         sl = reorder(graph, sl, module)
       discard processTopLevelStmt(graph, sl, a)
 
     closeParser(p)
-    if s.kind != llsStdIn: break
+    if s.kind != llsStdIn:
+      break
   closePasses(graph, a)
   if graph.config.backend notin {backendC, backendCpp, backendObjc}:
     # We only write rod files here if no C-like backend is active.
@@ -155,18 +164,24 @@ proc processModule*(graph: ModuleGraph; module: PSym; idgen: IdGenerator;
     closeRodFile(graph, module)
   result = true
 
-proc compileModule*(graph: ModuleGraph; fileIdx: FileIndex; flags: TSymFlags, fromModule: PSym = nil): PSym =
+proc compileModule*(
+    graph: ModuleGraph, fileIdx: FileIndex, flags: TSymFlags, fromModule: PSym = nil
+): PSym =
   var flags = flags
-  if fileIdx == graph.config.projectMainIdx2: flags.incl sfMainModule
+  if fileIdx == graph.config.projectMainIdx2:
+    flags.incl sfMainModule
   result = graph.getModule(fileIdx)
 
   template processModuleAux(moduleStatus) =
     onProcessing(graph, fileIdx, moduleStatus, fromModule = fromModule)
     var s: PLLStream = nil
     if sfMainModule in flags:
-      if graph.config.projectIsStdin: s = stdin.llStreamOpen
-      elif graph.config.projectIsCmd: s = llStreamOpen(graph.config.cmdInput)
+      if graph.config.projectIsStdin:
+        s = stdin.llStreamOpen
+      elif graph.config.projectIsCmd:
+        s = llStreamOpen(graph.config.cmdInput)
     discard processModule(graph, result, idGeneratorFromModule(result), s)
+
   if result == nil:
     var cachedModules: seq[FileIndex] = @[]
     result = moduleFromRodFile(graph, fileIdx, cachedModules)
@@ -192,7 +207,7 @@ proc compileModule*(graph: ModuleGraph; fileIdx: FileIndex; flags: TSymFlags, fr
     processModuleAux("import(dirty)")
     graph.markClientsDirty(fileIdx)
 
-proc importModule*(graph: ModuleGraph; s: PSym, fileIdx: FileIndex): PSym =
+proc importModule*(graph: ModuleGraph, s: PSym, fileIdx: FileIndex): PSym =
   # this is called by the semantic checking phase
   assert graph.config != nil
   result = compileModule(graph, fileIdx, {}, s)
@@ -204,8 +219,10 @@ proc importModule*(graph: ModuleGraph; s: PSym, fileIdx: FileIndex): PSym =
   #  localError(result.info, errAttemptToRedefine, result.name.s)
   # restore the notes for outer module:
   graph.config.notes =
-    if graph.config.belongsToProjectPackage(s) or isDefined(graph.config, "booting"): graph.config.mainPackageNotes
-    else: graph.config.foreignPackageNotes
+    if graph.config.belongsToProjectPackage(s) or isDefined(graph.config, "booting"):
+      graph.config.mainPackageNotes
+    else:
+      graph.config.foreignPackageNotes
 
 proc connectCallbacks*(graph: ModuleGraph) =
   graph.includeFileCallback = modules.includeModule
@@ -214,18 +231,19 @@ proc connectCallbacks*(graph: ModuleGraph) =
 proc compileSystemModule*(graph: ModuleGraph) =
   if graph.systemModule == nil:
     connectCallbacks(graph)
-    graph.config.m.systemFileIdx = fileInfoIdx(graph.config,
-        graph.config.libpath / RelativeFile"system.nim")
+    graph.config.m.systemFileIdx =
+      fileInfoIdx(graph.config, graph.config.libpath / RelativeFile"system.nim")
     discard graph.compileModule(graph.config.m.systemFileIdx, {sfSystemModule})
 
-proc compileProject*(graph: ModuleGraph; projectFileIdx = InvalidFileIdx) =
+proc compileProject*(graph: ModuleGraph, projectFileIdx = InvalidFileIdx) =
   connectCallbacks(graph)
   let conf = graph.config
   wantMainModule(conf)
   configComplete(graph)
 
   let systemFileIdx = fileInfoIdx(conf, conf.libpath / RelativeFile"system.nim")
-  let projectFile = if projectFileIdx == InvalidFileIdx: conf.projectMainIdx else: projectFileIdx
+  let projectFile =
+    if projectFileIdx == InvalidFileIdx: conf.projectMainIdx else: projectFileIdx
   conf.projectMainIdx2 = projectFile
 
   let packSym = getPackage(graph, projectFile)
@@ -238,15 +256,14 @@ proc compileProject*(graph: ModuleGraph; projectFileIdx = InvalidFileIdx) =
     graph.compileSystemModule()
     discard graph.compileModule(projectFile, {sfMainModule})
 
-proc mySemOpen(graph: ModuleGraph; module: PSym; idgen: IdGenerator): PPassContext =
+proc mySemOpen(graph: ModuleGraph, module: PSym, idgen: IdGenerator): PPassContext =
   result = preparePContext(graph, module, idgen)
 
-proc mySemClose(graph: ModuleGraph; context: PPassContext, n: PNode): PNode =
+proc mySemClose(graph: ModuleGraph, context: PPassContext, n: PNode): PNode =
   var c = PContext(context)
   closePContext(graph, c, n)
 
 proc mySemProcess(context: PPassContext, n: PNode): PNode =
   result = semWithPContext(PContext(context), n)
 
-const semPass* = makePass(mySemOpen, mySemProcess, mySemClose,
-                          isFrontend = true)
+const semPass* = makePass(mySemOpen, mySemProcess, mySemClose, isFrontend = true)

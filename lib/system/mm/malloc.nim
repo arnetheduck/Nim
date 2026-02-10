@@ -1,4 +1,3 @@
-
 {.push stackTrace: off.}
 
 proc allocImpl(size: Natural): pointer =
@@ -27,7 +26,6 @@ proc realloc0Impl(p: pointer, oldsize, newSize: Natural): pointer =
 proc deallocImpl(p: pointer) =
   c_free(p)
 
-
 # The shared allocators map on the regular ones
 
 proc allocSharedImpl(size: Natural): pointer =
@@ -42,28 +40,44 @@ proc reallocSharedImpl(p: pointer, newSize: Natural): pointer =
 proc reallocShared0Impl(p: pointer, oldsize, newSize: Natural): pointer =
   realloc0Impl(p, oldSize, newSize)
 
-proc deallocSharedImpl(p: pointer) = deallocImpl(p)
-
+proc deallocSharedImpl(p: pointer) =
+  deallocImpl(p)
 
 # Empty stubs for the GC
 
-proc GC_disable() = discard
-proc GC_enable() = discard
+proc GC_disable() =
+  discard
+
+proc GC_enable() =
+  discard
 
 when not defined(gcOrc):
-  proc GC_fullCollect() = discard
-  proc GC_enableMarkAndSweep() = discard
-  proc GC_disableMarkAndSweep() = discard
+  proc GC_fullCollect() =
+    discard
 
-proc GC_setStrategy(strategy: GC_Strategy) = discard
+  proc GC_enableMarkAndSweep() =
+    discard
 
-proc getOccupiedMem(): int = discard
-proc getFreeMem(): int = discard
-proc getTotalMem(): int = discard
+  proc GC_disableMarkAndSweep() =
+    discard
 
-proc nimGC_setStackBottom(theStackBottom: pointer) = discard
+proc GC_setStrategy(strategy: GC_Strategy) =
+  discard
 
-proc initGC() = discard
+proc getOccupiedMem(): int =
+  discard
+
+proc getFreeMem(): int =
+  discard
+
+proc getTotalMem(): int =
+  discard
+
+proc nimGC_setStackBottom(theStackBottom: pointer) =
+  discard
+
+proc initGC() =
+  discard
 
 proc newObjNoInit(typ: PNimType, size: int): pointer =
   result = alloc(size)
@@ -71,8 +85,11 @@ proc newObjNoInit(typ: PNimType, size: int): pointer =
 proc growObj(old: pointer, newsize: int): pointer =
   result = realloc(old, newsize)
 
-proc nimGCref(p: pointer) {.compilerproc, inline.} = discard
-proc nimGCunref(p: pointer) {.compilerproc, inline.} = discard
+proc nimGCref(p: pointer) {.compilerproc, inline.} =
+  discard
+
+proc nimGCunref(p: pointer) {.compilerproc, inline.} =
+  discard
 
 when not defined(gcDestructors):
   proc unsureAsgnRef(dest: PPointer, src: pointer) {.compilerproc, inline.} =
@@ -80,18 +97,27 @@ when not defined(gcDestructors):
 
 proc asgnRef(dest: PPointer, src: pointer) {.compilerproc, inline.} =
   dest[] = src
-proc asgnRefNoCycle(dest: PPointer, src: pointer) {.compilerproc, inline,
-  deprecated: "old compiler compat".} = asgnRef(dest, src)
 
-type
-  MemRegion = object
+proc asgnRefNoCycle(
+    dest: PPointer, src: pointer
+) {.compilerproc, inline, deprecated: "old compiler compat".} =
+  asgnRef(dest, src)
+
+type MemRegion = object
 
 proc alloc(r: var MemRegion, size: int): pointer =
   result = alloc(size)
+
 proc alloc0(r: var MemRegion, size: int): pointer =
   result = alloc0Impl(size)
-proc dealloc(r: var MemRegion, p: pointer) = dealloc(p)
-proc deallocOsPages(r: var MemRegion) = discard
-proc deallocOsPages() = discard
+
+proc dealloc(r: var MemRegion, p: pointer) =
+  dealloc(p)
+
+proc deallocOsPages(r: var MemRegion) =
+  discard
+
+proc deallocOsPages() =
+  discard
 
 {.pop.}

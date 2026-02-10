@@ -26,36 +26,41 @@ type
   HttpCode* = distinct range[0 .. 599]
 
   HttpVersion* = enum
-    HttpVer11,
+    HttpVer11
     HttpVer10
 
-  HttpMethod* = enum         ## the requested HttpMethod
-    HttpHead = "HEAD"        ## Asks for the response identical to the one that
-                             ## would correspond to a GET request, but without
-                             ## the response body.
-    HttpGet = "GET"          ## Retrieves the specified resource.
-    HttpPost = "POST"        ## Submits data to be processed to the identified
-                             ## resource. The data is included in the body of
-                             ## the request.
-    HttpPut = "PUT"          ## Uploads a representation of the specified
-                             ## resource.
-    HttpDelete = "DELETE"    ## Deletes the specified resource.
-    HttpTrace = "TRACE"      ## Echoes back the received request, so that a
-                             ## client
-                             ## can see what intermediate servers are adding or
-                             ## changing in the request.
-    HttpOptions = "OPTIONS"  ## Returns the HTTP methods that the server
-                             ## supports for specified address.
-    HttpConnect = "CONNECT"  ## Converts the request connection to a transparent
-                             ## TCP/IP tunnel, usually used for proxies.
-    HttpPatch = "PATCH"      ## Applies partial modifications to a resource.
-
+  HttpMethod* = enum ## the requested HttpMethod
+    HttpHead = "HEAD"
+      ## Asks for the response identical to the one that
+      ## would correspond to a GET request, but without
+      ## the response body.
+    HttpGet = "GET" ## Retrieves the specified resource.
+    HttpPost = "POST"
+      ## Submits data to be processed to the identified
+      ## resource. The data is included in the body of
+      ## the request.
+    HttpPut = "PUT"
+      ## Uploads a representation of the specified
+      ## resource.
+    HttpDelete = "DELETE" ## Deletes the specified resource.
+    HttpTrace = "TRACE"
+      ## Echoes back the received request, so that a
+      ## client
+      ## can see what intermediate servers are adding or
+      ## changing in the request.
+    HttpOptions = "OPTIONS"
+      ## Returns the HTTP methods that the server
+      ## supports for specified address.
+    HttpConnect = "CONNECT"
+      ## Converts the request connection to a transparent
+      ## TCP/IP tunnel, usually used for proxies.
+    HttpPatch = "PATCH" ## Applies partial modifications to a resource.
 
 const
   Http100* = HttpCode(100)
   Http101* = HttpCode(101)
-  Http102* = HttpCode(102)  ## https://tools.ietf.org/html/rfc2518.html WebDAV
-  Http103* = HttpCode(103)  ## https://tools.ietf.org/html/rfc8297.html Early hints
+  Http102* = HttpCode(102) ## https://tools.ietf.org/html/rfc2518.html WebDAV
+  Http103* = HttpCode(103) ## https://tools.ietf.org/html/rfc8297.html Early hints
   Http200* = HttpCode(200)
   Http201* = HttpCode(201)
   Http202* = HttpCode(202)
@@ -63,9 +68,11 @@ const
   Http204* = HttpCode(204)
   Http205* = HttpCode(205)
   Http206* = HttpCode(206)
-  Http207* = HttpCode(207)  ## https://tools.ietf.org/html/rfc4918.html WebDAV
-  Http208* = HttpCode(208)  ## https://tools.ietf.org/html/rfc5842.html WebDAV, Section 7.1
-  Http226* = HttpCode(226)  ## https://tools.ietf.org/html/rfc3229.html Delta encoding, Section 10.4.1
+  Http207* = HttpCode(207) ## https://tools.ietf.org/html/rfc4918.html WebDAV
+  Http208* = HttpCode(208)
+    ## https://tools.ietf.org/html/rfc5842.html WebDAV, Section 7.1
+  Http226* = HttpCode(226)
+    ## https://tools.ietf.org/html/rfc3229.html Delta encoding, Section 10.4.1
   Http300* = HttpCode(300)
   Http301* = HttpCode(301)
   Http302* = HttpCode(302)
@@ -76,7 +83,8 @@ const
   Http308* = HttpCode(308)
   Http400* = HttpCode(400)
   Http401* = HttpCode(401)
-  Http402* = HttpCode(402)  ## https://tools.ietf.org/html/rfc7231.html Payment required, Section 6.5.2
+  Http402* = HttpCode(402)
+    ## https://tools.ietf.org/html/rfc7231.html Payment required, Section 6.5.2
   Http403* = HttpCode(403)
   Http404* = HttpCode(404)
   Http405* = HttpCode(405)
@@ -95,9 +103,11 @@ const
   Http418* = HttpCode(418)
   Http421* = HttpCode(421)
   Http422* = HttpCode(422)
-  Http423* = HttpCode(423)  ## https://tools.ietf.org/html/rfc4918.html WebDAV, Section 11.3
-  Http424* = HttpCode(424)  ## https://tools.ietf.org/html/rfc4918.html WebDAV, Section 11.3
-  Http425* = HttpCode(425)  ## https://tools.ietf.org/html/rfc8470.html Early data
+  Http423* = HttpCode(423)
+    ## https://tools.ietf.org/html/rfc4918.html WebDAV, Section 11.3
+  Http424* = HttpCode(424)
+    ## https://tools.ietf.org/html/rfc4918.html WebDAV, Section 11.3
+  Http425* = HttpCode(425) ## https://tools.ietf.org/html/rfc8470.html Early data
   Http426* = HttpCode(426)
   Http428* = HttpCode(428)
   Http429* = HttpCode(429)
@@ -109,12 +119,16 @@ const
   Http503* = HttpCode(503)
   Http504* = HttpCode(504)
   Http505* = HttpCode(505)
-  Http506* = HttpCode(506)  ## https://tools.ietf.org/html/rfc2295.html Content negotiation, Section 8.1
-  Http507* = HttpCode(507)  ## https://tools.ietf.org/html/rfc4918.html WebDAV, Section 11.5
-  Http508* = HttpCode(508)  ## https://tools.ietf.org/html/rfc5842.html WebDAV, Section 7.2
-  Http510* = HttpCode(510)  ## https://tools.ietf.org/html/rfc2774.html Extension framework, Section 7
-  Http511* = HttpCode(511)  ## https://tools.ietf.org/html/rfc6585.html Additional status code, Section 6
-
+  Http506* = HttpCode(506)
+    ## https://tools.ietf.org/html/rfc2295.html Content negotiation, Section 8.1
+  Http507* = HttpCode(507)
+    ## https://tools.ietf.org/html/rfc4918.html WebDAV, Section 11.5
+  Http508* = HttpCode(508)
+    ## https://tools.ietf.org/html/rfc5842.html WebDAV, Section 7.2
+  Http510* = HttpCode(510)
+    ## https://tools.ietf.org/html/rfc2774.html Extension framework, Section 7
+  Http511* = HttpCode(511)
+    ## https://tools.ietf.org/html/rfc6585.html Additional status code, Section 6
 
 const httpNewLine* = "\c\L"
 const headerLimit* = 10_000
@@ -122,21 +136,30 @@ const headerLimit* = 10_000
 func toTitleCase(s: string): string =
   result = newString(len(s))
   var upper = true
-  for i in 0..len(s) - 1:
-    result[i] = if upper: toUpperAscii(s[i]) else: toLowerAscii(s[i])
+  for i in 0 .. len(s) - 1:
+    result[i] =
+      if upper:
+        toUpperAscii(s[i])
+      else:
+        toLowerAscii(s[i])
     upper = s[i] == '-'
 
 func toCaseInsensitive*(headers: HttpHeaders, s: string): string {.inline.} =
   ## For internal usage only. Do not use.
-  return if headers.isTitleCase: toTitleCase(s) else: toLowerAscii(s)
+  return
+    if headers.isTitleCase:
+      toTitleCase(s)
+    else:
+      toLowerAscii(s)
 
-func newHttpHeaders*(titleCase=false): HttpHeaders =
+func newHttpHeaders*(titleCase = false): HttpHeaders =
   ## Returns a new `HttpHeaders` object. if `titleCase` is set to true,
   ## headers are passed to the server in title case (e.g. "Content-Length")
   result = HttpHeaders(table: newTable[string, seq[string]](), isTitleCase: titleCase)
 
-func newHttpHeaders*(keyValuePairs:
-    openArray[tuple[key: string, val: string]], titleCase=false): HttpHeaders =
+func newHttpHeaders*(
+    keyValuePairs: openArray[tuple[key: string, val: string]], titleCase = false
+): HttpHeaders =
   ## Returns a new `HttpHeaders` object from an array. if `titleCase` is set to true,
   ## headers are passed to the server in title case (e.g. "Content-Length")
   result = HttpHeaders(table: newTable[string, seq[string]](), isTitleCase: titleCase)
@@ -214,13 +237,15 @@ func contains*(values: HttpHeaderValues, value: string): bool =
   ## is performed without case sensitivity.
   result = false
   for val in seq[string](values):
-    if val.toLowerAscii == value.toLowerAscii: return true
+    if val.toLowerAscii == value.toLowerAscii:
+      return true
 
 func hasKey*(headers: HttpHeaders, key: string): bool =
   return headers.table.hasKey(headers.toCaseInsensitive(key))
 
-func getOrDefault*(headers: HttpHeaders, key: string,
-    default = @[""].HttpHeaderValues): HttpHeaderValues =
+func getOrDefault*(
+    headers: HttpHeaders, key: string, default = @[""].HttpHeaderValues
+): HttpHeaderValues =
   ## Returns the values associated with the given `key`. If there are no
   ## values associated with the key, then `default` is returned.
   if headers.hasKey(key):
@@ -228,17 +253,18 @@ func getOrDefault*(headers: HttpHeaders, key: string,
   else:
     return default
 
-func len*(headers: HttpHeaders): int {.inline.} = headers.table.len
+func len*(headers: HttpHeaders): int {.inline.} =
+  headers.table.len
 
 func parseList(line: string, list: var seq[string], start: int): int =
   result = 0
   var i = 0
   var current = ""
-  while start+i < line.len and line[start + i] notin {'\c', '\l'}:
+  while start + i < line.len and line[start + i] notin {'\c', '\l'}:
     i += line.skipWhitespace(start + i)
     i += line.parseUntil(current, {'\c', '\l', ','}, start + i)
-    list.add(move current)  # implicit current.setLen(0)
-    if start+i < line.len and line[start + i] == ',':
+    list.add(move current) # implicit current.setLen(0)
+    if start + i < line.len and line[start + i] == ',':
       i.inc # Skip ,
 
 func parseHeader*(line: string): tuple[key: string, value: seq[string]] =
@@ -261,8 +287,7 @@ func parseHeader*(line: string): tuple[key: string, value: seq[string]] =
   else:
     result.value = @[]
 
-func `==`*(protocol: tuple[orig: string, major, minor: int],
-           ver: HttpVersion): bool =
+func `==`*(protocol: tuple[orig: string, major, minor: int], ver: HttpVersion): bool =
   let major =
     case ver
     of HttpVer11, HttpVer10: 1
@@ -280,69 +305,132 @@ func `$`*(code: HttpCode): string =
   runnableExamples:
     doAssert($Http404 == "404 Not Found")
   case code.int
-  of 100: "100 Continue"
-  of 101: "101 Switching Protocols"
-  of 102: "102 Processing"
-  of 103: "103 Early Hints"
-  of 200: "200 OK"
-  of 201: "201 Created"
-  of 202: "202 Accepted"
-  of 203: "203 Non-Authoritative Information"
-  of 204: "204 No Content"
-  of 205: "205 Reset Content"
-  of 206: "206 Partial Content"
-  of 207: "207 Multi-Status"
-  of 208: "208 Already Reported"
-  of 226: "226 IM Used"
-  of 300: "300 Multiple Choices"
-  of 301: "301 Moved Permanently"
-  of 302: "302 Found"
-  of 303: "303 See Other"
-  of 304: "304 Not Modified"
-  of 305: "305 Use Proxy"
-  of 307: "307 Temporary Redirect"
-  of 308: "308 Permanent Redirect"
-  of 400: "400 Bad Request"
-  of 401: "401 Unauthorized"
-  of 402: "402 Payment Required"
-  of 403: "403 Forbidden"
-  of 404: "404 Not Found"
-  of 405: "405 Method Not Allowed"
-  of 406: "406 Not Acceptable"
-  of 407: "407 Proxy Authentication Required"
-  of 408: "408 Request Timeout"
-  of 409: "409 Conflict"
-  of 410: "410 Gone"
-  of 411: "411 Length Required"
-  of 412: "412 Precondition Failed"
-  of 413: "413 Request Entity Too Large"
-  of 414: "414 Request-URI Too Long"
-  of 415: "415 Unsupported Media Type"
-  of 416: "416 Requested Range Not Satisfiable"
-  of 417: "417 Expectation Failed"
-  of 418: "418 I'm a teapot"
-  of 421: "421 Misdirected Request"
-  of 422: "422 Unprocessable Entity"
-  of 423: "423 Locked"
-  of 424: "424 Failed Dependency"
-  of 425: "425 Too Early"
-  of 426: "426 Upgrade Required"
-  of 428: "428 Precondition Required"
-  of 429: "429 Too Many Requests"
-  of 431: "431 Request Header Fields Too Large"
-  of 451: "451 Unavailable For Legal Reasons"
-  of 500: "500 Internal Server Error"
-  of 501: "501 Not Implemented"
-  of 502: "502 Bad Gateway"
-  of 503: "503 Service Unavailable"
-  of 504: "504 Gateway Timeout"
-  of 505: "505 HTTP Version Not Supported"
-  of 506: "506 Variant Also Negotiates"
-  of 507: "507 Insufficient Storage"
-  of 508: "508 Loop Detected"
-  of 510: "510 Not Extended"
-  of 511: "511 Network Authentication Required"
-  else: $(int(code))
+  of 100:
+    "100 Continue"
+  of 101:
+    "101 Switching Protocols"
+  of 102:
+    "102 Processing"
+  of 103:
+    "103 Early Hints"
+  of 200:
+    "200 OK"
+  of 201:
+    "201 Created"
+  of 202:
+    "202 Accepted"
+  of 203:
+    "203 Non-Authoritative Information"
+  of 204:
+    "204 No Content"
+  of 205:
+    "205 Reset Content"
+  of 206:
+    "206 Partial Content"
+  of 207:
+    "207 Multi-Status"
+  of 208:
+    "208 Already Reported"
+  of 226:
+    "226 IM Used"
+  of 300:
+    "300 Multiple Choices"
+  of 301:
+    "301 Moved Permanently"
+  of 302:
+    "302 Found"
+  of 303:
+    "303 See Other"
+  of 304:
+    "304 Not Modified"
+  of 305:
+    "305 Use Proxy"
+  of 307:
+    "307 Temporary Redirect"
+  of 308:
+    "308 Permanent Redirect"
+  of 400:
+    "400 Bad Request"
+  of 401:
+    "401 Unauthorized"
+  of 402:
+    "402 Payment Required"
+  of 403:
+    "403 Forbidden"
+  of 404:
+    "404 Not Found"
+  of 405:
+    "405 Method Not Allowed"
+  of 406:
+    "406 Not Acceptable"
+  of 407:
+    "407 Proxy Authentication Required"
+  of 408:
+    "408 Request Timeout"
+  of 409:
+    "409 Conflict"
+  of 410:
+    "410 Gone"
+  of 411:
+    "411 Length Required"
+  of 412:
+    "412 Precondition Failed"
+  of 413:
+    "413 Request Entity Too Large"
+  of 414:
+    "414 Request-URI Too Long"
+  of 415:
+    "415 Unsupported Media Type"
+  of 416:
+    "416 Requested Range Not Satisfiable"
+  of 417:
+    "417 Expectation Failed"
+  of 418:
+    "418 I'm a teapot"
+  of 421:
+    "421 Misdirected Request"
+  of 422:
+    "422 Unprocessable Entity"
+  of 423:
+    "423 Locked"
+  of 424:
+    "424 Failed Dependency"
+  of 425:
+    "425 Too Early"
+  of 426:
+    "426 Upgrade Required"
+  of 428:
+    "428 Precondition Required"
+  of 429:
+    "429 Too Many Requests"
+  of 431:
+    "431 Request Header Fields Too Large"
+  of 451:
+    "451 Unavailable For Legal Reasons"
+  of 500:
+    "500 Internal Server Error"
+  of 501:
+    "501 Not Implemented"
+  of 502:
+    "502 Bad Gateway"
+  of 503:
+    "503 Service Unavailable"
+  of 504:
+    "504 Gateway Timeout"
+  of 505:
+    "505 HTTP Version Not Supported"
+  of 506:
+    "506 Variant Also Negotiates"
+  of 507:
+    "507 Insufficient Storage"
+  of 508:
+    "508 Loop Detected"
+  of 510:
+    "510 Not Extended"
+  of 511:
+    "511 Network Authentication Required"
+  else:
+    $(int(code))
 
 func `==`*(a, b: HttpCode): bool {.borrow.}
 

@@ -16,19 +16,17 @@ import std/[deques, streams]
 when defined(nimPreviewSlimSystem):
   import std/assertions
 
-
-type
-  PipeOutStream*[T] = ref object of T
-    # When stream peek operation is called, it reads from base stream
-    # type using `baseReadDataImpl` and stores the content to this buffer.
-    # Next stream read operation returns data in the buffer so that previus peek
-    # operation looks like didn't changed read positon.
-    # When stream read operation that returns N byte data is called and the size is smaller than buffer size,
-    # first N elements are removed from buffer.
-    # Deque type can do such operation more efficiently than seq type.
-    buffer: Deque[char]
-    baseReadLineImpl: typeof(StreamObj.readLineImpl)
-    baseReadDataImpl: typeof(StreamObj.readDataImpl)
+type PipeOutStream*[T] = ref object of T
+  # When stream peek operation is called, it reads from base stream
+  # type using `baseReadDataImpl` and stores the content to this buffer.
+  # Next stream read operation returns data in the buffer so that previus peek
+  # operation looks like didn't changed read positon.
+  # When stream read operation that returns N byte data is called and the size is smaller than buffer size,
+  # first N elements are removed from buffer.
+  # Deque type can do such operation more efficiently than seq type.
+  buffer: Deque[char]
+  baseReadLineImpl: typeof(StreamObj.readLineImpl)
+  baseReadDataImpl: typeof(StreamObj.readDataImpl)
 
 proc posReadLine[T](s: Stream, line: var string): bool =
   var s = PipeOutStream[T](s)
@@ -36,12 +34,13 @@ proc posReadLine[T](s: Stream, line: var string): bool =
 
   let n = s.buffer.len
   line.setLen(0)
-  for i in 0..<n:
+  for i in 0 ..< n:
     var c = s.buffer.popFirst
     if c == '\c':
       c = readChar(s)
       return true
-    elif c == '\L': return true
+    elif c == '\L':
+      return true
     elif c == '\0':
       return line.len > 0
     line.add(c)
@@ -58,7 +57,7 @@ proc posReadData[T](s: Stream, buffer: pointer, bufLen: int): int =
     dest = cast[ptr UncheckedArray[char]](buffer)
     n = min(s.buffer.len, bufLen)
   result = n
-  for i in 0..<n:
+  for i in 0 ..< n:
     dest[i] = s.buffer.popFirst
   if bufLen > n:
     result += s.baseReadDataImpl(s, addr dest[n], bufLen - n)
@@ -75,7 +74,7 @@ proc posPeekData[T](s: Stream, buffer: pointer, bufLen: int): int =
     n = min(s.buffer.len, bufLen)
 
   result = n
-  for i in 0..<n:
+  for i in 0 ..< n:
     dest[i] = s.buffer[i]
 
   if bufLen > n:
@@ -83,7 +82,7 @@ proc posPeekData[T](s: Stream, buffer: pointer, bufLen: int): int =
       newDataNeeded = bufLen - n
       numRead = s.baseReadDataImpl(s, addr dest[n], newDataNeeded)
     result += numRead
-    for i in 0..<numRead:
+    for i in 0 ..< numRead:
       s.buffer.addLast dest[n + i]
 
 proc newPipeOutStream*[T](s: sink (ref T)): owned PipeOutStream[T] =

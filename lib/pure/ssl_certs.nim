@@ -15,10 +15,8 @@ import std/[os, strutils]
 # FWIW look for files before scanning entire dirs.
 
 when defined(macosx):
-  const certificatePaths = [
-    "/etc/ssl/cert.pem",
-    "/System/Library/OpenSSL/certs/cert.pem"
-  ]
+  const certificatePaths =
+    ["/etc/ssl/cert.pem", "/System/Library/OpenSSL/certs/cert.pem"]
 elif defined(linux):
   const certificatePaths = [
     # Debian, Ubuntu, Arch: maintained by update-ca-certificates, SUSE, Gentoo
@@ -85,11 +83,15 @@ when defined(haiku):
     B_FIND_PATH_EXISTING_ONLY = 0x4
     B_FIND_PATH_DATA_DIRECTORY = 6
 
-  proc find_paths_etc(architecture: cstring, baseDirectory: cint,
-                      subPath: cstring, flags: uint32,
-                      paths: var ptr UncheckedArray[cstring],
-                      pathCount: var csize_t): int32
-                     {.importc, header: "<FindDirectory.h>".}
+  proc find_paths_etc(
+    architecture: cstring,
+    baseDirectory: cint,
+    subPath: cstring,
+    flags: uint32,
+    paths: var ptr UncheckedArray[cstring],
+    pathCount: var csize_t,
+  ): int32 {.importc, header: "<FindDirectory.h>".}
+
   proc free(p: pointer) {.importc, header: "<stdlib.h>".}
 
 iterator scanSSLCertificates*(useEnvVars = false): string =
@@ -100,12 +102,10 @@ iterator scanSSLCertificates*(useEnvVars = false): string =
   ## directories to scan or specify a CA certificate file.
   if useEnvVars and existsEnv("SSL_CERT_FILE"):
     yield getEnv("SSL_CERT_FILE")
-
   elif useEnvVars and existsEnv("SSL_CERT_DIR"):
     let p = getEnv("SSL_CERT_DIR")
     for fn in joinPath(p, "*").walkFiles():
       yield fn
-
   else:
     when defined(windows):
       const cacert = "cacert.pem"
@@ -116,8 +116,12 @@ iterator scanSSLCertificates*(useEnvVars = false): string =
         let path = getEnv("PATH")
         for candidate in split(path, PathSep):
           if candidate.len != 0:
-            let x = (if candidate[0] == '"' and candidate[^1] == '"':
-                      substr(candidate, 1, candidate.len-2) else: candidate) / cacert
+            let x =
+              (
+                if candidate[0] == '"' and candidate[^1] == '"':
+                  substr(candidate, 1, candidate.len - 2)
+                else: candidate
+              ) / cacert
             if fileExists(x):
               yield x
     elif not defined(haiku):
@@ -132,7 +136,6 @@ iterator scanSSLCertificates*(useEnvVars = false): string =
             yield p.normalizePathEnd(true)
             break
           for fn in joinPath(p, "*").walkFiles():
-
             yield fn
     else:
       var
@@ -140,10 +143,11 @@ iterator scanSSLCertificates*(useEnvVars = false): string =
         size: csize_t
       let err = find_paths_etc(
         nil, B_FIND_PATH_DATA_DIRECTORY, "ssl/CARootCertificates.pem",
-        B_FIND_PATH_EXISTING_ONLY, paths, size
+        B_FIND_PATH_EXISTING_ONLY, paths, size,
       )
       if err == 0:
-        defer: free(paths)
+        defer:
+          free(paths)
         for i in 0 ..< size:
           yield $paths[i]
 

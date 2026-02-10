@@ -13,7 +13,8 @@
 runnableExamples:
   import std/math
 
-  template `~=`(x, y: float): bool = abs(x - y) < 1e-4
+  template `~=`(x, y: float): bool =
+    abs(x - y) < 1e-4
 
   let
     n = 1_000_000
@@ -39,7 +40,8 @@ func sumKbn*[T](x: openArray[T]): T =
   ##
   ## See:
   ## * https://en.wikipedia.org/wiki/Kahan_summation_algorithm#Further_enhancements
-  if len(x) == 0: return
+  if len(x) == 0:
+    return
   var sum = x[0]
   var c = T(0)
   for i in 1 ..< len(x):
@@ -77,4 +79,7 @@ func sumPairs*[T](x: openArray[T]): T =
   ## * Manfred Tasche and Hansmartin Zeuner, Handbook of
   ##   Analytic-Computational Methods in Applied Mathematics (2000).
   let n = len(x)
-  if n == 0: T(0) else: sumPairwise(x, 0, n)
+  if n == 0:
+    T(0)
+  else:
+    sumPairwise(x, 0, n)

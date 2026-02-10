@@ -19,7 +19,7 @@ from std/typetraits import supportsCopyMem
 when defined(nimPreviewSlimSystem):
   import std/[syncio, assertions]
 
-import std / tables
+import std/tables
 
 ## Overview
 ## ========
@@ -98,7 +98,7 @@ type
     enumToStringProcsSection
     methodsPerTypeSection
     dispatchersSection
-    typeInfoSection  # required by the backend
+    typeInfoSection # required by the backend
     backendFlagsSection
     aliveSymsSection # beware, this is stored in a `.alivesyms` file.
     sideChannelSection
@@ -106,28 +106,44 @@ type
     symnamesSection
 
   RodFileError* = enum
-    ok, tooBig, cannotOpen, ioFailure, wrongHeader, wrongSection, configMismatch,
+    ok
+    tooBig
+    cannotOpen
+    ioFailure
+    wrongHeader
+    wrongSection
+    configMismatch
     includeFileChanged
 
   RodFile* = object
     f*: File
     currentSection*: RodSection # for error checking
-    err*: RodFileError # little experiment to see if this works
-                       # better than exceptions.
+    err*: RodFileError
+      # little experiment to see if this works
+      # better than exceptions.
 
 const
   RodVersion = 2
-  defaultCookie = [byte(0), byte('R'), byte('O'), byte('D'),
-            byte(sizeof(int)*8), byte(system.cpuEndian), byte(0), byte(RodVersion)]
+  defaultCookie = [
+    byte(0),
+    byte('R'),
+    byte('O'),
+    byte('D'),
+    byte(sizeof(int) * 8),
+    byte(system.cpuEndian),
+    byte(0),
+    byte(RodVersion),
+  ]
 
-proc setError(f: var RodFile; err: RodFileError) {.inline.} =
+proc setError(f: var RodFile, err: RodFileError) {.inline.} =
   f.err = err
   #raise newException(IOError, "IO error")
 
-proc storePrim*(f: var RodFile; s: string) =
+proc storePrim*(f: var RodFile, s: string) =
   ## Stores a string.
   ## The len is prefixed to allow for later retreival.
-  if f.err != ok: return
+  if f.err != ok:
+    return
   if s.len >= high(int32):
     setError f, tooBig
     return
@@ -139,11 +155,12 @@ proc storePrim*(f: var RodFile; s: string) =
       if writeBuffer(f.f, unsafeAddr(s[0]), s.len) != s.len:
         setError f, ioFailure
 
-proc storePrim*[T](f: var RodFile; x: T) =
+proc storePrim*[T](f: var RodFile, x: T) =
   ## Stores a non-sequence/string `T`.
   ## If `T` doesn't support `copyMem` and is an object or tuple then the fields
   ## are written -- the user from context will need to know which `T` to load.
-  if f.err != ok: return
+  if f.err != ok:
+    return
   when supportsCopyMem(T):
     if writeBuffer(f.f, unsafeAddr(x), sizeof(x)) != sizeof(x):
       setError f, ioFailure
@@ -159,9 +176,10 @@ proc storePrim*[T](f: var RodFile; x: T) =
   else:
     {.error: "unsupported type for 'storePrim'".}
 
-proc storeSeq*[T](f: var RodFile; s: seq[T]) =
+proc storeSeq*[T](f: var RodFile, s: seq[T]) =
   ## Stores a sequence of `T`s, with the len as a prefix for later retrieval.
-  if f.err != ok: return
+  if f.err != ok:
+    return
   if s.len >= high(int32):
     setError f, tooBig
     return
@@ -169,11 +187,12 @@ proc storeSeq*[T](f: var RodFile; s: seq[T]) =
   if writeBuffer(f.f, addr lenPrefix, sizeof(lenPrefix)) != sizeof(lenPrefix):
     setError f, ioFailure
   else:
-    for i in 0..<s.len:
+    for i in 0 ..< s.len:
       storePrim(f, s[i])
 
-proc storeOrderedTable*[K, T](f: var RodFile; s: OrderedTable[K, T]) =
-  if f.err != ok: return
+proc storeOrderedTable*[K, T](f: var RodFile, s: OrderedTable[K, T]) =
+  if f.err != ok:
+    return
   if s.len >= high(int32):
     setError f, tooBig
     return
@@ -184,9 +203,10 @@ proc storeOrderedTable*[K, T](f: var RodFile; s: OrderedTable[K, T]) =
     for _, v in s:
       storePrim(f, v)
 
-proc loadPrim*(f: var RodFile; s: var string) =
+proc loadPrim*(f: var RodFile, s: var string) =
   ## Read a string, the length was stored as a prefix
-  if f.err != ok: return
+  if f.err != ok:
+    return
   var lenPrefix = int32(0)
   if readBuffer(f.f, addr lenPrefix, sizeof(lenPrefix)) != sizeof(lenPrefix):
     setError f, ioFailure
@@ -196,9 +216,10 @@ proc loadPrim*(f: var RodFile; s: var string) =
       if readBuffer(f.f, unsafeAddr(s[0]), s.len) != s.len:
         setError f, ioFailure
 
-proc loadPrim*[T](f: var RodFile; x: var T) =
+proc loadPrim*[T](f: var RodFile, x: var T) =
   ## Load a non-sequence/string `T`.
-  if f.err != ok: return
+  if f.err != ok:
+    return
   when supportsCopyMem(T):
     if readBuffer(f.f, unsafeAddr(x), sizeof(x)) != sizeof(x):
       setError f, ioFailure
@@ -214,55 +235,61 @@ proc loadPrim*[T](f: var RodFile; x: var T) =
   else:
     {.error: "unsupported type for 'loadPrim'".}
 
-proc loadSeq*[T](f: var RodFile; s: var seq[T]) =
+proc loadSeq*[T](f: var RodFile, s: var seq[T]) =
   ## `T` must be compatible with `copyMem`, see `loadPrim`
-  if f.err != ok: return
+  if f.err != ok:
+    return
   var lenPrefix = int32(0)
   if readBuffer(f.f, addr lenPrefix, sizeof(lenPrefix)) != sizeof(lenPrefix):
     setError f, ioFailure
   else:
     s = newSeq[T](lenPrefix)
-    for i in 0..<lenPrefix:
+    for i in 0 ..< lenPrefix:
       loadPrim(f, s[i])
 
-proc loadOrderedTable*[K, T](f: var RodFile; s: var OrderedTable[K, T]) =
+proc loadOrderedTable*[K, T](f: var RodFile, s: var OrderedTable[K, T]) =
   ## `T` must be compatible with `copyMem`, see `loadPrim`
-  if f.err != ok: return
+  if f.err != ok:
+    return
   var lenPrefix = int32(0)
   if readBuffer(f.f, addr lenPrefix, sizeof(lenPrefix)) != sizeof(lenPrefix):
     setError f, ioFailure
   else:
     s = initOrderedTable[K, T](lenPrefix)
-    for i in 0..<lenPrefix:
+    for i in 0 ..< lenPrefix:
       var x = default T
       loadPrim(f, x)
       s[x.id] = x
 
-proc storeHeader*(f: var RodFile; cookie = defaultCookie) =
+proc storeHeader*(f: var RodFile, cookie = defaultCookie) =
   ## stores the header which is described by `cookie`.
-  if f.err != ok: return
+  if f.err != ok:
+    return
   if f.f.writeBytes(cookie, 0, cookie.len) != cookie.len:
     setError f, ioFailure
 
-proc loadHeader*(f: var RodFile; cookie = defaultCookie) =
+proc loadHeader*(f: var RodFile, cookie = defaultCookie) =
   ## Loads the header which is described by `cookie`.
-  if f.err != ok: return
+  if f.err != ok:
+    return
   var thisCookie: array[cookie.len, byte] = default(array[cookie.len, byte])
   if f.f.readBytes(thisCookie, 0, thisCookie.len) != thisCookie.len:
     setError f, ioFailure
   elif thisCookie != cookie:
     setError f, wrongHeader
 
-proc storeSection*(f: var RodFile; s: RodSection) =
+proc storeSection*(f: var RodFile, s: RodSection) =
   ## update `currentSection` and writes the bytes value of s.
-  if f.err != ok: return
+  if f.err != ok:
+    return
   assert f.currentSection < s
   f.currentSection = s
   storePrim(f, s)
 
-proc loadSection*(f: var RodFile; expected: RodSection) =
+proc loadSection*(f: var RodFile, expected: RodSection) =
   ## read the bytes value of s, sets and error if the section is incorrect.
-  if f.err != ok: return
+  if f.err != ok:
+    return
   var s: RodSection = default(RodSection)
   loadPrim(f, s)
   if expected != s and f.err == ok:
@@ -274,7 +301,8 @@ proc create*(filename: string): RodFile =
   if not open(result.f, filename, fmWrite):
     setError result, cannotOpen
 
-proc close*(f: var RodFile) = close(f.f)
+proc close*(f: var RodFile) =
+  close(f.f)
 
 proc open*(filename: string): RodFile =
   ## open the file for reading

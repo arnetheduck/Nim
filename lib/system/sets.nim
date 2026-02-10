@@ -9,7 +9,6 @@
 
 # set handling
 
-
 proc cardSetImpl(s: ptr UncheckedArray[uint8], len: int): int {.inline.} =
   var i = 0
   result = 0

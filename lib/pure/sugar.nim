@@ -57,13 +57,13 @@ macro `=>`*(p, b: untyped): untyped =
   ##
   ## .. warning:: Semicolons can not be used to separate procedure arguments.
   runnableExamples:
-    proc passTwoAndTwo(f: (int, int) -> int): int = f(2, 2)
+    proc passTwoAndTwo(f: (int, int) -> int): int =
+      f(2, 2)
 
     assert passTwoAndTwo((x, y) => x + y) == 4
 
-    type
-      Bot = object
-        call: (string {.noSideEffect.} -> string)
+    type Bot = object
+      call: (string {.noSideEffect.} -> string)
 
     var myBot = Bot()
 
@@ -129,22 +129,25 @@ macro `=>`*(p, b: untyped): untyped =
     params.add(identDefs)
   else:
     error("Incorrect procedure parameter list.", p)
-  result = newProc(body = b, params = params,
-                   pragmas = pragma, name = name,
-                   procType = kind)
+  result =
+    newProc(body = b, params = params, pragmas = pragma, name = name, procType = kind)
 
 macro `->`*(p, b: untyped): untyped =
   ## Syntax sugar for procedure types. It also supports pragmas.
   ##
   ## .. warning:: Semicolons can not be used to separate procedure arguments.
   runnableExamples:
-    proc passTwoAndTwo(f: (int, int) -> int): int = f(2, 2)
+    proc passTwoAndTwo(f: (int, int) -> int): int =
+      f(2, 2)
+
     # is the same as:
     # proc passTwoAndTwo(f: proc (x, y: int): int): int = f(2, 2)
 
     assert passTwoAndTwo((x, y) => x + y) == 4
 
-    proc passOne(f: (int {.noSideEffect.} -> int)): int = f(1)
+    proc passOne(f: (int {.noSideEffect.} -> int)): int =
+      f(1)
+
     # is the same as:
     # proc passOne(f: proc (x: int): int {.noSideEffect.}): int = f(1)
 
@@ -168,16 +171,16 @@ macro dump*(x: untyped): untyped =
     dump(x + y) # prints: `x + y = 30`
 
   let s = x.toStrLit
-  result = quote do:
+  result = quote:
     debugEcho `s`, " = ", `x`
 
 macro dumpToStringImpl(s: static string, x: typed): string =
   let s2 = x.toStrLit
   if x.typeKind == ntyVoid:
-    result = quote do:
+    result = quote:
       `s` & ": " & `s2`
   else:
-    result = quote do:
+    result = quote:
       `s` & ": " & `s2` & " = " & $`x`
 
 macro dumpToString*(x: untyped): string =
@@ -188,7 +191,9 @@ macro dumpToString*(x: untyped): string =
     let x = 10
     assert dumpToString(a + 2) == "a + 2: 3 = 3"
     assert dumpToString(a + x) == "a + x: 1 + x = 11"
-    template square(x): untyped = x * x
+    template square(x): untyped =
+      x * x
+
     assert dumpToString(square(x)) == "square(x): x * x = 100"
     assert not compiles dumpToString(1 + nonexistent)
     import std/strutils
@@ -202,7 +207,7 @@ proc freshIdentNodes(ast: NimNode): NimNode =
   # Replace NimIdent and NimSym by a fresh ident node
   # see also https://github.com/nim-lang/Nim/pull/8531#issuecomment-410436458
   proc inspect(node: NimNode): NimNode =
-    case node.kind:
+    case node.kind
     of nnkIdent, nnkSym, nnkOpenSymChoice, nnkClosedSymChoice, nnkOpenSym:
       result = ident($node)
     of nnkEmpty, nnkLiterals:
@@ -211,6 +216,7 @@ proc freshIdentNodes(ast: NimNode): NimNode =
       result = node.kind.newTree()
       for child in node:
         result.add inspect(child)
+
   result = inspect(ast)
 
 macro capture*(locals: varargs[typed], body: untyped): untyped {.since: (1, 1).} =
@@ -220,16 +226,19 @@ macro capture*(locals: varargs[typed], body: untyped): untyped {.since: (1, 1).}
     import std/strformat
 
     var myClosure: () -> string
-    for i in 5..7:
-      for j in 7..9:
+    for i in 5 .. 7:
+      for j in 7 .. 9:
         if i * j == 42:
           capture i, j:
             myClosure = () => fmt"{i} * {j} = 42"
     assert myClosure() == "6 * 7 = 42"
 
   var params = @[newIdentNode("auto")]
-  let locals = if locals.len == 1 and locals[0].kind == nnkBracket: locals[0]
-               else: locals
+  let locals =
+    if locals.len == 1 and locals[0].kind == nnkBracket:
+      locals[0]
+    else:
+      locals
   for arg in locals:
     proc getIdent(n: NimNode): NimNode =
       case n.kind
@@ -238,15 +247,21 @@ macro capture*(locals: varargs[typed], body: untyped): untyped {.since: (1, 1).}
         if nStr == "result":
           error("The variable name cannot be `result`!", n)
         result = ident(nStr)
-      of nnkHiddenDeref: result = n[0].getIdent()
+      of nnkHiddenDeref:
+        result = n[0].getIdent()
       else:
-        error("The argument to be captured `" & n.repr & "` is not a pure identifier. " &
-          "It is an unsupported `" & $n.kind & "` node.", n)
+        error(
+          "The argument to be captured `" & n.repr & "` is not a pure identifier. " &
+            "It is an unsupported `" & $n.kind & "` node.",
+          n,
+        )
+
     let argName = getIdent(arg)
     params.add(newIdentDefs(argName, freshIdentNodes getTypeInst arg))
   result = newNimNode(nnkCall)
   result.add(newProc(newEmptyNode(), params, body, nnkLambda))
-  for arg in locals: result.add(arg)
+  for arg in locals:
+    result.add(arg)
 
 since (1, 1):
   import std/private/underscored_calls
@@ -271,7 +286,7 @@ since (1, 1):
 
       let s1 = "abc"
       let s2 = "xyz"
-      assert s1 & s2 == s1.dup(&= s2)
+      assert s1 & s2 == s1.dup(&=s2)
 
       # An underscore (_) can be used to denote the place of the argument you're passing:
       assert "".dup(addQuoted(_, "foo")) == "\"foo\""
@@ -279,7 +294,7 @@ since (1, 1):
       assert "".dup(addQuoted("foo")) == "\"foo\""
 
       proc makePalindrome(s: var string) =
-        for i in countdown(s.len-2, 0):
+        for i in countdown(s.len - 2, 0):
           s.add(s[i])
 
       let c = "xyz"
@@ -297,7 +312,9 @@ since (1, 1):
     underscoredCalls(result, calls, tmp)
     result.add tmp
 
-proc trans(n, res, bracketExpr: NimNode): (NimNode, NimNode, NimNode) {.since: (1, 1).} =
+proc trans(
+    n, res, bracketExpr: NimNode
+): (NimNode, NimNode, NimNode) {.since: (1, 1).} =
   # Looks for the last statement of the last statement, etc...
   case n.kind
   of nnkIfExpr, nnkIfStmt, nnkTryStmt, nnkCaseStmt, nnkWhenStmt:
@@ -306,23 +323,28 @@ proc trans(n, res, bracketExpr: NimNode): (NimNode, NimNode, NimNode) {.since: (
     result[2] = copyNimTree(n)
     for i in ord(n.kind == nnkCaseStmt) ..< n.len:
       (result[0][i], result[1][^1], result[2][^1]) = trans(n[i], res, bracketExpr)
-  of nnkStmtList, nnkStmtListExpr, nnkBlockStmt, nnkBlockExpr, nnkWhileStmt,
-      nnkForStmt, nnkElifBranch, nnkElse, nnkElifExpr, nnkOfBranch, nnkExceptBranch:
+  of nnkStmtList, nnkStmtListExpr, nnkBlockStmt, nnkBlockExpr, nnkWhileStmt, nnkForStmt,
+      nnkElifBranch, nnkElse, nnkElifExpr, nnkOfBranch, nnkExceptBranch:
     result[0] = copyNimTree(n)
     result[1] = copyNimTree(n)
     result[2] = copyNimTree(n)
     if n.len >= 1:
-      (result[0][^1], result[1][^1], result[2][^1]) = trans(n[^1],
-          res, bracketExpr)
+      (result[0][^1], result[1][^1], result[2][^1]) = trans(n[^1], res, bracketExpr)
   of nnkTableConstr:
     result[1] = n[0][0]
     result[2] = n[0][1]
     if bracketExpr.len == 0:
       bracketExpr.add(ident"initTable") # don't import tables
     if bracketExpr.len == 1:
-      bracketExpr.add([newCall(bindSym"typeof",
-          newEmptyNode()), newCall(bindSym"typeof", newEmptyNode())])
-    template adder(res, k, v) = res[k] = v
+      bracketExpr.add(
+        [
+          newCall(bindSym"typeof", newEmptyNode()),
+          newCall(bindSym"typeof", newEmptyNode()),
+        ]
+      )
+    template adder(res, k, v) =
+      res[k] = v
+
     result[0] = getAst(adder(res, n[0][0], n[0][1]))
   of nnkCurly:
     result[2] = n[0]
@@ -330,7 +352,9 @@ proc trans(n, res, bracketExpr: NimNode): (NimNode, NimNode, NimNode) {.since: (
       bracketExpr.add(ident"initHashSet")
     if bracketExpr.len == 1:
       bracketExpr.add(newCall(bindSym"typeof", newEmptyNode()))
-    template adder(res, v) = res.incl(v)
+    template adder(res, v) =
+      res.incl(v)
+
     result[0] = getAst(adder(res, n[0]))
   else:
     result[2] = n
@@ -338,17 +362,24 @@ proc trans(n, res, bracketExpr: NimNode): (NimNode, NimNode, NimNode) {.since: (
       bracketExpr.add(bindSym"newSeq")
     if bracketExpr.len == 1:
       bracketExpr.add(newCall(bindSym"typeof", newEmptyNode()))
-    template adder(res, v) = res.add(v)
+    template adder(res, v) =
+      res.add(v)
+
     result[0] = getAst(adder(res, n))
 
 proc collectImpl(init, body: NimNode): NimNode {.since: (1, 1).} =
   let res = genSym(nskVar, "collectResult")
   var bracketExpr: NimNode
   if init != nil:
-    expectKind init, {nnkCall, nnkIdent, nnkSym, nnkClosedSymChoice, nnkOpenSymChoice, nnkOpenSym}
-    bracketExpr = newTree(nnkBracketExpr,
+    expectKind init,
+      {nnkCall, nnkIdent, nnkSym, nnkClosedSymChoice, nnkOpenSymChoice, nnkOpenSym}
+    bracketExpr = newTree(
+      nnkBracketExpr,
       if init.kind in {nnkCall, nnkClosedSymChoice, nnkOpenSymChoice, nnkOpenSym}:
-        freshIdentNodes(init[0]) else: freshIdentNodes(init))
+        freshIdentNodes(init[0])
+      else:
+        freshIdentNodes(init),
+    )
   else:
     bracketExpr = newTree(nnkBracketExpr)
   let (resBody, keyType, valueType) = trans(body, res, bracketExpr)
@@ -379,23 +410,27 @@ macro collect*(init, body: untyped): untyped {.since: (1, 1).} =
     ## seq:
     let k = collect(newSeq):
       for i, d in data.pairs:
-        if i mod 2 == 0: d
+        if i mod 2 == 0:
+          d
     assert k == @["bird"]
 
     ## seq with initialSize:
     let x = collect(newSeqOfCap(4)):
       for i, d in data.pairs:
-        if i mod 2 == 0: d
+        if i mod 2 == 0:
+          d
     assert x == @["bird"]
 
     ## HashSet:
     let y = collect(initHashSet()):
-      for d in data.items: {d}
+      for d in data.items:
+        {d}
     assert y == data.toHashSet
 
     ## Table:
     let z = collect(initTable(2)):
-      for i, d in data.pairs: {i: d}
+      for i, d in data.pairs:
+        {i: d}
     assert z == {0: "bird", 1: "word"}.toTable
 
   result = collectImpl(init, body)
@@ -413,17 +448,20 @@ macro collect*(body: untyped): untyped {.since: (1, 5).} =
     # seq:
     let k = collect:
       for i, d in data.pairs:
-        if i mod 2 == 0: d
+        if i mod 2 == 0:
+          d
     assert k == @["bird"]
 
     ## HashSet:
     let n = collect:
-      for d in data.items: {d}
+      for d in data.items:
+        {d}
     assert n == data.toHashSet
 
     ## Table:
     let m = collect:
-      for i, d in data.pairs: {i: d}
+      for i, d in data.pairs:
+        {i: d}
     assert m == {0: "bird", 1: "word"}.toTable
 
   result = collectImpl(nil, body)

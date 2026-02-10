@@ -66,7 +66,9 @@ proc declared*(x: untyped): bool {.magic: "Declared", noSideEffect, compileTime.
   ## See also:
   ## * `declaredInScope <#declaredInScope,untyped>`_
 
-proc declaredInScope*(x: untyped): bool {.magic: "DeclaredInScope", noSideEffect, compileTime.}
+proc declaredInScope*(
+  x: untyped
+): bool {.magic: "DeclaredInScope", noSideEffect, compileTime.}
   ## Special compile-time procedure that checks whether `x` is
   ## declared in the current scope. `x` has to be an identifier.
 
@@ -103,18 +105,18 @@ proc runnableExamples*(rdoccmd = "", body: untyped) {.magic: "RunnableExamples".
         const exported* = 123
         assert timesTwo(5) == 10
         block: # at block scope
-          defer: echo "done"
+          defer:
+            echo "done"
       runnableExamples "-d:foo -b:cpp":
         import std/compilesettings
         assert querySetting(backend) == "cpp"
         assert defined(foo)
       runnableExamples "-r:off": ## this one is only compiled
-         import std/browsers
-         openDefaultBrowser "https://forum.nim-lang.org/"
+        import std/browsers
+        openDefaultBrowser "https://forum.nim-lang.org/"
       2 * x
 
-proc compileOption*(option: string): bool {.
-  magic: "CompileOption", noSideEffect.} =
+proc compileOption*(option: string): bool {.magic: "CompileOption", noSideEffect.} =
   ## Can be used to determine an `on|off` compile-time option.
   ##
   ## See also:
@@ -122,14 +124,17 @@ proc compileOption*(option: string): bool {.
   ## * `defined <#defined,untyped>`_
   ## * `std/compilesettings module <compilesettings.html>`_
   runnableExamples("--floatChecks:off"):
-    static: doAssert not compileOption("floatchecks")
+    static:
+      doAssert not compileOption("floatchecks")
     {.push floatChecks: on.}
-    static: doAssert compileOption("floatchecks")
+    static:
+      doAssert compileOption("floatchecks")
     # floating point NaN and Inf checks enabled in this scope
     {.pop.}
 
-proc compileOption*(option, arg: string): bool {.
-  magic: "CompileOptionArg", noSideEffect.} =
+proc compileOption*(
+    option, arg: string
+): bool {.magic: "CompileOptionArg", noSideEffect.} =
   ## Can be used to determine an enum compile-time option.
   ##
   ## See also:
@@ -140,7 +145,7 @@ proc compileOption*(option, arg: string): bool {.
     when compileOption("opt", "size") and compileOption("gc", "boehm"):
       discard "compiled with optimization for size and uses Boehm's GC"
 
-template currentSourcePath*: string = instantiationInfo(-1, true).filename
+template currentSourcePath*(): string =
   ## Returns the full file-system path of the current source.
   ##
   ## To get the directory containing the current source, use it with
@@ -155,6 +160,7 @@ template currentSourcePath*: string = instantiationInfo(-1, true).filename
   ##
   ## See also:
   ## * `ospaths2.getCurrentDir() proc <ospaths2.html#getCurrentDir>`_
+  instantiationInfo(-1, true).filename
 
 proc slurp*(filename: string): string {.magic: "Slurp".}
   ## This is an alias for `staticRead <#staticRead,string>`_.
@@ -171,12 +177,13 @@ proc staticRead*(filename: string): string {.magic: "Slurp".}
   ##
   ## `slurp <#slurp,string>`_ is an alias for `staticRead`.
 
-proc gorge*(command: string, input = "", cache = ""): string {.
-  magic: "StaticExec".} = discard
+proc gorge*(command: string, input = "", cache = ""): string {.magic: "StaticExec".} =
   ## This is an alias for `staticExec <#staticExec,string,string,string>`_.
+  discard
 
-proc staticExec*(command: string, input = "", cache = ""): string {.
-  magic: "StaticExec".} = discard
+proc staticExec*(
+    command: string, input = "", cache = ""
+): string {.magic: "StaticExec".} =
   ## Executes an external process at compile-time and returns its text output
   ## (stdout + stderr).
   ##
@@ -201,9 +208,11 @@ proc staticExec*(command: string, input = "", cache = ""): string {.
   ##   ```nim
   ##   const stateMachine = staticExec("dfaoptimizer", "input", "0.8.0")
   ##   ```
+  discard
 
-proc gorgeEx*(command: string, input = "", cache = ""): tuple[output: string,
-                                                              exitCode: int] {.noinit.} =
+proc gorgeEx*(
+    command: string, input = "", cache = ""
+): tuple[output: string, exitCode: int] {.noinit.} =
   ## Similar to `gorge <#gorge,string,string,string>`_ but also returns the
   ## precious exit code.
   discard

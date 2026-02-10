@@ -18,34 +18,31 @@
 ## * `hashes module<hashes.html>`_ for efficient computations of hash values
 ##   for diverse Nim types
 
-{.deprecated: "use command `nimble install checksums` and import `checksums/md5` instead".}
+{.
+  deprecated:
+    "use command `nimble install checksums` and import `checksums/md5` instead"
+.}
 
 when defined(nimHasStyleChecks):
   {.push styleChecks: off.}
 
 type
-  MD5State = array[0..3, uint32]
-  MD5Block = array[0..15, uint32]
-  MD5CBits = array[0..7, uint8]
-  MD5Digest* = array[0..15, uint8]
+  MD5State = array[0 .. 3, uint32]
+  MD5Block = array[0 .. 15, uint32]
+  MD5CBits = array[0 .. 7, uint8]
+  MD5Digest* = array[0 .. 15, uint8]
     ## MD5 checksum of a string, obtained with the `toMD5 proc <#toMD5,string>`_.
-  MD5Buffer = array[0..63, uint8]
+  MD5Buffer = array[0 .. 63, uint8]
   MD5Context* {.final.} = object
     state: MD5State
-    count: array[0..1, uint32]
+    count: array[0 .. 1, uint32]
     buffer: MD5Buffer
 
-const
-  padding: array[0..63, uint8] = [
-    0x80'u8, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0
-  ]
+const padding: array[0 .. 63, uint8] = [
+  0x80'u8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  0, 0, 0, 0, 0, 0, 0, 0,
+]
 
 proc F(x, y, z: uint32): uint32 {.inline.} =
   result = (x and y) or ((not x) and z)
@@ -84,20 +81,19 @@ proc II(a: var uint32, b, c, d, x: uint32, s: uint8, ac: uint32) =
 
 proc encode(dest: var MD5Block, src: openArray[uint8]) =
   var j = 0
-  for i in 0..high(dest):
-    dest[i] = uint32(ord(src[j])) or
-              uint32(ord(src[j+1])) shl 8 or
-              uint32(ord(src[j+2])) shl 16 or
-              uint32(ord(src[j+3])) shl 24
+  for i in 0 .. high(dest):
+    dest[i] =
+      uint32(ord(src[j])) or uint32(ord(src[j + 1])) shl 8 or
+      uint32(ord(src[j + 2])) shl 16 or uint32(ord(src[j + 3])) shl 24
     inc(j, 4)
 
 proc decode(dest: var openArray[uint8], src: openArray[uint32]) =
   var i = 0
-  for j in 0..high(src):
+  for j in 0 .. high(src):
     dest[i] = uint8(src[j] and 0xff'u32)
-    dest[i+1] = uint8(src[j] shr 8 and 0xff'u32)
-    dest[i+2] = uint8(src[j] shr 16 and 0xff'u32)
-    dest[i+3] = uint8(src[j] shr 24 and 0xff'u32)
+    dest[i + 1] = uint8(src[j] shr 8 and 0xff'u32)
+    dest[i + 2] = uint8(src[j] shr 16 and 0xff'u32)
+    dest[i + 3] = uint8(src[j] shr 24 and 0xff'u32)
     inc(i, 4)
 
 template slice(s: cstring, a, b): openArray[uint8] =
@@ -120,14 +116,10 @@ template memOrNot(withMem, withoutMem): untyped =
   when nimvm:
     withoutMem
   else:
-    when useMem:
-      withMem
-    else:
-      withoutMem
+    when useMem: withMem else: withoutMem
 
 proc transform(buffer: openArray[uint8], state: var MD5State) =
-  var
-    myBlock: MD5Block = default(MD5Block)
+  var myBlock: MD5Block = default(MD5Block)
   encode(myBlock, buffer)
   var a = state[0]
   var b = state[1]
@@ -203,18 +195,22 @@ proc transform(buffer: openArray[uint8], state: var MD5State) =
   state[3] = state[3] + d
 
 proc md5Init*(c: var MD5Context) {.raises: [], tags: [], gcsafe.}
-proc md5Update*(c: var MD5Context, input: openArray[uint8]) {.raises: [],
-    tags: [], gcsafe.}
-proc md5Final*(c: var MD5Context, digest: var MD5Digest) {.raises: [], tags: [], gcsafe.}
+proc md5Update*(
+  c: var MD5Context, input: openArray[uint8]
+) {.raises: [], tags: [], gcsafe.}
 
-proc md5Update*(c: var MD5Context, input: cstring, len: int) {.raises: [],
-    tags: [], gcsafe.} =
+proc md5Final*(
+  c: var MD5Context, digest: var MD5Digest
+) {.raises: [], tags: [], gcsafe.}
+
+proc md5Update*(
+    c: var MD5Context, input: cstring, len: int
+) {.raises: [], tags: [], gcsafe.} =
   ## Updates the `MD5Context` with the `input` data of length `len`.
   ##
   ## If you use the `toMD5 proc <#toMD5,string>`_, there's no need to call this
   ## function explicitly.
   md5Update(c, input.slice(0, len - 1))
-
 
 proc toMD5*(s: string): MD5Digest =
   ## Computes the `MD5Digest` value for a string `s`.
@@ -235,7 +231,7 @@ proc `$`*(d: MD5Digest): string =
   ## Converts a `MD5Digest` value into its string representation.
   const digits = "0123456789abcdef"
   result = ""
-  for i in 0..15:
+  for i in 0 .. 15:
     add(result, digits[(d[i].int shr 4) and 0xF])
     add(result, digits[d[i].int and 0xF])
 
@@ -257,10 +253,10 @@ proc getMD5*(s: string): string =
 
 proc `==`*(D1, D2: MD5Digest): bool =
   ## Checks if two `MD5Digest` values are identical.
-  for i in 0..15:
-    if D1[i] != D2[i]: return false
+  for i in 0 .. 15:
+    if D1[i] != D2[i]:
+      return false
   return true
-
 
 proc clearBuffer(c: var MD5Context) {.inline.} =
   memOrNot:
@@ -281,14 +277,15 @@ proc md5Init*(c: var MD5Context) =
   c.count[1] = 0'u32
   clearBuffer(c)
 
-proc writeBuffer(c: var MD5Context, index: int,
-                 input: openArray[uint8], inputIndex, len: int) {.inline.} =
+proc writeBuffer(
+    c: var MD5Context, index: int, input: openArray[uint8], inputIndex, len: int
+) {.inline.} =
   memOrNot:
     copyMem(addr(c.buffer[index]), unsafeAddr(input[inputIndex]), len)
   do:
     # cannot use system.`[]=` for arrays and openarrays as
     # it can raise RangeDefect which gets tracked
-    for i in 0..<len:
+    for i in 0 ..< len:
       c.buffer[index + i] = input[inputIndex + i]
 
 proc md5Update*(c: var MD5Context, input: openArray[uint8]) =
@@ -298,7 +295,8 @@ proc md5Update*(c: var MD5Context, input: openArray[uint8]) =
   ## function explicitly.
   var Index = int((c.count[0] shr 3) and 0x3F)
   c.count[0] = c.count[0] + (uint32(input.len) shl 3)
-  if c.count[0] < (uint32(input.len) shl 3): c.count[1] = c.count[1] + 1'u32
+  if c.count[0] < (uint32(input.len) shl 3):
+    c.count[1] = c.count[1] + 1'u32
   c.count[1] = c.count[1] + (uint32(input.len) shr 29)
   var PartLen = 64 - Index
   if input.len >= PartLen:
@@ -323,13 +321,14 @@ proc md5Final*(c: var MD5Context, digest: var MD5Digest) =
     PadLen: int
   decode(Bits, c.count)
   var Index = int((c.count[0] shr 3) and 0x3F)
-  if Index < 56: PadLen = 56 - Index
-  else: PadLen = 120 - Index
+  if Index < 56:
+    PadLen = 56 - Index
+  else:
+    PadLen = 120 - Index
   md5Update(c, padding.slice(0, PadLen - 1))
   md5Update(c, Bits)
   decode(digest, c.state)
   clearBuffer(c)
-
 
 when defined(nimHasStyleChecks):
   {.pop.} #{.push styleChecks: off.}

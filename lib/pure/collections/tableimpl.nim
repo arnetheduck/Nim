@@ -11,10 +11,9 @@
 
 include hashcommon
 
-const
-  defaultInitialSize* = 32
+const defaultInitialSize* = 32
 
-template rawGetDeepImpl() {.dirty.} =   # Search algo for unconditional add
+template rawGetDeepImpl() {.dirty.} = # Search algo for unconditional add
   genHashImpl(key, hc)
   var h: Hash = hc and maxHash(t)
   while isFilled(t.data[h].hcode):
@@ -29,8 +28,9 @@ template rawInsertImpl() {.dirty.} =
 proc rawGetDeep[X, A](t: X, key: A, hc: var Hash): int {.inline, outParamsAt: [3].} =
   rawGetDeepImpl()
 
-proc rawInsert[X, A, B](t: var X, data: var KeyValuePairSeq[A, B],
-                     key: A, val: sink B, hc: Hash, h: Hash) =
+proc rawInsert[X, A, B](
+    t: var X, data: var KeyValuePairSeq[A, B], key: A, val: sink B, hc: Hash, h: Hash
+) =
   rawInsertImpl()
 
 template checkIfInitialized() =
@@ -39,7 +39,8 @@ template checkIfInitialized() =
 
 template addImpl(enlarge) {.dirty.} =
   checkIfInitialized()
-  if mustRehash(t): enlarge(t)
+  if mustRehash(t):
+    enlarge(t)
   var hc: Hash
   var j = rawGetDeep(t, key, hc)
   rawInsert(t, t.data, key, val, hc, j)
@@ -50,7 +51,7 @@ template maybeRehashPutImpl(enlarge, val) {.dirty.} =
   if mustRehash(t):
     enlarge(t)
     index = rawGetKnownHC(t, key, hc)
-  index = -1 - index                  # important to transform for mgetOrPutImpl
+  index = -1 - index # important to transform for mgetOrPutImpl
   rawInsert(t, t.data, key, val, hc, index)
   inc(t.counter)
 
@@ -58,8 +59,10 @@ template putImpl(enlarge) {.dirty.} =
   checkIfInitialized()
   var hc: Hash = default(Hash)
   var index = rawGet(t, key, hc)
-  if index >= 0: t.data[index].val = val
-  else: maybeRehashPutImpl(enlarge, val)
+  if index >= 0:
+    t.data[index].val = val
+  else:
+    maybeRehashPutImpl(enlarge, val)
 
 template mgetOrPutImpl(enlarge) {.dirty.} =
   checkIfInitialized()
@@ -91,7 +94,8 @@ template hasKeyOrPutImpl(enlarge) {.dirty.} =
   if index < 0:
     result = false
     maybeRehashPutImpl(enlarge, val)
-  else: result = true
+  else:
+    result = true
 
 # delImplIdx is KnuthV3 Algo6.4R adapted to i=i+1 (from i=i-1) which has come to
 # be called "back shift delete".  It shifts elements in the collision cluster of
@@ -128,19 +132,19 @@ template delImplIdx(t, i, makeEmpty, cellEmpty, cellHash) =
   if i >= 0:
     dec(t.counter)
     block outer:
-      while true:         # KnuthV3 Algo6.4R adapted for i=i+1 instead of i=i-1
-        var j = i         # The correctness of this depends on (h+1) in nextTry
-        var r = j         # though may be adaptable to other simple sequences.
-        makeEmpty(i)                     # mark current EMPTY
-        {.push warning[UnsafeDefault]:off.}
+      while true: # KnuthV3 Algo6.4R adapted for i=i+1 instead of i=i-1
+        var j = i # The correctness of this depends on (h+1) in nextTry
+        var r = j # though may be adaptable to other simple sequences.
+        makeEmpty(i) # mark current EMPTY
+        {.push warning[UnsafeDefault]: off.}
         reset(t.data[i].key)
         reset(t.data[i].val)
         {.pop.}
         while true:
-          i = (i + 1) and msk            # increment mod table size
-          if cellEmpty(i):               # end of collision cluster; So all done
+          i = (i + 1) and msk # increment mod table size
+          if cellEmpty(i): # end of collision cluster; So all done
             break outer
-          r = cellHash(i) and msk        # initial probe index for key@slot i
+          r = cellHash(i) and msk # initial probe index for key@slot i
           if not ((i >= r and r > j) or (r > j and j > i) or (j > i and i >= r)):
             break
         when defined(js):
@@ -166,7 +170,7 @@ template clearImpl() {.dirty.} =
   for i in 0 ..< t.dataLen:
     when compiles(t.data[i].hcode): # CountTable records don't contain a hcode
       t.data[i].hcode = 0
-    {.push warning[UnsafeDefault]:off.}
+    {.push warning[UnsafeDefault]: off.}
     reset(t.data[i].key)
     reset(t.data[i].val)
     {.pop.}
@@ -174,9 +178,9 @@ template clearImpl() {.dirty.} =
 
 template ctAnd(a, b): bool =
   when a:
-    when b: true
-    else: false
-  else: false
+    when b: true else: false
+  else:
+    false
 
 template initImpl(result: typed, size: int) =
   let correctSize = slotsNeeded(size)
@@ -190,8 +194,10 @@ template initImpl(result: typed, size: int) =
       result.last = -1
 
 template insertImpl() = # for CountTable
-  if t.dataLen == 0: initImpl(t, defaultInitialSize)
-  if mustRehash(t): enlarge(t)
+  if t.dataLen == 0:
+    initImpl(t, defaultInitialSize)
+  if mustRehash(t):
+    enlarge(t)
   ctRawInsert(t, t.data, key, val)
   inc(t.counter)
 
@@ -199,13 +205,18 @@ template getOrDefaultImpl(t, key): untyped =
   mixin rawGet
   var hc: Hash
   var index = rawGet(t, key, hc)
-  if index >= 0: result = t.data[index].val
+  if index >= 0:
+    result = t.data[index].val
 
 template getOrDefaultImpl(t, key, default: untyped): untyped =
   mixin rawGet
   var hc: Hash
   var index = rawGet(t, key, hc)
-  result = if index >= 0: t.data[index].val else: default
+  result =
+    if index >= 0:
+      t.data[index].val
+    else:
+      default
 
 template dollarImpl(): untyped {.dirty.} =
   if t.len == 0:
@@ -213,7 +224,8 @@ template dollarImpl(): untyped {.dirty.} =
   else:
     result = "{"
     for key, val in pairs(t):
-      if result.len > 1: result.add(", ")
+      if result.len > 1:
+        result.add(", ")
       result.addQuoted(key)
       result.add(": ")
       result.addQuoted(val)
@@ -224,8 +236,10 @@ template equalsImpl(s, t: typed) =
     # different insertion orders mean different 'data' seqs, so we have
     # to use the slow route here:
     for key, val in s:
-      if not t.hasKey(key): return false
-      if t.getOrDefault(key) != val: return false
+      if not t.hasKey(key):
+        return false
+      if t.getOrDefault(key) != val:
+        return false
     return true
   else:
     return false

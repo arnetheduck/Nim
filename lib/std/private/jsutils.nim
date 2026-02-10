@@ -8,11 +8,16 @@ when defined(js):
     Uint8Array* = ref object of JsRoot
     BigUint64Array* = ref object of JsRoot
 
-
   func newArrayBuffer*(n: int): ArrayBuffer {.importjs: "new ArrayBuffer(#)".}
-  func newFloat64Array*(buffer: ArrayBuffer): Float64Array {.importjs: "new Float64Array(#)".}
-  func newUint32Array*(buffer: ArrayBuffer): Uint32Array {.importjs: "new Uint32Array(#)".}
-  func newBigUint64Array*(buffer: ArrayBuffer): BigUint64Array {.importjs: "new BigUint64Array(#)".}
+  func newFloat64Array*(
+    buffer: ArrayBuffer
+  ): Float64Array {.importjs: "new Float64Array(#)".}
+  func newUint32Array*(
+    buffer: ArrayBuffer
+  ): Uint32Array {.importjs: "new Uint32Array(#)".}
+  func newBigUint64Array*(
+    buffer: ArrayBuffer
+  ): BigUint64Array {.importjs: "new BigUint64Array(#)".}
 
   func newUint8Array*(n: int): Uint8Array {.importjs: "new Uint8Array(#)".}
 
@@ -45,7 +50,9 @@ when defined(js):
   proc hasBigUint64Array*(): bool =
     {.emit: """`result` = typeof BigUint64Array != 'undefined';""".}
 
-  proc getProtoName*[T](a: T): cstring {.importjs: "Object.prototype.toString.call(#)".} =
+  proc getProtoName*[T](
+      a: T
+  ): cstring {.importjs: "Object.prototype.toString.call(#)".} =
     runnableExamples:
       import std/[jsffi, jsbigints]
       type A = ref object

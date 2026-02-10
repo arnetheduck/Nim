@@ -29,25 +29,26 @@ template toSet*(iter: untyped): untyped =
     assert [30u8, 100, 10].toSet == {10u8, 30, 100}
     assert toSet(@[1321i16, 321, 90]) == {90i16, 321, 1321}
     assert toSet([false]) == {false}
-    assert toSet(0u8..10) == {0u8..10}
+    assert toSet(0u8 .. 10) == {0u8 .. 10}
 
   var result: set[elementType(iter)]
   for x in iter:
     incl(result, x)
   result
 
-macro enumElementsAsSet(enm: typed): untyped = result = newNimNode(nnkCurly).add(enm.getType[1][1..^1])
+macro enumElementsAsSet(enm: typed): untyped =
+  result = newNimNode(nnkCurly).add(enm.getType[1][1 ..^ 1])
 
 # func fullSet*(T: typedesc): set[T] {.inline.} = # xxx would give: Error: ordinal type expected
 func fullSet*[T](U: typedesc[T]): set[T] {.inline.} =
   ## Returns a set containing all elements in `U`.
   runnableExamples:
     assert bool.fullSet == {true, false}
-    type A = range[1..3]
+    type A = range[1 .. 3]
     assert A.fullSet == {1.A, 2, 3}
     assert int8.fullSet.len == 256
   when T is Ordinal:
-    {T.low..T.high}
+    {T.low .. T.high}
   else: # Hole filled enum
     enumElementsAsSet(T)
 
@@ -55,18 +56,26 @@ func complement*[T](s: set[T]): set[T] {.inline.} =
   ## Returns the set complement of `a`.
   runnableExamples:
     type Colors = enum
-      red, green = 3, blue
+      red
+      green = 3
+      blue
+
     assert complement({red, blue}) == {green}
     assert complement({red, green, blue}).card == 0
-    assert complement({range[0..10](0), 1, 2, 3}) == {range[0..10](4), 5, 6, 7, 8, 9, 10}
-    assert complement({'0'..'9'}) == {0.char..255.char} - {'0'..'9'}
+    assert complement({range[0 .. 10](0), 1, 2, 3}) ==
+      {range[0 .. 10](4), 5, 6, 7, 8, 9, 10}
+    assert complement({'0' .. '9'}) == {0.char .. 255.char} - {'0' .. '9'}
   fullSet(T) - s
 
 func `[]=`*[T](t: var set[T], key: T, val: bool) {.inline.} =
   ## Syntax sugar for `if val: t.incl key else: t.excl key`
   runnableExamples:
     type A = enum
-      a0, a1, a2, a3
+      a0
+      a1
+      a2
+      a3
+
     var s = {a0, a3}
     s[a0] = false
     s[a1] = false
@@ -74,7 +83,10 @@ func `[]=`*[T](t: var set[T], key: T, val: bool) {.inline.} =
     s[a2] = true
     s[a3] = true
     assert s == {a2, a3}
-  if val: t.incl key else: t.excl key
+  if val:
+    t.incl key
+  else:
+    t.excl key
 
 when defined(nimHasXorSet):
   func symmetricDifference*[T](x, y: set[T]): set[T] {.magic: "XorSet".} =

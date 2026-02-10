@@ -38,29 +38,31 @@ See also
 
 import std/times
 
-type
-  MonoTime* = object ## Represents a monotonic timestamp.
-    ticks: int64
+type MonoTime* = object ## Represents a monotonic timestamp.
+  ticks: int64
 
 when defined(macosx):
-  type
-    MachTimebaseInfoData {.pure, final, importc: "mach_timebase_info_data_t",
-        header: "<mach/mach_time.h>".} = object
-      numer, denom: int32
+  type MachTimebaseInfoData {.
+    pure, final, importc: "mach_timebase_info_data_t", header: "<mach/mach_time.h>"
+  .} = object
+    numer, denom: int32
 
   proc mach_absolute_time(): int64 {.importc, header: "<mach/mach.h>".}
-  proc mach_timebase_info(info: var MachTimebaseInfoData) {.importc,
-    header: "<mach/mach_time.h>".}
+  proc mach_timebase_info(
+    info: var MachTimebaseInfoData
+  ) {.importc, header: "<mach/mach_time.h>".}
 
 when defined(js):
-  proc getJsTicks: float =
+  proc getJsTicks(): float =
     ## Returns ticks in the unit seconds.
     when defined(nodejs):
-      {.emit: """
+      {.
+        emit: """
       let process = require('process');
       let time = process.hrtime();
       `result` = time[0] + time[1] / 1000000000;
-      """.}
+      """
+      .}
     else:
       proc jsNow(): float {.importjs: "window.performance.now()".}
       result = jsNow() / 1000
@@ -69,22 +71,28 @@ when defined(js):
   {.push overflowChecks: off.}
   proc `-`(a, b: int64): int64 =
     system.`-`(a, b)
+
   proc `+`(a, b: int64): int64 =
     system.`+`(a, b)
-  {.pop.}
 
+  {.pop.}
 elif defined(posix) and not defined(osx):
   import std/posix
 
 when defined(zephyr):
   proc k_uptime_ticks(): int64 {.importc: "k_uptime_ticks", header: "<kernel.h>".}
-  proc k_ticks_to_ns_floor64(ticks: int64): int64 {.importc: "k_ticks_to_ns_floor64", header: "<kernel.h>".}
+  proc k_ticks_to_ns_floor64(
+    ticks: int64
+  ): int64 {.importc: "k_ticks_to_ns_floor64", header: "<kernel.h>".}
 
 elif defined(windows):
-  proc QueryPerformanceCounter(res: var uint64) {.
-    importc: "QueryPerformanceCounter", stdcall, dynlib: "kernel32".}
-  proc QueryPerformanceFrequency(res: var uint64) {.
-    importc: "QueryPerformanceFrequency", stdcall, dynlib: "kernel32".}
+  proc QueryPerformanceCounter(
+    res: var uint64
+  ) {.importc: "QueryPerformanceCounter", stdcall, dynlib: "kernel32".}
+
+  proc QueryPerformanceFrequency(
+    res: var uint64
+  ) {.importc: "QueryPerformanceFrequency", stdcall, dynlib: "kernel32".}
 
 proc getMonoTime*(): MonoTime {.tags: [TimeEffect].} =
   ## Returns the current `MonoTime` timestamp.
@@ -100,16 +108,15 @@ proc getMonoTime*(): MonoTime {.tags: [TimeEffect].} =
     let ticks = mach_absolute_time()
     var machAbsoluteTimeFreq: MachTimebaseInfoData = default(MachTimebaseInfoData)
     mach_timebase_info(machAbsoluteTimeFreq)
-    result = MonoTime(ticks: ticks * machAbsoluteTimeFreq.numer div
-      machAbsoluteTimeFreq.denom)
+    result =
+      MonoTime(ticks: ticks * machAbsoluteTimeFreq.numer div machAbsoluteTimeFreq.denom)
   elif defined(zephyr):
     let ticks = k_ticks_to_ns_floor64(k_uptime_ticks())
     result = MonoTime(ticks: ticks)
   elif defined(posix):
     var ts: Timespec = default(Timespec)
     discard clock_gettime(CLOCK_MONOTONIC, ts)
-    result = MonoTime(ticks: ts.tv_sec.int64 * 1_000_000_000 +
-      ts.tv_nsec.int64)
+    result = MonoTime(ticks: ts.tv_sec.int64 * 1_000_000_000 + ts.tv_nsec.int64)
   elif defined(windows):
     var ticks: uint64 = 0'u64
     QueryPerformanceCounter(ticks)

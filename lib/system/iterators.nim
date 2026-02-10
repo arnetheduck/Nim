@@ -4,9 +4,12 @@ when defined(nimPreviewSlimSystem):
   import std/assertions
 
 when not defined(nimNoLentIterators):
-  template lent2(T): untyped = lent T
+  template lent2(T): untyped =
+    lent T
+
 else:
-  template lent2(T): untyped = T
+  template lent2(T): untyped =
+    T
 
 template unCheckedInc(x) =
   {.push overflowChecks: off.}
@@ -43,7 +46,8 @@ iterator items*[IX, T](a: array[IX, T]): T {.inline.} =
     var i = low(IX)
     while true:
       yield a[i]
-      if i >= high(IX): break
+      if i >= high(IX):
+        break
       unCheckedInc(i)
 
 iterator mitems*[IX, T](a: var array[IX, T]): var T {.inline.} =
@@ -52,7 +56,8 @@ iterator mitems*[IX, T](a: var array[IX, T]): var T {.inline.} =
     var i = low(IX)
     while true:
       yield a[i]
-      if i >= high(IX): break
+      if i >= high(IX):
+        break
       unCheckedInc(i)
 
 iterator items*[T](a: set[T]): T {.inline.} =
@@ -62,9 +67,11 @@ iterator items*[T](a: set[T]): T {.inline.} =
   var i = low(T).int
   while i <= high(T).int:
     when T is enum and not defined(js):
-      if cast[T](i) in a: yield cast[T](i)
+      if cast[T](i) in a:
+        yield cast[T](i)
     else:
-      if T(i) in a: yield T(i)
+      if T(i) in a:
+        yield T(i)
     unCheckedInc(i)
 
 iterator items*(a: cstring): char {.inline.} =
@@ -85,7 +92,9 @@ iterator items*(a: cstring): char {.inline.} =
     while i < n:
       yield a[i]
       unCheckedInc(i)
-  when defined(js): impl()
+
+  when defined(js):
+    impl()
   else:
     when nimvm:
       # xxx `cstring` should behave like c backend instead.
@@ -106,7 +115,8 @@ iterator mitems*(a: var cstring): var char {.inline.} =
     var b = a.cstring
     let s = collect:
       for bi in mitems(b):
-        if bi == 'b': bi = 'B'
+        if bi == 'b':
+          bi = 'B'
         bi
     assert s == @['a', 'B', 'c']
     assert b == "aBc"
@@ -118,9 +128,12 @@ iterator mitems*(a: var cstring): var char {.inline.} =
     while i < n:
       yield a[i]
       unCheckedInc(i)
-  when defined(js): impl()
+
+  when defined(js):
+    impl()
   else:
-    when nimvm: impl()
+    when nimvm:
+      impl()
     else:
       var i = 0
       while a[i] != '\0':
@@ -131,7 +144,11 @@ iterator items*[T: enum and Ordinal](E: typedesc[T]): T =
   ## Iterates over the values of `E`.
   ## See also `enumutils.items` for enums with holes.
   runnableExamples:
-    type Goo = enum g0 = 2, g1, g2
+    type Goo = enum
+      g0 = 2
+      g1
+      g2
+
     from std/sequtils import toSeq
     assert Goo.toSeq == [g0, g1, g2]
   for v in low(E) .. high(E):
@@ -150,7 +167,7 @@ iterator pairs*[T](a: openArray[T]): tuple[key: int, val: T] {.inline.} =
     yield (i, a[i])
     unCheckedInc(i)
 
-iterator mpairs*[T](a: var openArray[T]): tuple[key: int, val: var T]{.inline.} =
+iterator mpairs*[T](a: var openArray[T]): tuple[key: int, val: var T] {.inline.} =
   ## Iterates over each item of `a`. Yields `(index, a[index])` pairs.
   ## `a[index]` can be modified.
   var i = 0
@@ -164,7 +181,8 @@ iterator pairs*[IX, T](a: array[IX, T]): tuple[key: IX, val: T] {.inline.} =
     var i = low(IX)
     while true:
       yield (i, a[i])
-      if i >= high(IX): break
+      if i >= high(IX):
+        break
       unCheckedInc(i)
 
 iterator mpairs*[IX, T](a: var array[IX, T]): tuple[key: IX, val: var T] {.inline.} =
@@ -174,7 +192,8 @@ iterator mpairs*[IX, T](a: var array[IX, T]): tuple[key: IX, val: var T] {.inlin
     var i = low(IX)
     while true:
       yield (i, a[i])
-      if i >= high(IX): break
+      if i >= high(IX):
+        break
       unCheckedInc(i)
 
 iterator pairs*[T](a: seq[T]): tuple[key: int, val: T] {.inline.} =
@@ -280,9 +299,7 @@ iterator mitems*(a: var string): var char {.inline.} =
     unCheckedInc(i)
     assert(len(a) == L, "the length of the string changed while iterating over it")
 
-
-iterator fields*[T: tuple|object](x: T): RootObj {.
-  magic: "Fields", noSideEffect.} =
+iterator fields*[T: tuple | object](x: T): RootObj {.magic: "Fields", noSideEffect.} =
   ## Iterates over every field of `x`.
   ##
   ## .. warning:: This really transforms the 'for' and unrolls the loop.
@@ -290,11 +307,13 @@ iterator fields*[T: tuple|object](x: T): RootObj {.
   ##   that affects symbol binding in the loop body.
   runnableExamples:
     var t = (1, "foo")
-    for v in fields(t): v = default(typeof(v))
+    for v in fields(t):
+      v = default(typeof(v))
     doAssert t == (0, "")
 
-iterator fields*[S:tuple|object, T:tuple|object](x: S, y: T): tuple[key: string, val: RootObj] {.
-  magic: "Fields", noSideEffect.} =
+iterator fields*[S: tuple | object, T: tuple | object](
+    x: S, y: T
+): tuple[key: string, val: RootObj] {.magic: "Fields", noSideEffect.} =
   ## Iterates over every field of `x` and `y`.
   ##
   ## .. warning:: This really transforms the 'for' and unrolls the loop.
@@ -303,11 +322,13 @@ iterator fields*[S:tuple|object, T:tuple|object](x: S, y: T): tuple[key: string,
   runnableExamples:
     var t1 = (1, "foo")
     var t2 = default(typeof(t1))
-    for v1, v2 in fields(t1, t2): v2 = v1
+    for v1, v2 in fields(t1, t2):
+      v2 = v1
     doAssert t1 == t2
 
-iterator fieldPairs*[T: tuple|object](x: T): tuple[key: string, val: RootObj] {.
-  magic: "FieldPairs", noSideEffect.} =
+iterator fieldPairs*[T: tuple | object](
+    x: T
+): tuple[key: string, val: RootObj] {.magic: "FieldPairs", noSideEffect.} =
   ## Iterates over every field of `x` returning their name and value.
   ##
   ## When you iterate over objects with different field types you have to use
@@ -322,10 +343,10 @@ iterator fieldPairs*[T: tuple|object](x: T): tuple[key: string, val: RootObj] {.
   ##   current implementation also has a bug that affects symbol binding in the
   ##   loop body.
   runnableExamples:
-    type
-      Custom = object
-        foo: string
-        bar: bool
+    type Custom = object
+      foo: string
+      bar: bool
+
     proc `$`(x: Custom): string =
       result = "Custom:"
       for name, value in x.fieldPairs:
@@ -334,9 +355,9 @@ iterator fieldPairs*[T: tuple|object](x: T): tuple[key: string, val: RootObj] {.
         else:
           result.add("\n\t" & name & " '" & value & "'")
 
-iterator fieldPairs*[S: tuple|object, T: tuple|object](x: S, y: T): tuple[
-  key: string, a, b: RootObj] {.
-  magic: "FieldPairs", noSideEffect.} =
+iterator fieldPairs*[S: tuple | object, T: tuple | object](
+    x: S, y: T
+): tuple[key: string, a, b: RootObj] {.magic: "FieldPairs", noSideEffect.} =
   ## Iterates over every field of `x` and `y`.
   ##
   ## .. warning:: This really transforms the 'for' and unrolls the loop.
@@ -346,8 +367,10 @@ iterator fieldPairs*[S: tuple|object, T: tuple|object](x: S, y: T): tuple[
     type Foo = object
       x1: int
       x2: string
+
     var a1 = Foo(x1: 12, x2: "abc")
     var a2: Foo
     for name, v1, v2 in fieldPairs(a1, a2):
-      when name == "x2": v2 = v1
+      when name == "x2":
+        v2 = v1
     doAssert a2 == Foo(x1: 0, x2: "abc")

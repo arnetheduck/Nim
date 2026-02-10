@@ -15,7 +15,9 @@
 when defined(windows):
   import std/[winlean, os, strutils, math]
 
-  proc `-`(a, b: FILETIME): int64 = a.rdFileTime - b.rdFileTime
+  proc `-`(a, b: FILETIME): int64 =
+    a.rdFileTime - b.rdFileTime
+
 elif defined(linux):
   from std/cpuinfo import countProcessors
 
@@ -24,8 +26,8 @@ when defined(nimPreviewSlimSystem):
 
 type
   ThreadPoolAdvice* = enum
-    doNothing,
-    doCreateThread,  # create additional thread for throughput
+    doNothing
+    doCreateThread # create additional thread for throughput
     doShutdownThread # too many threads are busy, shutdown one
 
   ThreadPoolState* = object
@@ -35,12 +37,10 @@ type
 
 proc advice*(s: var ThreadPoolState): ThreadPoolAdvice =
   when defined(windows):
-    var
-      sysIdle, sysKernel, sysUser,
-        procCreation, procExit, procKernel, procUser: FILETIME
+    var sysIdle, sysKernel, sysUser, procCreation, procExit, procKernel, procUser:
+      FILETIME
     if getSystemTimes(sysIdle, sysKernel, sysUser) == 0 or
-        getProcessTimes(Handle(-1), procCreation, procExit,
-                        procKernel, procUser) == 0:
+        getProcessTimes(Handle(-1), procCreation, procExit, procKernel, procUser) == 0:
       return doNothing
     if s.calls > 0:
       let
@@ -62,20 +62,18 @@ proc advice*(s: var ThreadPoolState): ThreadPoolAdvice =
     s.prevProcKernel = procKernel
     s.prevProcUser = procUser
   elif defined(linux):
-    proc fscanf(c: File, frmt: cstring) {.varargs, importc,
-      header: "<stdio.h>".}
+    proc fscanf(c: File, frmt: cstring) {.varargs, importc, header: "<stdio.h>".}
 
     var f: File = default(File)
     if f.open("/proc/loadavg"):
       var b: float
       var busy, total: int = 0
-      fscanf(f,"%lf %lf %lf %ld/%ld",
-            addr b, addr b, addr b, addr busy, addr total)
+      fscanf(f, "%lf %lf %lf %ld/%ld", addr b, addr b, addr b, addr busy, addr total)
       f.close()
       let cpus = countProcessors()
-      if busy-1 < cpus:
+      if busy - 1 < cpus:
         result = doCreateThread
-      elif busy-1 >= cpus*2:
+      elif busy - 1 >= cpus * 2:
         result = doShutdownThread
       else:
         result = doNothing

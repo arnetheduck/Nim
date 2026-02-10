@@ -60,5 +60,7 @@ proc unidecode*(s: string): string =
   result = ""
   for r in runes(s):
     var c = int(r)
-    if c <=% 127: add(result, chr(c))
-    elif c <% translationTable.len: add(result, translationTable[c - 128])
+    if c <=% 127:
+      add(result, chr(c))
+    elif c <% translationTable.len:
+      add(result, translationTable[c - 128])

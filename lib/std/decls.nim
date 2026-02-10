@@ -24,8 +24,14 @@ macro byaddr*(sect) =
     lhs = def[0]
     typ = def[1]
     ex = def[2]
-    addrTyp = if typ.kind == nnkEmpty: typ else: newTree(nnkPtrTy, typ)
-  result = quote do:
+    addrTyp =
+      if typ.kind == nnkEmpty:
+        typ
+      else:
+        newTree(nnkPtrTy, typ)
+  result = quote:
     let tmp: `addrTyp` = addr(`ex`)
-    template `lhs`: untyped = tmp[]
+    template `lhs`(): untyped =
+      tmp[]
+
   result.copyLineInfo(def)

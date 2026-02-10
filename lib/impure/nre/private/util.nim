@@ -1,8 +1,8 @@
 ## INTERNAL FILE FOR USE ONLY BY nre.nim.
 import std/tables
 
-const Ident = {'a'..'z', 'A'..'Z', '0'..'9', '_', '\128'..'\255'}
-const StartIdent = Ident - {'0'..'9'}
+const Ident = {'a' .. 'z', 'A' .. 'Z', '0' .. '9', '_', '\128' .. '\255'}
+const StartIdent = Ident - {'0' .. '9'}
 
 template formatStr*(howExpr, namegetter, idgetter): untyped =
   let how = howExpr
@@ -23,10 +23,10 @@ template formatStr*(howExpr, namegetter, idgetter): untyped =
         val.add(idgetter)
         lastNum += 1
         i += 2
-      elif how[i + 1] in {'0'..'9'}:
+      elif how[i + 1] in {'0' .. '9'}:
         i += 1
         var id {.inject.} = 0
-        while i < how.len and how[i] in {'0'..'9'}:
+        while i < how.len and how[i] in {'0' .. '9'}:
           id += (id * 10) + (ord(how[i]) - ord('0'))
           i += 1
         val.add(idgetter)

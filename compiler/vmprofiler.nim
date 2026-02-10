@@ -1,4 +1,3 @@
-
 import options, vmdef, lineinfos, msgs
 
 import std/[times, strutils, tables]
@@ -29,7 +28,7 @@ proc leave*(prof: var Profiler, c: PCtx) {.inline.} =
 proc dump*(conf: ConfigRef, pd: ProfileData): string =
   var data = pd.data
   result = "\nprof:     µs    #instr  location"
-  for i in 0..<32:
+  for i in 0 ..< 32:
     var tMax: float
     var infoMax: ProfileInfo = default(ProfileInfo)
     var flMax: TLineInfo = default(TLineInfo)
@@ -39,7 +38,6 @@ proc dump*(conf: ConfigRef, pd: ProfileData): string =
         flMax = fl
     if infoMax.count == 0:
       break
-    result.add  "  " & align($int(infoMax.time * 1e6), 10) &
-                       align($int(infoMax.count), 10) & "  " &
-                       conf.toFileLineCol(flMax) & "\n"
+    result.add "  " & align($int(infoMax.time * 1e6), 10) &
+      align($int(infoMax.count), 10) & "  " & conf.toFileLineCol(flMax) & "\n"
     data.del flMax

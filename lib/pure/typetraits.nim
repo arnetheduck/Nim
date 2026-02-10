@@ -18,20 +18,30 @@ export system.`$` # for backward compatibility
 when defined(nimPreviewSlimSystem):
   import std/assertions
 
-
 type HoleyEnum* = (not Ordinal) and enum ## Enum with holes.
 type OrdinalEnum* = Ordinal and enum ## Enum without holes.
 
 runnableExamples:
-  type A = enum a0 = 2, a1 = 4, a2
-  type B = enum b0 = 2, b1, b2
+  type A = enum
+    a0 = 2
+    a1 = 4
+    a2
+
+  type B = enum
+    b0 = 2
+    b1
+    b2
+
   assert A is enum
   assert A is HoleyEnum
   assert A isnot OrdinalEnum
   assert B isnot HoleyEnum
   assert B is OrdinalEnum
   assert int isnot HoleyEnum
-  type C[T] = enum h0 = 2, h1 = 4
+  type C[T] = enum
+    h0 = 2
+    h1 = 4
+
   assert C[float] is HoleyEnum
 
 proc name*(t: typedesc): string {.magic: "TypeTrait".} =
@@ -72,7 +82,8 @@ proc genericHead*(t: typedesc): typedesc {.magic: "TypeTrait".} =
     type Generic = concept f
       type _ = genericHead(typeof(f))
 
-    proc bar(a: Generic): typeof(a) = a
+    proc bar(a: Generic): typeof(a) =
+      a
 
     doAssert bar(Foo[string].default) == Foo[string]()
     doAssert not compiles bar(string.default)
@@ -103,6 +114,7 @@ proc hasDefaultValue*(t: typedesc): bool {.magic: "TypeTrait".} =
     type
       NilableObject = ref object
         a: int
+
       Object = NilableObject not nil
       RequiresInit[T] = object
         a {.requiresInit.}: T
@@ -136,19 +148,27 @@ proc rangeBase*(T: typedesc[range]): typedesc {.magic: "TypeTrait".} =
   ## **See also:**
   ## * `rangeBase template <#rangeBase.t,T>`_
   runnableExamples:
-    type MyRange = range[0..5]
-    type MyEnum = enum a, b, c
-    type MyEnumRange = range[b..c]
+    type MyRange = range[0 .. 5]
+    type MyEnum = enum
+      a
+      b
+      c
+
+    type MyEnumRange = range[b .. c]
     doAssert rangeBase(MyRange) is int
     doAssert rangeBase(MyEnumRange) is MyEnum
-    doAssert rangeBase(range['a'..'z']) is char
+    doAssert rangeBase(range['a' .. 'z']) is char
 
 template rangeBase*[T: range](a: T): untyped =
   ## Overload of `rangeBase <#rangeBase,typedesc,static[bool]>`_ for values.
   runnableExamples:
-    type MyRange = range[0..5]
-    type MyEnum = enum a, b, c
-    type MyEnumRange = range[b..c]
+    type MyRange = range[0 .. 5]
+    type MyEnum = enum
+      a
+      b
+      c
+
+    type MyEnumRange = range[b .. c]
     let x = MyRange(3)
     doAssert rangeBase(x) is int
     doAssert $typeof(rangeBase(x)) == "int"
@@ -158,13 +178,15 @@ template rangeBase*[T: range](a: T): untyped =
       doAssert rangeBase(e) is MyEnum
       doAssert $typeof(rangeBase(e)) == "MyEnum"
       doAssert rangeBase(e) == c
-    let z: seq[range['a'..'z']] = @['c']
+    let z: seq[range['a' .. 'z']] = @['c']
     doAssert rangeBase(z[0]) is char
     doAssert $typeof(rangeBase(z[0])) == "char"
     doAssert rangeBase(z[0]) == 'c'
   rangeBase(typeof(T))(a)
 
-proc distinctBase*(T: typedesc, recursive: static bool = true): typedesc {.magic: "TypeTrait".} =
+proc distinctBase*(
+    T: typedesc, recursive: static bool = true
+): typedesc {.magic: "TypeTrait".} =
   ## Returns the base type for distinct types, or the type itself otherwise.
   ## If `recursive` is false, only the immediate distinct base will be returned.
   ##
@@ -232,11 +254,17 @@ since (1, 3, 5):
         for i in 0 ..< n:
           yield i
 
-      doAssert elementType(@[1,2]) is int
+      doAssert elementType(@[1, 2]) is int
       doAssert elementType("asdf") is char
       doAssert elementType(myiter(3)) is int
 
-    typeof(block: (for ai in a: ai))
+    typeof(
+      block:
+        (;
+          for ai in a:
+            ai
+        )
+    )
 
 import std/macros
 
@@ -270,22 +298,23 @@ macro genericParamsImpl(T: typedesc): untyped =
     of nnkTypeOfExpr:
       impl = getTypeInst(impl[0])
     of nnkBracketExpr:
-      for i in 1..<impl.len:
+      for i in 1 ..< impl.len:
         let ai = impl[i]
         var ret: NimNode = nil
         case ai.typeKind
         of ntyTypeDesc:
           ret = ai
-        of ntyStatic: raiseAssert "unreachable"
+        of ntyStatic:
+          raiseAssert "unreachable"
         else:
           # getType from a resolved symbol might return a typedesc symbol.
           # If so, use it directly instead of wrapping it in StaticParam.
-          if (ai.kind == nnkSym and ai.symKind == nskType) or
-              (ai.kind == nnkBracketExpr and ai[0].kind == nnkSym and
-              ai[0].symKind == nskType) or ai.kind in {nnkRefTy, nnkVarTy, nnkPtrTy, nnkProcTy}:
+          if (ai.kind == nnkSym and ai.symKind == nskType) or (
+            ai.kind == nnkBracketExpr and ai[0].kind == nnkSym and
+            ai[0].symKind == nskType
+          ) or ai.kind in {nnkRefTy, nnkVarTy, nnkPtrTy, nnkProcTy}:
             ret = ai
-          elif ai.kind == nnkInfix and ai[0].kind == nnkIdent and
-                ai[0].strVal == "..":
+          elif ai.kind == nnkInfix and ai[0].kind == nnkIdent and ai[0].strVal == "..":
             # For built-in array types, the "2" is translated to "0..1" then
             # automagically translated to "range[0..1]". However this is not
             # reflected in the AST, thus requiring manual transformation here.
@@ -330,13 +359,13 @@ since (1, 1):
 
       doAssert genericParams(array[10, int]) is (StaticParam[10], int)
       var a: array[10, int]
-      doAssert genericParams(typeof(a)) is (range[0..9], int)
+      doAssert genericParams(typeof(a)) is (range[0 .. 9], int)
 
     type T2 = T
     genericParamsImpl(T2)
 
-
-proc hasClosureImpl(n: NimNode): bool = raiseAssert "see compiler/vmops.nim"
+proc hasClosureImpl(n: NimNode): bool =
+  raiseAssert "see compiler/vmops.nim"
 
 proc hasClosure*(fn: NimNode): bool {.since: (1, 5, 1).} =
   ## Returns true if the func/proc/etc `fn` has `closure`.
@@ -353,13 +382,19 @@ template toUnsigned*(T: typedesc[SomeInteger and not range]): untyped =
     assert uint.toUnsigned is uint
     assert int.toUnsigned is uint
     # range types are currently unsupported:
-    assert not compiles(toUnsigned(range[0..7]))
-  when T is int8: uint8
-  elif T is int16: uint16
-  elif T is int32: uint32
-  elif T is int64: uint64
-  elif T is int: uint
-  else: T
+    assert not compiles(toUnsigned(range[0 .. 7]))
+  when T is int8:
+    uint8
+  elif T is int16:
+    uint16
+  elif T is int32:
+    uint32
+  elif T is int64:
+    uint64
+  elif T is int:
+    uint
+  else:
+    T
 
 template toSigned*(T: typedesc[SomeInteger and not range]): untyped =
   ## Returns a signed type with same bit size as `T`.
@@ -367,10 +402,16 @@ template toSigned*(T: typedesc[SomeInteger and not range]): untyped =
     assert int8.toSigned is int8
     assert uint16.toSigned is int16
     # range types are currently unsupported:
-    assert not compiles(toSigned(range[0..7]))
-  when T is uint8: int8
-  elif T is uint16: int16
-  elif T is uint32: int32
-  elif T is uint64: int64
-  elif T is uint: int
-  else: T
+    assert not compiles(toSigned(range[0 .. 7]))
+  when T is uint8:
+    int8
+  elif T is uint16:
+    int16
+  elif T is uint32:
+    int32
+  elif T is uint64:
+    int64
+  elif T is uint:
+    int
+  else:
+    T

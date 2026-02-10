@@ -20,25 +20,25 @@ when defined(gcOrc):
   const
     rcIncrement = 0b10000 # so that lowest 4 bits are not touched
     rcMask = 0b1111
-    rcShift = 4      # shift by rcShift to get the reference counter
-
+    rcShift = 4 # shift by rcShift to get the reference counter
 else:
   const
     rcIncrement = 0b1000 # so that lowest 3 bits are not touched
     rcMask = 0b111
-    rcShift = 3      # shift by rcShift to get the reference counter
+    rcShift = 3 # shift by rcShift to get the reference counter
 
-const
-  orcLeakDetector = defined(nimOrcLeakDetector)
+const orcLeakDetector = defined(nimOrcLeakDetector)
 
 type
   RefHeader = object
-    rc: int # the object header is now a single RC field.
-            # we could remove it in non-debug builds for the 'owned ref'
-            # design but this seems unwise.
+    rc: int
+      # the object header is now a single RC field.
+      # we could remove it in non-debug builds for the 'owned ref'
+      # design but this seems unwise.
     when defined(gcOrc):
-      rootIdx: int # thanks to this we can delete potential cycle roots
-                   # in O(1) without doubly linked lists
+      rootIdx: int
+        # thanks to this we can delete potential cycle roots
+        # in O(1) without doubly linked lists
     when defined(nimArcDebug) or defined(nimArcIds):
       refId: int
     when defined(gcOrc) and orcLeakDetector:
@@ -59,8 +59,7 @@ template setFrameInfo(c: Cell) =
 template head(p: pointer): Cell =
   cast[Cell](cast[int](p) -% sizeof(RefHeader))
 
-const
-  traceCollector = defined(traceArc)
+const traceCollector = defined(traceArc)
 
 when defined(nimArcDebug):
   include cellsets
@@ -77,15 +76,20 @@ elif defined(nimArcIds):
 when defined(gcAtomicArc) and hasThreadSupport:
   template decrement(cell: Cell): untyped =
     discard atomicDec(cell.rc, rcIncrement)
+
   template increment(cell: Cell): untyped =
     discard atomicInc(cell.rc, rcIncrement)
+
   template count(x: Cell): untyped =
     atomicLoadN(x.rc.addr, ATOMIC_ACQUIRE) shr rcShift
+
 else:
   template decrement(cell: Cell): untyped =
     cell.rc = cell.rc -% rcIncrement
+
   template increment(cell: Cell): untyped =
     cell.rc = cell.rc +% rcIncrement
+
   template count(x: Cell): untyped =
     x.rc shr rcShift
 
@@ -164,7 +168,8 @@ when not defined(gcOrc) or defined(nimThinout):
     # as we cannot destroy the object reliably if it's an object of unknown
     # compile-time type.
     dest[] = src
-    if src != nil: nimIncRef src
+    if src != nil:
+      nimIncRef src
 
 when not defined(nimscript) and defined(nimArcDebug):
   proc deallocatedRefId*(p: pointer): int =
@@ -186,13 +191,16 @@ proc nimRawDispose(p: pointer, alignment: int) {.compilerRtl.} =
         rawQuit 1
     when defined(nimArcDebug):
       # we do NOT really free the memory here in order to reliably detect use-after-frees
-      if freedCells.data == nil: init(freedCells)
+      if freedCells.data == nil:
+        init(freedCells)
       freedCells.incl head(p)
     else:
       let hdrSize = align(sizeof(RefHeader), alignment)
       alignedDealloc(p -! hdrSize, alignment)
 
-template `=dispose`*[T](x: owned(ref T)) = nimRawDispose(cast[pointer](x), T.alignOf)
+template `=dispose`*[T](x: owned(ref T)) =
+  nimRawDispose(cast[pointer](x), T.alignOf)
+
 #proc dispose*(x: pointer) = nimRawDispose(x)
 
 proc nimDestroyAndDispose(p: pointer) {.compilerRtl, quirky, raises: [].} =
@@ -212,8 +220,7 @@ when defined(gcOrc):
   when defined(nimThinout):
     include cyclebreaker
   else:
-    include orc
-    #include cyclecollector
+    include orc #include cyclecollector
 
 proc nimDecRefIsLast(p: pointer): bool {.compilerRtl, inl.} =
   result = false
@@ -249,27 +256,31 @@ proc GC_unref*[T](x: ref T) =
 
 proc GC_ref*[T](x: ref T) =
   ## New runtime only supports this operation for 'ref T'.
-  if x != nil: nimIncRef(cast[pointer](x))
+  if x != nil:
+    nimIncRef(cast[pointer](x))
 
 when not defined(gcOrc):
-  template GC_fullCollect* =
+  template GC_fullCollect*() =
     ## Forces a full garbage collection pass. With `--mm:arc` a nop.
     discard
 
-template setupForeignThreadGc* =
+template setupForeignThreadGc*() =
   ## With `--mm:arc` a nop.
   discard
 
-template tearDownForeignThreadGc* =
+template tearDownForeignThreadGc*() =
   ## With `--mm:arc` a nop.
   discard
 
-proc isObjDisplayCheck(source: PNimTypeV2, targetDepth: int16, token: uint32): bool {.compilerRtl, inl.} =
+proc isObjDisplayCheck(
+    source: PNimTypeV2, targetDepth: int16, token: uint32
+): bool {.compilerRtl, inl.} =
   result = targetDepth <= source.depth and source.display[targetDepth] == token
 
 when defined(gcDestructors):
-  proc nimGetVTable(p: pointer, index: int): pointer
-        {.compilerRtl, inline, raises: [].} =
+  proc nimGetVTable(
+      p: pointer, index: int
+  ): pointer {.compilerRtl, inline, raises: [].} =
     result = cast[ptr PNimTypeV2](p).vTable[index]
 
 {.pop.} # raises: []

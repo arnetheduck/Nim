@@ -14,10 +14,10 @@ import std/private/since
 import std/packedsets
 export packedsets
 
-type
-  IntSet* = PackedSet[int]
+type IntSet* = PackedSet[int]
 
-proc toIntSet*(x: openArray[int]): IntSet {.since: (1, 3), inline.} = toPackedSet[int](x)
+proc toIntSet*(x: openArray[int]): IntSet {.since: (1, 3), inline.} =
+  toPackedSet[int](x)
 
-proc initIntSet*(): IntSet {.inline.} = initPackedSet[int]()
-
+proc initIntSet*(): IntSet {.inline.} =
+  initPackedSet[int]()
