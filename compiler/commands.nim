@@ -471,7 +471,8 @@ proc handleCmdInput*(conf: ConfigRef) =
 
 proc parseCommand*(command: string): Command =
   case command.normalize
-  of "c", "cc", "compile", "compiletoc": cmdCompileToC
+  of "c", "compile", "compiletoc": cmdCompileToC
+  of "cc": cmdCc
   of "cpp", "compiletocpp": cmdCompileToCpp
   of "objc", "compiletooc": cmdCompileToOC
   of "js", "compiletojs": cmdCompileToJS

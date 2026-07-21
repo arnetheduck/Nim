@@ -150,6 +150,7 @@ type
     cmdUnknown # command unmapped
     cmdCompileToC, cmdCompileToCpp, cmdCompileToOC, cmdCompileToJS,
     cmdCrun # compile and run in nimache
+    cmdCc   # clang passthrough (compile C/C++ files like `clang` does)
     cmdTcc # run the project via TCC backend
     cmdCheck # semantic checking for whole project
     cmdM     # only compile a single
