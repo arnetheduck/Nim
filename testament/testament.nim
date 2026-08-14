@@ -677,8 +677,8 @@ proc loadSkipFrom(name: string): seq[string] =
   # One skip per line, comments start with #
   # used by `nlvm` (at least)
   for line in lines(name):
-    let sline = line.strip()
-    if sline.len > 0 and not sline.startsWith('#'):
+    let sline = line.split("#")[0].strip()
+    if sline.len > 0:
       result.add sline
 
 proc main() =
