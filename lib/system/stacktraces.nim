@@ -13,7 +13,7 @@
 const
   reraisedFromBegin* = -10
   reraisedFromEnd* = -100
-  maxStackTraceLines* = 128
+  maxStackTraceLines* = 256
 
 when defined(nimStackTraceOverride):
   ## Procedure types for overriding the default stack trace.
