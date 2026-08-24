@@ -2280,7 +2280,7 @@ when notJSnotNims:
     proc nimUnloadLibrary(lib: LibHandle) {.compilerproc, hcrInline, nonReloadable.}
     proc nimGetProcAddr(lib: LibHandle, name: cstring): ProcAddr {.compilerproc, hcrInline, nonReloadable.}
 
-    proc nimLoadLibraryError(path: string) {.compilerproc, hcrInline, nonReloadable.}
+    proc nimLoadLibraryError(path: string) {.compilerproc, hcrInline, nonReloadable, noreturn.}
 
     include "system/dyncalls"
 
