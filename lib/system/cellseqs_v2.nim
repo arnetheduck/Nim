@@ -17,7 +17,7 @@ type
     d: CellArray[T]
 
 proc resize[T](s: var CellSeq[T]) =
-  s.cap = s.cap div 2 +% s.cap
+  s.cap = (s.cap shr 1) +% s.cap
   let newSize = s.cap *% sizeof(CellTuple[T])
   when compileOption("threads"):
     s.d = cast[CellArray[T]](reallocShared(s.d, cast[Natural](newSize)))
