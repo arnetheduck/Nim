@@ -372,7 +372,7 @@ const
 proc wsaGetLastError*(): cint {.importc: "WSAGetLastError", dynlib: ws2dll, sideEffect.}
 
 type
-  SocketHandle* = distinct int
+  SocketHandle* = distinct uint
 
 type
   WSAData* {.importc: "WSADATA", header: "winsock2.h".} = object
@@ -453,26 +453,26 @@ type
   Timeval* {.importc: "struct timeval", header: "<time.h>".} = object
     tv_sec*, tv_usec*: int32
 
-var
-  SOMAXCONN* {.importc, header: "winsock2.h".}: cint
-  INVALID_SOCKET* {.importc, header: "winsock2.h".}: SocketHandle
-  SOL_SOCKET* {.importc, header: "winsock2.h".}: cint
-  SO_DEBUG* {.importc, header: "winsock2.h".}: cint ## turn on debugging info recording
-  SO_ACCEPTCONN* {.importc, header: "winsock2.h".}: cint # socket has had listen()
-  SO_REUSEADDR* {.importc, header: "winsock2.h".}: cint # allow local address reuse
-  SO_REUSEPORT* {.importc: "SO_REUSEADDR", header: "winsock2.h".}: cint # allow port reuse. Since Windows does not really support it, mapped to SO_REUSEADDR. This shouldn't cause problems.
+const
+  SOMAXCONN* = 0x7fffffff
+  INVALID_SOCKET* = SocketHandle(not 0'u64)
+  SOL_SOCKET* = 0xffff
+  SO_DEBUG* = 0x0001 ## turn on debugging info recording
+  SO_ACCEPTCONN* = 0x0002 # socket has had listen()
+  SO_REUSEADDR* = 0x0004 # allow local address reuse
+  SO_REUSEPORT* {.deprecated: "Not supported on Windows".} = SO_REUSEADDR # allow port reuse. Since Windows does not really support it, mapped to SO_REUSEADDR. This shouldn't cause problems.
 
-  SO_KEEPALIVE* {.importc, header: "winsock2.h".}: cint # keep connections alive
-  SO_DONTROUTE* {.importc, header: "winsock2.h".}: cint # just use interface addresses
-  SO_BROADCAST* {.importc, header: "winsock2.h".}: cint # permit sending of broadcast msgs
-  SO_USELOOPBACK* {.importc, header: "winsock2.h".}: cint # bypass hardware when possible
-  SO_LINGER* {.importc, header: "winsock2.h".}: cint # linger on close if data present
-  SO_OOBINLINE* {.importc, header: "winsock2.h".}: cint # leave received OOB data in line
+  SO_KEEPALIVE* = 0x0008 # keep connections alive
+  SO_DONTROUTE* = 0x0010 # just use interface addresses
+  SO_BROADCAST* = 0x0020 # permit sending of broadcast msgs
+  SO_USELOOPBACK* = 0x0040 # bypass hardware when possible
+  SO_LINGER* = 0x0080 # linger on close if data present
+  SO_OOBINLINE* = 0x0100 # leave received OOB data in line
 
-  SO_DONTLINGER* {.importc, header: "winsock2.h".}: cint
-  SO_EXCLUSIVEADDRUSE* {.importc, header: "winsock2.h".}: cint # disallow local address reuse
-  SO_ERROR* {.importc, header: "winsock2.h".}: cint
-  TCP_NODELAY* {.importc, header: "winsock2.h".}: cint
+  SO_DONTLINGER* = not cint(SO_LINGER)
+  SO_EXCLUSIVEADDRUSE* = not cint(SO_REUSEADDR) # disallow local address reuse
+  SO_ERROR* = 0x1007
+  TCP_NODELAY* = 0x0001
 
 proc `==`*(x, y: SocketHandle): bool {.borrow.}
 
