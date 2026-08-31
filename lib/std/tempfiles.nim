@@ -33,7 +33,7 @@ when defined(windows):
   when defined(nimPreviewSlimSystem):
     import std/widestrs
 
-  var O_RDWR {.importc: "_O_RDWR", header: "<fcntl.h>".}: cint
+  const O_RDWR = 2
 
   proc c_fdopen(
     filehandle: cint,

@@ -38,8 +38,12 @@ when defined(nimBuiltinSetjmp):
     C_JmpBuf* = array[5, pointer]
 elif defined(linux) and defined(amd64):
   type
-    C_JmpBuf* {.importc: "jmp_buf", header: "<setjmp.h>", bycopy.} = object
-        abi: array[200 div sizeof(clong), clong]
+    C_JmpBuf* {.importc: "jmp_buf", header: "<setjmp.h>", bycopy, completeStruct.} = object
+      abi: array[200 div sizeof(clong), clong]
+elif defined(windows) and defined(amd64):
+  type
+    C_JmpBuf* {.importc: "jmp_buf", header: "<setjmp.h>", bycopy, completeStruct.} = object
+      abi {.align: 16.}: array[16 * 2, uint64]
 else:
   type
     C_JmpBuf* {.importc: "jmp_buf", header: "<setjmp.h>".} = object
