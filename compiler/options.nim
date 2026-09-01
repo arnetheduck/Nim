@@ -672,6 +672,8 @@ proc isDefined*(conf: ConfigRef; symbol: string): bool =
       result = conf.target.targetOS == osZephyr
     of "nuttx":
       result = conf.target.targetOS == osNuttX
+    of "bpf":
+      result = conf.target.targetCPU in {cpuBpf, cpuBpfel, cpuBpfeb}
     of "littleendian": result = CPU[conf.target.targetCPU].endian == littleEndian
     of "bigendian": result = CPU[conf.target.targetCPU].endian == bigEndian
     of "cpu8": result = CPU[conf.target.targetCPU].bit == 8

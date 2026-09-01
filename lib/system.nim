@@ -3142,10 +3142,21 @@ proc arrayWithDefault*[T](size: static int): array[size, T] {.noinit, nodestroy,
     result[i] = default(T)
 
 when hostOS == "standalone":
-  # Include panicoverride.nim late so users can use the full extent of the
-  # language in their custom panic handlers (e.g. macros).
-  # Users define `proc panic(msg: string)` and `proc rawoutput(msg: string)`.
-  include "$projectpath/panicoverride"
+  when defined(bpf):
+    # BPF has no process output or panic runtime. Programs are compiled with
+    # checks disabled, so provide backend fallbacks without requiring each
+    # project to add a panicoverride.nim file.
+    proc panic(msg: string) {.nimcall, noreturn.} =
+      discard msg
+      while true:
+        discard
+    proc rawoutput(msg: string) {.nimcall.} =
+      discard msg
+  else:
+    # Include panicoverride.nim late so users can use the full extent of the
+    # language in their custom panic handlers (e.g. macros).
+    # Users define `proc panic(msg: string)` and `proc rawoutput(msg: string)`.
+    include "$projectpath/panicoverride"
 
   when not declared(panic):
     {.error:
