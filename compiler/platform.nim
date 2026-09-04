@@ -27,7 +27,7 @@ type
     osIrix, osNetbsd, osFreebsd, osOpenbsd, osDragonfly, osCrossos, osAix, osPalmos, osQnx,
     osAmiga, osAtari, osNetware, osMacos, osMacosx, osIos, osHaiku, osAndroid, osVxWorks
     osGenode, osJS, osNimVM, osStandalone, osNintendoSwitch, osFreeRTOS, osZephyr,
-    osNuttX, osAny
+    osNuttX, osAny, osWasiP1
 
 type
   TInfoOSProp* = enum
@@ -124,7 +124,7 @@ const
       pathSep: ":", dirSep: "/",
       scriptExt: ".sh", curDir: ".",
       exeExt: "", extSep: ".",
-      props: {ospNeedsPIC}),
+      props: {ospNeedsPIC, ospPosix}),
      (name: "QNX",
       parDir: "..", dllFrmt: "lib$1.so", altDirSep: "/", objExt: ".o",
       newLine: "\x0A", pathSep: ":", dirSep: "/", scriptExt: ".sh", curDir: ".",
@@ -136,7 +136,7 @@ const
      (name: "Atari",
       parDir: "..", dllFrmt: "$1.dll", altDirSep: "/", objExt: ".o",
       newLine: "\x0A", pathSep: ":", dirSep: "/", scriptExt: "", curDir: ".",
-      exeExt: ".tpp", extSep: ".", props: {ospNeedsPIC}),
+      exeExt: ".tpp", extSep: ".", props: {ospNeedsPIC, ospPosix}),
      (name: "Netware",
       parDir: "..", dllFrmt: "$1.nlm", altDirSep: "/", objExt: "",
       newLine: "\x0D\x0A", pathSep: ":", dirSep: "/", scriptExt: ".sh",
@@ -202,6 +202,10 @@ const
       objExt: ".o", newLine: "\x0A", pathSep: ":", dirSep: "/",
       scriptExt: ".sh", curDir: ".", exeExt: "", extSep: ".",
       props: {}),
+     (name: "wasip1", parDir: "..", dllFrmt: "$1.wasm", altDirSep: "/",
+      objExt: ".o", newLine: "\x0A", pathSep: ":", dirSep: "/",
+      scriptExt: ".sh", curDir: ".", exeExt: ".wasm", extSep: ".",
+      props: {ospPosix}),
      ]
 
 type
