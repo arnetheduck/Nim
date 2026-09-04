@@ -1170,6 +1170,8 @@ proc processSwitch*(switch, arg: string, pass: TCmdLinePass, info: TLineInfo;
     processOnOffSwitchG(conf, {optPanics}, arg, pass, info)
     if optPanics in conf.globalOptions:
       defineSymbol(conf.symbols, "nimPanics")
+    else:
+      undefSymbol(conf.symbols, "nimPanics")
   of "jsbigint64":
     processOnOffSwitchG(conf, {optJsBigInt64}, arg, pass, info)
   of "sourcemap": # xxx document in --fullhelp

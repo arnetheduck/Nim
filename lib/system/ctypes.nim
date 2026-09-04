@@ -21,8 +21,8 @@ when defined(nimdoc):
   type
     # "Opaque" types defined only in the `nimdoc` branch to not show in error
     # messages in regular code with `clong` and `culong` resolving to base types
-    ClongImpl = (when defined(windows): int32 else: int)
-    CulongImpl = (when defined(windows): uint32 else: uint)
+    ClongImpl = (when defined(windows) or hostCPU == "wasm32": int32 else: int)
+    CulongImpl = (when defined(windows) or hostCPU == "wasm32": uint32 else: uint)
     clong* = ClongImpl
       ## Represents the *C* `long` type, used for interoperability.
       ##
@@ -53,7 +53,7 @@ when defined(nimdoc):
       ##
       ## .. warning:: The underlying Nim type is an implementation detail and
       ##    should not be relied upon.
-elif defined(windows):
+elif defined(windows) or hostCPU == "wasm32":
   type
     clong* {.importc: "long", nodecl.} = int32
     culong* {.importc: "unsigned long", nodecl.} = uint32
@@ -61,6 +61,13 @@ else:
   type
     clong* {.importc: "long", nodecl.} = int
     culong* {.importc: "unsigned long", nodecl.} = uint
+
+when hostCPU == "wasm32":
+  type csize_t* {.importc: "size_t", nodecl.} = clong
+    ## This is the same as the type `size_t` in *C*.
+else:
+  type csize_t* {.importc: "size_t", nodecl.} = uint
+    ## This is the same as the type `size_t` in *C*.
 
 type # these work for most platforms:
   cchar* {.importc: "char", nodecl.} = char
@@ -71,8 +78,6 @@ type # these work for most platforms:
     ## This is the same as the type `short` in *C*.
   cint* {.importc: "int", nodecl.} = int32
     ## This is the same as the type `int` in *C*.
-  csize_t* {.importc: "size_t", nodecl.} = uint
-    ## This is the same as the type `size_t` in *C*.
   clonglong* {.importc: "long long", nodecl.} = int64
     ## This is the same as the type `long long` in *C*.
   cfloat* {.importc: "float", nodecl.} = float32

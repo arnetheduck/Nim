@@ -644,11 +644,7 @@ proc isDefined*(conf: ConfigRef; symbol: string): bool =
     of "itanium": result = conf.target.targetCPU == cpuIa64
     of "x8664": result = conf.target.targetCPU == cpuAmd64
     of "posix", "unix":
-      result = conf.target.targetOS in {osLinux, osMorphos, osSkyos, osIrix, osPalmos,
-                            osQnx, osAtari, osAix,
-                            osHaiku, osVxWorks, osSolaris, osNetbsd,
-                            osFreebsd, osOpenbsd, osDragonfly, osMacosx, osIos,
-                            osAndroid, osNintendoSwitch, osFreeRTOS, osCrossos, osZephyr, osNuttX}
+      result = ospPosix in platform.OS[conf.target.targetOS].props
     of "linux":
       result = conf.target.targetOS in {osLinux, osAndroid}
     of "bsd":
@@ -656,7 +652,7 @@ proc isDefined*(conf: ConfigRef; symbol: string): bool =
     of "freebsd":
       result = conf.target.targetOS in {osFreebsd, osCrossos}
     of "emulatedthreadvars":
-      result = platform.OS[conf.target.targetOS].props.contains(ospLacksThreadVars)
+      result = ospLacksThreadVars in platform.OS[conf.target.targetOS].props
     of "msdos": result = conf.target.targetOS == osDos
     of "mswindows", "win32": result = conf.target.targetOS == osWindows
     of "macintosh":
@@ -683,6 +679,8 @@ proc isDefined*(conf: ConfigRef; symbol: string): bool =
     of "nimrawsetjmp":
       result = conf.target.targetOS in {osSolaris, osNetbsd, osFreebsd, osOpenbsd,
                             osDragonfly, osMacosx}
+    of "wasi":
+      result = conf.target.targetOS in {osWasiP1} # P2/3 etc will follow
     else: result = false
 
 template quitOrRaise*(conf: ConfigRef, msg = "") =
