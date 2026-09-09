@@ -90,7 +90,7 @@ elif defined(case_testfile4):
 else: # main driver
   import stdtest/[specialpaths, unittest_light]
   import os, osproc, strutils
-  const nim = getCurrentCompilerExe()
+  const nim = getCurrentCompilerExe().quoteShell()
   const sourcePath = currentSourcePath()
   let dir = getCurrentDir() / "tests" / "osproc"
 
@@ -104,7 +104,7 @@ else: # main driver
 
   proc compileNimProg(opt: string, name: string): string =
     result = buildDir / name.addFileExt(ExeExt)
-    let cmd = "$# c -o:$# --hints:off $# $#" % [nim.quoteShell, result.quoteShell, opt, sourcePath.quoteShell]
+    let cmd = "$# c -o:$# --hints:off $# $#" % [nim, result.quoteShell, opt, sourcePath.quoteShell]
     doAssert c_system(cmd) == 0, $cmd
     doAssert result.fileExists
 
@@ -229,7 +229,7 @@ else: # main driver
           if result[1] != -1: break
       close(p)
 
-    var result = startProcessTest("nim r --hints:off -", options = {}, input = "echo 3*4")
+    var result = startProcessTest(nim & " r --hints:off -", options = {}, input = "echo 3*4")
     doAssert result == ("12\n", 0)
 
   block: # startProcess stdin (replaces old test `tstdin` + `ta_in`)
@@ -284,7 +284,7 @@ else: # main driver
 
   import std/strtabs
   block execProcessTest:
-    var result = execCmdEx("nim r --hints:off -", options = {}, input = "echo 3*4")
+    var result = execCmdEx(nim & " r --hints:off -", options = {}, input = "echo 3*4")
     stripLineEnd(result[0])
     doAssert result == ("12", 0)
     when not defined(windows):

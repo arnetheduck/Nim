@@ -23,5 +23,5 @@ else:
   proc test(lib, options: string) =
     runCmd fmt"{nim} {mode} -o:{lib} --nomain {options} -f {file}"
     # runCmd fmt"{nim} r -b:{mode} --passl:{lib} -d:caseMain -f {file}" # pending https://github.com/nim-lang/Nim/pull/16945
-  test(buildDir / "libD20210205T172314.a", "--app:staticlib -d:nimLinkerWeakSymbols -d:case1")
+  test(buildDir / "libD20210205T172314.a", "--app:staticlib -d:case1")
   test(buildDir / DynlibFormat % "D20210205T172720", "--app:lib -d:case2")
