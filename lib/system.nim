@@ -1628,7 +1628,10 @@ when notJSnotNims:
 
 when not defined(js) and hasThreadSupport and hostOS != "standalone":
   import std/private/syslocks
-  include "system/threadlocalstorage"
+  when compileOption("tlsEmulation"):
+    include "system/threadlocalstorage"
+  else:
+    import std/private/threadtypes
 
 when not defined(js) and defined(nimV2):
   type

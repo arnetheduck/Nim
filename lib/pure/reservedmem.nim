@@ -91,16 +91,7 @@ func nextAlignedOffset(n, alignment: int): int =
 
 
 when defined(windows):
-  const
-    MEM_DECOMMIT = 0x4000
-    MEM_RESERVE = 0x2000
-    MEM_COMMIT = 0x1000
-  proc virtualFree(lpAddress: pointer, dwSize: int,
-                   dwFreeType: int32): cint {.header: "<windows.h>", stdcall,
-                   importc: "VirtualFree".}
-  proc virtualAlloc(lpAddress: pointer, dwSize: int, flAllocationType,
-                    flProtect: int32): pointer {.
-                    header: "<windows.h>", stdcall, importc: "VirtualAlloc".}
+  import system/private/win32/memoryapi
 
 proc init*(T: type ReservedMem,
            maxLen: Natural,
@@ -114,12 +105,12 @@ proc init*(T: type ReservedMem,
   let commitSize = nextAlignedOffset(initCommitLen, allocationGranularity)
 
   when defined(windows):
-    result.memStart = virtualAlloc(memStart, maxLen, MEM_RESERVE,
-        accessFlags.cint)
+    result.memStart = VirtualAlloc(memStart, maxLen.uint, MEM_RESERVE.uint32,
+        accessFlags.uint32)
     check result.memStart
     if commitSize > 0:
-      check virtualAlloc(result.memStart, commitSize, MEM_COMMIT,
-          accessFlags.cint)
+      check VirtualAlloc(result.memStart, commitSize.uint, MEM_COMMIT.uint32,
+          accessFlags.uint32)
   else:
     var allocFlags = MAP_PRIVATE or MAP_ANONYMOUS # or MAP_NORESERVE
                                                   # if memStart != nil:

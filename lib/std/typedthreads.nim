@@ -156,11 +156,12 @@ proc handle*[TArg](t: Thread[TArg]): SysThread {.inline.} =
   result = t.sys
 
 when hostOS == "windows":
+  import system/private/win32/synchapi
   const MAXIMUM_WAIT_OBJECTS = 64
 
   proc joinThread*[TArg](t: Thread[TArg]) {.inline.} =
     ## Waits for the thread `t` to finish.
-    discard waitForSingleObject(t.sys, -1'i32)
+    discard WaitForSingleObject(t.sys, -1'i32)
 
   proc joinThreads*[TArg](t: varargs[Thread[TArg]]) =
     ## Waits for every thread in `t` to finish.
@@ -169,7 +170,7 @@ when hostOS == "windows":
     while k < len(t):
       var count = min(len(t) - k, MAXIMUM_WAIT_OBJECTS)
       for i in 0..(count - 1): a[i] = t[i + k].sys
-      discard waitForMultipleObjects(int32(count),
+      discard WaitForMultipleObjects(int32(count),
                                      cast[ptr SysThread](addr(a)), 1, -1)
       inc(k, MAXIMUM_WAIT_OBJECTS)
 
@@ -207,6 +208,8 @@ when false:
       t.core = nil
 
 when hostOS == "windows":
+  import system/private/win32/[processthreadsapi, winbase]
+
   proc createThread*[TArg](t: var Thread[TArg],
                            tp: proc (arg: TArg) {.thread, nimcall.},
                            param: TArg) =
@@ -231,7 +234,7 @@ when hostOS == "windows":
     ##
     ## In other words sets a thread's `affinity`:idx:.
     ## If you don't know what this means, you shouldn't use this proc.
-    setThreadAffinityMask(t.sys, uint(1 shl cpu))
+    SetThreadAffinityMask(t.sys, uint32(1 shl cpu))
 
 elif defined(genode):
   var affinityOffset: cuint = 1

@@ -155,31 +155,16 @@ elif defined(posix) and not defined(StandaloneHeapSize):
     when reallyOsDealloc: discard munmap(p, cast[csize_t](size))
 
 elif defined(windows) and not defined(StandaloneHeapSize):
-  const
-    MEM_RESERVE = 0x2000
-    MEM_COMMIT = 0x1000
-    MEM_TOP_DOWN = 0x100000
-    PAGE_READWRITE = 0x04
-
-    MEM_DECOMMIT = 0x4000
-    MEM_RELEASE = 0x8000
-
-  proc virtualAlloc(lpAddress: pointer, dwSize: int, flAllocationType,
-                    flProtect: int32): pointer {.
-                    header: "<windows.h>", stdcall, importc: "VirtualAlloc".}
-
-  proc virtualFree(lpAddress: pointer, dwSize: int,
-                   dwFreeType: int32): cint {.header: "<windows.h>", stdcall,
-                   importc: "VirtualFree".}
+  import system/private/win32/memoryapi
 
   proc osAllocPages(size: int): pointer {.inline.} =
-    result = virtualAlloc(nil, size, MEM_RESERVE or MEM_COMMIT,
-                          PAGE_READWRITE)
+    result = VirtualAlloc(nil, uint(size), uint32(MEM_RESERVE or MEM_COMMIT),
+                          uint32(PAGE_READWRITE))
     if result == nil: raiseOutOfMem()
 
   proc osTryAllocPages(size: int): pointer {.inline.} =
-    result = virtualAlloc(nil, size, MEM_RESERVE or MEM_COMMIT,
-                          PAGE_READWRITE)
+    result = VirtualAlloc(nil, uint(size), uint32(MEM_RESERVE or MEM_COMMIT),
+                          uint32(PAGE_READWRITE))
 
   proc osDeallocPages(p: pointer, size: int) {.inline.} =
     # according to Microsoft, 0 is the only correct value for MEM_RELEASE:
@@ -189,8 +174,8 @@ elif defined(windows) and not defined(StandaloneHeapSize):
     # Well that used to be the case but MEM_DECOMMIT fragments the address
     # space heavily, so we now treat Windows as a strange unmap target.
     when reallyOsDealloc:
-      if virtualFree(p, 0, MEM_RELEASE) == 0:
-        cprintf "virtualFree failing!"
+      if VirtualFree(p, 0, uint32(MEM_RELEASE)) == 0:
+        cprintf "VirtualFree failing!"
         rawQuit 1
     #VirtualFree(p, size, MEM_DECOMMIT)
 

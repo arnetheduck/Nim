@@ -353,7 +353,7 @@ else:
 
 
 when (defined(x86) or defined(amd64)) and someVcc:
-  proc cpuRelax* {.importc: "YieldProcessor", header: "<windows.h>".}
+  proc cpuRelax* {.importc: "YieldProcessor", header: "winnt.h".}
 elif (defined(x86) or defined(amd64)) and (someGcc or defined(bcc)):
   proc cpuRelax* {.inline.} =
     {.emit: """asm volatile("pause" ::: "memory");""".}

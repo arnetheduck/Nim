@@ -17,6 +17,9 @@
 const
   NilLibHandle: LibHandle = nil
 
+when defined(windows):
+  import system/private/win32/sti
+
 proc nimLoadLibraryError(path: string) =
   # carefully written to avoid memory allocation:
   const prefix = "could not load: "
@@ -26,6 +29,7 @@ proc nimLoadLibraryError(path: string) =
     cstderr.rawWrite("\n(compile with -d:nimDebugDlOpen for more information)")
   when defined(windows):
     const badExe = "\n(bad format; library may be wrong architecture)"
+    const ERROR_BAD_EXE_FORMAT = 193
     let loadError = GetLastError()
     if loadError == ERROR_BAD_EXE_FORMAT:
       cstderr.rawWrite(badExe)
@@ -111,31 +115,16 @@ elif defined(windows) or defined(dos):
   # Native Windows Implementation
   # =======================================================================
   #
-  when defined(cpp):
-    type
-      THINSTANCE {.importc: "HINSTANCE".} = object
-        x: pointer
-    proc getProcAddress(lib: THINSTANCE, name: cstring): ProcAddr {.
-        importcpp: "(void*)GetProcAddress(@)", header: "<windows.h>", stdcall.}
-  else:
-    type
-      THINSTANCE {.importc: "HINSTANCE".} = pointer
-    proc getProcAddress(lib: THINSTANCE, name: cstring): ProcAddr {.
-        importc: "GetProcAddress", header: "<windows.h>", stdcall.}
-
-  proc freeLibrary(lib: THINSTANCE) {.
-      importc: "FreeLibrary", header: "<windows.h>", stdcall.}
-  proc winLoadLibrary(path: cstring): THINSTANCE {.
-      importc: "LoadLibraryA", header: "<windows.h>", stdcall.}
+  import system/private/win32/libloaderapi
 
   proc nimUnloadLibrary(lib: LibHandle) =
-    freeLibrary(cast[THINSTANCE](lib))
+    discard FreeLibrary(lib)
 
   proc nimLoadLibrary(path: string): LibHandle =
-    result = cast[LibHandle](winLoadLibrary(path))
+    result = LoadLibraryA(cstring(path))
 
   proc nimGetProcAddr(lib: LibHandle, name: cstring): ProcAddr =
-    result = getProcAddress(cast[THINSTANCE](lib), name)
+    result = GetProcAddress(lib, name)
     if result != nil: return
     const decoratedLength = 250
     var decorated: array[decoratedLength, char]
@@ -161,7 +150,7 @@ elif defined(windows) or defined(dos):
         dec(m)
         k = k div 10
         if k == 0: break
-      result = getProcAddress(cast[THINSTANCE](lib), cast[cstring](addr decorated))
+      result = GetProcAddress(lib, cast[cstring](addr decorated))
       if result != nil: return
     procAddrError(name)
 
