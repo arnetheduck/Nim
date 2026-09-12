@@ -77,6 +77,7 @@ since (1, 1):
 when weirdTarget:
   discard
 elif defined(windows):
+  import system/private/win32/processthreadsapi
   import std/[winlean, times]
 elif defined(posix):
   import std/[posix, times]
@@ -949,9 +950,7 @@ when weirdTarget or defined(windows) or defined(posix) or defined(nintendoswitch
     ## See also:
     ## * `osproc.processID(p: Process) <osproc.html#processID,Process>`_
     when defined(windows):
-      proc GetCurrentProcessId(): DWORD {.stdcall, dynlib: "kernel32",
-                                          importc: "GetCurrentProcessId".}
-      result = GetCurrentProcessId().int
+      result = cast[int](uint(GetCurrentProcessId()))
     else:
       result = getpid()
 

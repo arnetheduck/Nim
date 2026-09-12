@@ -141,7 +141,7 @@ when defined(windows):
     namelen = sizeof(saddr).SockLen
     rsock = winlean.accept(ssock, cast[ptr SockAddr](addr(saddr)),
                            cast[ptr SockLen](addr(namelen)))
-    if rsock == SocketHandle(-1):
+    if rsock == cast[SocketHandle](-1):
       raiseIOSelectorsError(osLastError())
 
     if winlean.closesocket(ssock) != 0:

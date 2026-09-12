@@ -173,24 +173,17 @@ elif defined(windows) or defined(dos):
   # Native Windows Implementation
   # =======================================================================
   #
-  type
-    HMODULE {.importc: "HMODULE".} = pointer
-    FARPROC {.importc: "FARPROC".} = pointer
-
-  proc FreeLibrary(lib: HMODULE) {.importc, header: "<windows.h>", stdcall.}
-  proc winLoadLibrary(path: cstring): HMODULE {.
-      importc: "LoadLibraryA", header: "<windows.h>", stdcall.}
-  proc getProcAddress(lib: HMODULE, name: cstring): FARPROC {.
-      importc: "GetProcAddress", header: "<windows.h>", stdcall.}
+  import system/private/win32/libloaderapi
 
   proc loadLib(path: string, globalSymbols = false): LibHandle =
-    result = cast[LibHandle](winLoadLibrary(path))
+    result = LoadLibraryA(path)
   proc loadLib(): LibHandle =
-    result = cast[LibHandle](winLoadLibrary(nil))
-  proc unloadLib(lib: LibHandle) = FreeLibrary(cast[HMODULE](lib))
+    result = LoadLibraryA(nil)
+  proc unloadLib(lib: LibHandle) =
+    discard FreeLibrary(lib)
 
   proc symAddr(lib: LibHandle, name: cstring): pointer =
-    result = cast[pointer](getProcAddress(cast[HMODULE](lib), name))
+    result = GetProcAddress(lib, name)
 
 else:
   {.error: "no implementation for dynlib".}

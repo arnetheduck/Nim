@@ -15,26 +15,9 @@ when defined(windows):
                      lpThreadId: var int32): SysThread {.
     stdcall, dynlib: "kernel32", importc: "CreateThread".}
 
-  proc winSuspendThread*(hThread: SysThread): int32 {.
-    stdcall, dynlib: "kernel32", importc: "SuspendThread".}
-
-  proc winResumeThread*(hThread: SysThread): int32 {.
-    stdcall, dynlib: "kernel32", importc: "ResumeThread".}
-
-  proc waitForSingleObject*(hHandle: SysThread, dwMilliseconds: int32): int32 {.
-    stdcall, dynlib: "kernel32", importc: "WaitForSingleObject".}
-
-  proc waitForMultipleObjects*(nCount: int32,
-                              lpHandles: ptr SysThread,
-                              bWaitAll: int32,
-                              dwMilliseconds: int32): int32 {.
-    stdcall, dynlib: "kernel32", importc: "WaitForMultipleObjects".}
 
   proc terminateThread*(hThread: SysThread, dwExitCode: int32): int32 {.
     stdcall, dynlib: "kernel32", importc: "TerminateThread".}
-
-  proc setThreadAffinityMask*(hThread: SysThread, dwThreadAffinityMask: uint) {.
-    importc: "SetThreadAffinityMask", stdcall, header: "<windows.h>".}
 
 elif defined(genode):
   const

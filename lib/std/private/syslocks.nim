@@ -12,66 +12,43 @@
 {.push stackTrace: off.}
 
 when defined(windows):
+  import system/private/win32/synchapi
+
   type
-    Handle = int
+    SysLock* = CRITICAL_SECTION
+    SysCond* = RTL_CONDITION_VARIABLE
 
-    SysLock* {.importc: "CRITICAL_SECTION",
-              header: "<windows.h>", final, pure, byref.} = object # CRITICAL_SECTION in WinApi
-      DebugInfo: pointer
-      LockCount: int32
-      RecursionCount: int32
-      OwningThread: int
-      LockSemaphore: int
-      SpinCount: int
-
-    SysCond* {.importc: "RTL_CONDITION_VARIABLE", header: "<windows.h>", byref.} = object
-      thePtr {.importc: "Ptr".} : Handle
-
-  proc initSysLock*(L: var SysLock) {.importc: "InitializeCriticalSection",
-                                     header: "<windows.h>".}
+  proc initSysLock*(L: var SysLock) {.inline.} =
     ## Initializes the lock `L`.
-
-  proc tryAcquireSysAux(L: var SysLock): int32 {.importc: "TryEnterCriticalSection",
-                                                 header: "<windows.h>".}
-    ## Tries to acquire the lock `L`.
+    InitializeCriticalSection(addr L)
 
   proc tryAcquireSys*(L: var SysLock): bool {.inline.} =
-    result = tryAcquireSysAux(L) != 0'i32
+    ## Tries to acquire the lock `L`.
+    result = TryEnterCriticalSection(addr L) != 0
 
-  proc acquireSys*(L: var SysLock) {.importc: "EnterCriticalSection",
-                                    header: "<windows.h>".}
+  proc acquireSys*(L: var SysLock) {.inline.} =
     ## Acquires the lock `L`.
+    EnterCriticalSection(addr L)
 
-  proc releaseSys*(L: var SysLock) {.importc: "LeaveCriticalSection",
-                                    header: "<windows.h>".}
+  proc releaseSys*(L: var SysLock) {.inline.} =
     ## Releases the lock `L`.
+    LeaveCriticalSection(addr L)
 
-  proc deinitSys*(L: SysLock) {.importc: "DeleteCriticalSection",
-                                   header: "<windows.h>".}
+  proc deinitSys*(L: SysLock) {.inline.} =
+    DeleteCriticalSection(addr L)
 
-  proc initializeConditionVariable(
-    conditionVariable: var SysCond
-  ) {.stdcall, noSideEffect, dynlib: "kernel32", importc: "InitializeConditionVariable".}
+  proc signalSysCond*(hEvent: var SysCond) {.inline.} =
+    WakeConditionVariable(addr hEvent)
 
-  proc sleepConditionVariableCS(
-    conditionVariable: var SysCond,
-    PCRITICAL_SECTION: var SysLock,
-    dwMilliseconds: int
-  ): int32 {.stdcall, noSideEffect, dynlib: "kernel32", importc: "SleepConditionVariableCS".}
-
-
-  proc signalSysCond*(hEvent: var SysCond) {.stdcall, noSideEffect,
-    dynlib: "kernel32", importc: "WakeConditionVariable".}
-
-  proc broadcastSysCond*(hEvent: var SysCond) {.stdcall, noSideEffect,
-    dynlib: "kernel32", importc: "WakeAllConditionVariable".}
+  proc broadcastSysCond*(hEvent: var SysCond) {.inline.} =
+    WakeAllConditionVariable(addr hEvent)
 
   proc initSysCond*(cond: var SysCond) {.inline.} =
-    initializeConditionVariable(cond)
+    InitializeConditionVariable(addr cond)
   proc deinitSysCond*(cond: SysCond) {.inline.} =
     discard
   proc waitSysCond*(cond: var SysCond, lock: var SysLock) =
-    discard sleepConditionVariableCS(cond, lock, -1'i32)
+    discard SleepConditionVariableCS(addr cond, addr lock, cast[uint32](-1))
 
 elif defined(genode):
   const

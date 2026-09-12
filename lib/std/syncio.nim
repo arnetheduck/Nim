@@ -11,8 +11,9 @@
 
 include system/inclrtl
 import std/private/since
-import std/formatfloat
+import std/[formatfloat, oserrors]
 when defined(windows):
+  import system/private/win32/[handleapi, sti, winbase]
   import std/widestrs
 
 from system/ansi_c import CFilePtr, c_memchr
@@ -315,18 +316,8 @@ elif defined(posix) and not defined(lwip) and not defined(nimscript):
   proc c_fcntl(fd: cint, cmd: cint): cint {.
     importc: "fcntl", header: "<fcntl.h>", varargs.}
 elif defined(windows):
-  type
-    WinDWORD = culong
-    WinBOOL = cint
-
-  const HANDLE_FLAG_INHERIT = 1.WinDWORD
-
   proc getOsfhandle(fd: cint): int {.
     importc: "_get_osfhandle", header: "<io.h>".}
-
-  proc setHandleInformation(hObject: FileHandle, dwMask, dwFlags: WinDWORD):
-                           WinBOOL {.stdcall, dynlib: "kernel32",
-                                  importc: "SetHandleInformation".}
 
 const
   BufSize = 4000
@@ -399,8 +390,8 @@ when defined(nimdoc) or (defined(posix) and not defined(nimscript)) or defined(w
       flags = if inheritable: flags and not FD_CLOEXEC else: flags or FD_CLOEXEC
       result = c_fcntl(f, F_SETFD, flags) != -1
     else:
-      result = setHandleInformation(f, HANDLE_FLAG_INHERIT,
-                                    inheritable.WinDWORD) != 0
+      result = SetHandleInformation(cast[HANDLE](f), HANDLE_FLAG_INHERIT.uint32,
+                                    inheritable.uint32) != 0
 
 proc readLine*(f: File, line: var string): bool {.tags: [ReadIOEffect],
               gcsafe.} =
@@ -418,18 +409,6 @@ proc readLine*(f: File, line: var string): bool {.tags: [ReadIOEffect],
                      lpNumberOfCharsRead: ptr int32,
                      pInputControl: pointer): int32 {.
       importc: "ReadConsoleW", stdcall, dynlib: "kernel32".}
-
-    proc getLastError(): int32 {.
-      importc: "GetLastError", stdcall, dynlib: "kernel32", sideEffect.}
-
-    proc formatMessageW(dwFlags: int32, lpSource: pointer,
-                        dwMessageId, dwLanguageId: int32,
-                        lpBuffer: pointer, nSize: int32,
-                        arguments: pointer): int32 {.
-      importc: "FormatMessageW", stdcall, dynlib: "kernel32".}
-
-    proc localFree(p: pointer) {.
-      importc: "LocalFree", stdcall, dynlib: "kernel32".}
 
     proc isatty(f: File): bool =
       # terminal module also has isatty
@@ -453,14 +432,8 @@ proc readLine*(f: File, line: var string): bool {.tags: [ReadIOEffect],
       var buffer = newWideCString(numberOfCharsToRead)
       if readConsole(getOsFileHandle(f), addr(buffer[0]),
         numberOfCharsToRead, addr(numberOfCharsRead), nil) == 0:
-        var error = getLastError()
-        var errorMsg: string
-        var msgbuf: WideCString
-        if formatMessageW(0x00000100 or 0x00001000 or 0x00000200,
-                        nil, error, 0, addr(msgbuf), 0, nil) != 0'i32:
-          errorMsg = $msgbuf
-          if msgbuf != nil:
-            localFree(cast[pointer](msgbuf))
+        var error = osLastError()
+        let errorMsg = osErrorMsg(error)
         raiseEIO("error: " & $error & " `" & errorMsg & "`")
       # input always ends with "\r\n"
       numberOfCharsRead -= 2

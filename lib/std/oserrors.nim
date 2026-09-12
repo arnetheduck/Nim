@@ -15,7 +15,7 @@ type
 
 when not defined(nimscript):
   when defined(windows):
-    import std/winlean
+    import system/private/win32/[sti, winbase]
     when defined(nimPreviewSlimSystem):
       import std/widestrs
   else:
@@ -48,12 +48,19 @@ proc osErrorMsg*(errorCode: OSErrorCode): string =
   when defined(nimscript):
     discard
   elif defined(windows):
-    if errorCode != OSErrorCode(0'i32):
-      var msgbuf: WideCString
-      if formatMessageW(0x00000100 or 0x00001000 or 0x00000200,
-                      nil, errorCode.int32, 0, addr(msgbuf), 0, nil) != 0'i32:
-        result = $msgbuf
-        if msgbuf != nil: localFree(cast[pointer](msgbuf))
+    var msgbuf: PWSTR
+    const flags = uint32(
+      FORMAT_MESSAGE_ALLOCATE_BUFFER or FORMAT_MESSAGE_FROM_SYSTEM or
+        FORMAT_MESSAGE_IGNORE_INSERTS
+    )
+    if FormatMessageW(flags, nil, errorCode.uint32, 0, cast[PWSTR](addr(msgbuf)), 0, nil) != 0:
+      var len = 0
+      if msgbuf != nil:
+        while msgbuf[len] != 0:
+          len += 1
+
+        result = $msgbuf.toOpenArray(0, len - 1)
+        discard LocalFree(cast[HLOCAL](msgbuf))
   else:
     if errorCode != OSErrorCode(0'i32):
       result = $c_strerror(errorCode.int32)
@@ -111,7 +118,7 @@ proc osLastError*(): OSErrorCode {.sideEffect.} =
   when defined(nimscript):
     discard
   elif defined(windows):
-    result = cast[OSErrorCode](getLastError())
+    result = cast[OSErrorCode](GetLastError())
   else:
     result = OSErrorCode(errno)
 {.pop.}

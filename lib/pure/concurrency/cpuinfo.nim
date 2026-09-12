@@ -32,7 +32,7 @@ else:
     import std/posix
 
   when defined(windows):
-    import std/private/win_getsysteminfo
+    import system/private/win32/sysinfoapi
 
   when defined(freebsd) or defined(macosx):
     {.emit: "#include <sys/types.h>".}
@@ -74,8 +74,8 @@ else:
   proc countProcessorsImpl(): int {.inline.} =
     when defined(windows):
       var
-        si: SystemInfo
-      getSystemInfo(addr si)
+        si: SYSTEM_INFO
+      GetSystemInfo(addr si)
       result = int(si.dwNumberOfProcessors)
     elif defined(macosx) or defined(bsd):
       let dest = addr result
