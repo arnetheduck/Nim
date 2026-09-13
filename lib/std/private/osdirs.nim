@@ -6,7 +6,9 @@ import std/oserrors
 
 import ospaths2, osfiles
 import oscommon
-export dirExists, PathComponent
+import std/staticos
+when supportedSystem:
+  export dirExists, PathComponent
 
 
 when defined(nimPreviewSlimSystem):
@@ -19,9 +21,6 @@ elif defined(windows):
   import std/[winlean, times]
 elif defined(posix):
   import std/[posix, times]
-
-else:
-  {.error: "OS module not ported to your operating system!".}
 
 
 when weirdTarget:
@@ -151,10 +150,6 @@ iterator walkDirs*(pattern: string): string {.tags: [ReadDirEffect], noWeirdTarg
     let paths = toSeq(walkDirs("lib/pure/*")) # works on Windows too
     assert "lib/pure/concurrency".unixToNativePath in paths
   walkCommon(pattern, isDir)
-
-proc staticWalkDir(dir: string; relative: bool): seq[
-                  tuple[kind: PathComponent, path: string]] =
-  discard
 
 iterator walkDir*(dir: string; relative = false, checkDir = false,
                   skipSpecial = false):
@@ -325,7 +320,6 @@ iterator walkDirRec*(dir: string,
       # continue iteration.
       # Future work can provide a way to customize this and do error reporting.
 
-
 proc rawRemoveDir(dir: string) {.noWeirdTarget.} =
   when defined(windows):
     wrapUnary(res, removeDirectoryW, dir)
@@ -337,7 +331,7 @@ proc rawRemoveDir(dir: string) {.noWeirdTarget.} =
     if rmdir(dir) != 0'i32 and errno != ENOENT: raiseOSError(osLastError(), dir)
 
 proc removeDir*(dir: string, checkDir = false) {.rtl, extern: "nos$1", tags: [
-  WriteDirEffect, ReadDirEffect], benign, noWeirdTarget.} =
+  WriteDirEffect, ReadDirEffect], gcsafe, noWeirdTarget.} =
   ## Removes the directory `dir` including all subdirectories and files
   ## in `dir` (recursively).
   ##
@@ -447,7 +441,7 @@ proc createDir*(dir: string) {.rtl, extern: "nos$1",
       discard existsOrCreateDir(p)
 
 proc copyDir*(source, dest: string, skipSpecial = false) {.rtl, extern: "nos$1",
-  tags: [ReadDirEffect, WriteIOEffect, ReadIOEffect], benign, noWeirdTarget.} =
+  tags: [ReadDirEffect, WriteIOEffect, ReadIOEffect], gcsafe, noWeirdTarget.} =
   ## Copies a directory from `source` to `dest`.
   ##
   ## On non-Windows OSes, symlinks are copied as symlinks. On Windows, symlinks
@@ -488,7 +482,7 @@ proc copyDirWithPermissions*(source, dest: string,
                              ignorePermissionErrors = true,
                              skipSpecial = false)
   {.rtl, extern: "nos$1", tags: [ReadDirEffect, WriteIOEffect, ReadIOEffect],
-   benign, noWeirdTarget.} =
+   gcsafe, noWeirdTarget.} =
   ## Copies a directory from `source` to `dest` preserving file permissions.
   ##
   ## On non-Windows OSes, symlinks are copied as symlinks. On Windows, symlinks

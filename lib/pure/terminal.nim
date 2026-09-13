@@ -100,10 +100,9 @@ const
   stylePrefix = "\e["
 
 when defined(windows):
-  import std/[winlean, os]
+  import std/os
 
   const
-    DUPLICATE_SAME_ACCESS = 2
     FOREGROUND_BLUE = 1
     FOREGROUND_GREEN = 2
     FOREGROUND_RED = 4
@@ -115,14 +114,7 @@ when defined(windows):
     FOREGROUND_RGB = FOREGROUND_RED or FOREGROUND_GREEN or FOREGROUND_BLUE
     BACKGROUND_RGB = BACKGROUND_RED or BACKGROUND_GREEN or BACKGROUND_BLUE
 
-    ENABLE_VIRTUAL_TERMINAL_PROCESSING = 0x0004
-
   type
-    SHORT = int16
-    COORD = object
-      x: SHORT
-      y: SHORT
-
     SMALL_RECT = object
       left: SHORT
       top: SHORT
@@ -140,13 +132,6 @@ when defined(windows):
       dwSize: DWORD
       bVisible: WINBOOL
 
-  proc duplicateHandle(hSourceProcessHandle: Handle, hSourceHandle: Handle,
-                       hTargetProcessHandle: Handle, lpTargetHandle: ptr Handle,
-                       dwDesiredAccess: DWORD, bInheritHandle: WINBOOL,
-                       dwOptions: DWORD): WINBOOL{.stdcall, dynlib: "kernel32",
-      importc: "DuplicateHandle".}
-  proc getCurrentProcess(): Handle{.stdcall, dynlib: "kernel32",
-                                     importc: "GetCurrentProcess".}
   proc getConsoleScreenBufferInfo(hConsoleOutput: Handle,
     lpConsoleScreenBufferInfo: ptr CONSOLE_SCREEN_BUFFER_INFO): WINBOOL{.stdcall,
     dynlib: "kernel32", importc: "GetConsoleScreenBufferInfo".}
@@ -190,30 +175,6 @@ when defined(windows):
                               getStdHandle(STD_ERROR_HANDLE)])
     if h > 0: return h
     return 0
-
-  proc setConsoleCursorPosition(hConsoleOutput: Handle,
-                                dwCursorPosition: COORD): WINBOOL{.
-      stdcall, dynlib: "kernel32", importc: "SetConsoleCursorPosition".}
-
-  proc fillConsoleOutputCharacter(hConsoleOutput: Handle, cCharacter: char,
-                                  nLength: DWORD, dwWriteCoord: COORD,
-                                  lpNumberOfCharsWritten: ptr DWORD): WINBOOL{.
-      stdcall, dynlib: "kernel32", importc: "FillConsoleOutputCharacterA".}
-
-  proc fillConsoleOutputAttribute(hConsoleOutput: Handle, wAttribute: int16,
-                                  nLength: DWORD, dwWriteCoord: COORD,
-                                  lpNumberOfAttrsWritten: ptr DWORD): WINBOOL{.
-      stdcall, dynlib: "kernel32", importc: "FillConsoleOutputAttribute".}
-
-  proc setConsoleTextAttribute(hConsoleOutput: Handle,
-                               wAttributes: int16): WINBOOL{.
-      stdcall, dynlib: "kernel32", importc: "SetConsoleTextAttribute".}
-
-  proc getConsoleMode(hConsoleHandle: Handle, dwMode: ptr DWORD): WINBOOL{.
-      stdcall, dynlib: "kernel32", importc: "GetConsoleMode".}
-
-  proc setConsoleMode(hConsoleHandle: Handle, dwMode: DWORD): WINBOOL{.
-      stdcall, dynlib: "kernel32", importc: "SetConsoleMode".}
 
   proc getCursorPos(h: Handle): tuple [x, y: int] =
     var c: CONSOLE_SCREEN_BUFFER_INFO
@@ -805,9 +766,13 @@ proc isatty*(f: File): bool =
   when defined(posix):
     proc isatty(fildes: FileHandle): cint {.
       importc: "isatty", header: "<unistd.h>".}
-  else:
-    proc isatty(fildes: FileHandle): cint {.
+  elif defined(windows):
+    proc c_isatty(fildes: cint): cint {.
       importc: "_isatty", header: "<io.h>".}
+    proc isatty(fildes: FileHandle): cint =
+      c_isatty(cint(fildes))
+  else:
+    {.error: "isatty is not supported on your operating system!".}
 
   result = isatty(getFileHandle(f)) != 0'i32
 
@@ -905,14 +870,12 @@ when defined(windows):
     ## `true` otherwise.
     password.setLen(0)
     stdout.write(prompt)
+    stdout.flushFile()
     let hi = createFileA("CONIN$",
       GENERIC_READ or GENERIC_WRITE, 0, nil, OPEN_EXISTING, 0, 0)
     var mode = DWORD 0
     discard getConsoleMode(hi, addr mode)
     let origMode = mode
-    const
-      ENABLE_PROCESSED_INPUT = 1
-      ENABLE_ECHO_INPUT = 4
     mode = (mode or ENABLE_PROCESSED_INPUT) and not ENABLE_ECHO_INPUT
 
     discard setConsoleMode(hi, mode)
@@ -922,8 +885,6 @@ when defined(windows):
     stdout.write "\n"
 
 else:
-  import std/termios
-
   proc readPasswordFromStdin*(prompt: string, password: var string):
                             bool {.tags: [ReadIOEffect, WriteIOEffect].} =
     password.setLen(0)
@@ -934,6 +895,7 @@ else:
     cur.c_lflag = cur.c_lflag and not Cflag(ECHO)
     discard fd.tcSetAttr(TCSADRAIN, cur.addr)
     stdout.write prompt
+    stdout.flushFile()
     result = stdin.readLine(password)
     stdout.write "\n"
     discard fd.tcSetAttr(TCSADRAIN, old.addr)
@@ -976,9 +938,6 @@ proc resetAttributes*() {.noconv.} =
 proc isTrueColorSupported*(): bool =
   ## Returns true if a terminal supports true color.
   return getTerminal().trueColorIsSupported
-
-when defined(windows):
-  import std/os
 
 proc enableTrueColors*() =
   ## Enables true color.

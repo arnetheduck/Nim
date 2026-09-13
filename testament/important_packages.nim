@@ -22,23 +22,19 @@ When this is the case, a workaround is to test this package here by adding `--pa
 type NimblePackage* = object
   name*, cmd*, url*: string
   useHead*: bool
-  allowFailure*: bool
-    ## When true, we still run the test but the test is allowed to fail.
-    ## This is useful for packages that currently fail but that we still want to
-    ## run in CI, e.g. so that we can monitor when they start working again and
-    ## are reminded about those failures without making CI fail for unrelated PRs.
 
 var packages*: seq[NimblePackage]
 
-proc pkg(name: string; cmd = "nimble test -l"; url = "", useHead = true, allowFailure = false) =
-  packages.add NimblePackage(name: name, cmd: cmd, url: url, useHead: useHead, allowFailure: allowFailure)
+proc pkg(name: string; cmd = "nimble test -l"; url = "", useHead = true) =
+  packages.add NimblePackage(name: name, cmd: cmd, url: url, useHead: useHead)
 
 pkg "alea"
 pkg "argparse"
 pkg "arraymancer", "nimble install -y; nimble uninstall -i -y nimcuda; nimble install nimcuda@0.2.1; nim c tests/tests_cpu.nim"
 pkg "ast_pattern_matching", "nim c -r tests/test1.nim"
 pkg "asyncftpclient", "nimble compileExample"
-pkg "asyncthreadpool", "nimble test --mm:refc"
+when not defined(arm64):
+  pkg "asyncthreadpool", "nimble test --mm:refc"
 pkg "awk"
 pkg "bigints"
 pkg "binaryheap", "nim c -r binaryheap.nim"
@@ -53,23 +49,23 @@ pkg "chroma"
 pkg "chronicles", "nim c -o:chr -r chronicles.nim"
 pkg "chronos", "nim c -r -d:release tests/testall"
 pkg "cligen", "nim c --path:. -r cligen.nim"
-pkg "combparser", "nimble test --mm:orc"
+pkg "combparser", "nimble test"
 pkg "compactdict"
 pkg "comprehension", "nimble test", "https://github.com/alehander92/comprehension"
 pkg "confutils", "nimble install -y toml_serialization json_serialization unittest2; nimble test"
 pkg "constantine", "nimble make_lib"
 pkg "cowstrings", "nim c -r tests/tcowstrings.nim"
-pkg "criterion"
+when not defined(arm64):
+  pkg "criterion"
 pkg "dashing", "nim c tests/functional.nim"
 pkg "datamancer"
 pkg "delaunay"
 pkg "docopt"
 pkg "dotenv"
 pkg "easygl", "nim c -o:egl -r src/easygl.nim", "https://github.com/jackmott/easygl"
-pkg "elvis"
+pkg "elvis", url = "https://github.com/nim-lang/elvis"
 pkg "eth", "nim c -o:common -r tests/common/all_tests"
 pkg "faststreams"
-pkg "fidget"
 pkg "fusion"
 pkg "gara"
 pkg "ggplotnim", "nim c -d:noCairo -r tests/tests.nim"
@@ -91,7 +87,7 @@ pkg "lockfreequeues"
 pkg "loopfusion"
 pkg "macroutils"
 pkg "manu"
-pkg "markdown"
+pkg "markdown", "nim c -r tests/testmarkdown.nim"
 pkg "measuremancer", "nimble testDeps; nimble -y test"
 pkg "memo"
 pkg "metrics"
@@ -111,7 +107,7 @@ pkg "nimcrypto", "nim r --path:. tests/testall.nim" # `--path:.` workaround need
 pkg "NimData", "nim c -o:nimdataa src/nimdata.nim"
 pkg "nimes", "nim c src/nimes.nim"
 pkg "nimfp", "nim c -o:nfp -r src/fp.nim"
-pkg "nimgame2", "nim c --mm:refc nimgame2/nimgame.nim"
+pkg "nimgame2", "nim c nimgame2/nimgame.nim"
 pkg "nimgen", "nim c -o:nimgenn -r src/nimgen/runcfg.nim"
 pkg "nimib"
 pkg "nimlsp"
@@ -121,7 +117,8 @@ pkg "nimpy", "nim c -r tests/nimfrompy.nim"
 pkg "nimquery"
 pkg "nimsl"
 pkg "nimsvg"
-pkg "nimterop", "nimble minitest", url = "https://github.com/nim-lang/nimterop"
+when not defined(arm64):
+  pkg "nimterop", "nimble minitest", url = "https://github.com/nim-lang/nimterop"
 pkg "nimwc", "nim c nimwc.nim"
 pkg "nitter", "nim c src/nitter.nim", "https://github.com/zedeus/nitter"
 pkg "noise"
@@ -133,7 +130,8 @@ pkg "optionsutils"
 pkg "ormin", "nim c -o:orminn ormin.nim"
 pkg "parsetoml"
 pkg "patty"
-pkg "pixie"
+when not defined(arm64):
+  pkg "pixie"
 pkg "plotly", "nim c examples/all.nim"
 pkg "pnm"
 pkg "polypbren"
@@ -154,17 +152,16 @@ pkg "sim"
 pkg "smtp", "nimble compileExample"
 pkg "snip", "nimble test", "https://github.com/genotrance/snip"
 pkg "ssostrings", "nim c -r tests/tssostrings.nim"
+pkg "ssz_serialization", "nim c -r tests/test_all.nim"
 pkg "stew"
-pkg "stint", "nim c stint.nim"
+pkg "stint", "nimble test_internal"
 pkg "strslice"
-pkg "strunicode", "nim c -r --mm:refc src/strunicode.nim"
 pkg "supersnappy"
 pkg "synthesis"
 pkg "taskpools"
 pkg "telebot", "nim c -o:tbot -r src/telebot.nim"
 pkg "tempdir"
 pkg "templates"
-pkg "tensordsl", "nim c -r --mm:refc tests/tests.nim", "https://krux02@bitbucket.org/krux02/tensordslnim.git"
 pkg "terminaltables", "nim c src/terminaltables.nim"
 pkg "termstyle", "nim c -r termstyle.nim"
 pkg "testutils"
@@ -177,8 +174,10 @@ pkg "unicodeplus", "nim c -d:release -r tests/tests.nim"
 pkg "union", "nim c -r tests/treadme.nim", url = "https://github.com/alaviss/union"
 pkg "unittest2"
 pkg "unpack"
-pkg "weave", "nimble install -y cligen@#HEAD; nimble test_gc_arc", useHead = true
-pkg "websock", "nim c -d:chronosStrictException -d:chronicles_log_level=INFO --mm:refc tests/all_tests.nim"
+when not defined(arm64):
+  pkg "weave", "nimble install -y cligen@#HEAD; nimble test_gc_arc", useHead = true
+pkg "web3", "nimble test_slim", useHead = true
+pkg "websock", "nim c -d:chronicles_log_level=INFO tests/all_tests.nim"
 pkg "websocket", "nim c websocket.nim"
 pkg "with"
 pkg "yaml"

@@ -257,8 +257,8 @@ compiler tcc:
     linkerExe: "tcc",
     linkTmpl: "-o $exefile $options $buildgui $builddll $objfiles",
     includeCmd: " -I",
-    linkDirCmd: "", # XXX: not supported yet
-    linkLibCmd: "", # XXX: not supported yet
+    linkDirCmd: " -L",
+    linkLibCmd: " -l$1",
     debug: " -g ",
     pic: "",
     asmStmtFrmt: "asm($1);$n",
@@ -341,7 +341,7 @@ proc getConfigVar(conf: ConfigRef; c: TSystemCC, suffix: string): string =
   var fullSuffix = suffix
   case conf.backend
   of backendCpp, backendJs, backendObjc: fullSuffix = "." & $conf.backend & suffix
-  of backendC: discard
+  of backendC, backendNif: discard
   of backendInvalid:
     # during parsing of cfg files; we don't know the backend yet, no point in
     # guessing wrong thing
@@ -473,6 +473,11 @@ proc noAbsolutePaths(conf: ConfigRef): bool {.inline.} =
 
 proc cFileSpecificOptions(conf: ConfigRef; nimname, fullNimFile: string): string =
   result = conf.compileOptions
+
+  if (conf.cCompiler == ccGcc or conf.cCompiler == ccCLang) and
+       conf.selectedGC == gcRefc:
+    # bug #10625
+    addOpt(result, "-fno-omit-frame-pointer")
 
   for option in conf.compileOptionsCmd:
     if strutils.find(result, option, 0) < 0:
@@ -686,8 +691,11 @@ proc externalFileChanged(conf: ConfigRef; cfile: Cfile): bool =
 proc addExternalFileToCompile*(conf: ConfigRef; c: var Cfile) =
   # we want to generate the hash file unconditionally
   let extFileChanged = externalFileChanged(conf, c)
+  # A matching source hash does not prove that the object belongs to it. A
+  # classic build can overwrite IC's main object without updating its SHA1;
+  # after emit restores the IC source, that object is older than the source.
   if optForceFullMake notin conf.globalOptions and fileExists(c.obj) and
-      not extFileChanged:
+      not extFileChanged and os.fileNewer(c.obj.string, c.cname.string):
     c.flags.incl CfileFlag.Cached
   else:
     # make sure Nim keeps recompiling the external file on reruns
@@ -804,6 +812,59 @@ template tryExceptOSErrorMessage(conf: ConfigRef; errorPrefix: string = "", body
       rawMessage(conf, errGenerated, "execution of an external program failed: '$1'" %
         (ose.msg & " " & $ose.errorCode))
     raise
+
+proc createMacAppBundle(conf: ConfigRef; exefile: AbsoluteFile) =
+  let (dir, name, _) = splitFile(exefile.string)
+  let appBundleName = name & ".app"
+  let appBundlePath = dir / appBundleName
+  let contentsPath = appBundlePath / "Contents"
+  let macosPath = contentsPath / "MacOS"
+
+  createDir(macosPath)
+
+  let bundleExePath = macosPath / name
+  copyFileWithPermissions(exefile.string, bundleExePath)
+
+  let infoPlistPath = contentsPath / "Info.plist"
+
+  proc xmlEscape(s: string): string =
+    result = newStringOfCap(s.len)
+    for c in items(s):
+      case c:
+      of '<': result.add("&lt;")
+      of '>': result.add("&gt;")
+      of '&': result.add("&amp;")
+      of '"': result.add("&quot;")
+      of '\'': result.add("&apos;")
+      else:
+        if ord(c) < 32:
+          result.add("&#" & $ord(c) & ';')
+        else:
+          result.add(c)
+
+  let escapedName = xmlEscape(name)
+  let infoPlistContent = """<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>CFBundleExecutable</key>
+  <string>$1</string>
+  <key>CFBundleIdentifier</key>
+  <string>com.nim.$1</string>
+  <key>CFBundleName</key>
+  <string>$1</string>
+  <key>CFBundlePackageType</key>
+  <string>APPL</string>
+  <key>LSUIElement</key>
+  <string>1</string>
+</dict>
+</plist>""" % [escapedName]
+
+  writeFile(infoPlistPath, infoPlistContent)
+
+  removeFile(exefile.string)
+
+  rawMessage(conf, hintUserRaw, "Created Mac app bundle: " & appBundlePath)
 
 proc getExtraCmds(conf: ConfigRef; output: AbsoluteFile): seq[string] =
   result = @[]
@@ -989,6 +1050,10 @@ proc callCCompiler*(conf: ConfigRef) =
         preventLinkCmdMaxCmdLen(conf, linkCmd)
         for cmd in extraCmds:
           execExternalProgram(conf, cmd, hintExecuting)
+        # create Mac app bundle for GUI apps on macOS
+        when defined(macosx):
+          if conf.globalOptions * {optGenGuiApp, optGenDynLib, optGenStaticLib} == {optGenGuiApp}:
+            createMacAppBundle(conf, mainOutput)
   else:
     linkCmd = ""
   if optGenScript in conf.globalOptions:
@@ -1100,6 +1165,55 @@ proc runJsonBuildInstructions*(conf: ConfigRef; jsonFile: AbsoluteFile) =
   execCmdsInParallel(conf, cmds, prettyCb)
   preventLinkCmdMaxCmdLen(conf, bcache.linkcmd)
   for cmd in bcache.extraCmds: execExternalProgram(conf, cmd, hintExecuting)
+
+proc spawnCodegenSubprocess*(conf: ConfigRef) =
+  ## Spawns a separate nim process with --compileOnly to perform
+  ## Nim-to-C code generation, then runs the C compile/link steps from the
+  ## generated JSON build instructions. This reclaims the Nim compiler's memory
+  ## before proceeding with C compilation.
+
+  # The subprocess args consist of the existing args and options up to the
+  # project file with `--compileOnly` injected first - anything after the project
+  # file is meant for running the project (`-r`) so we should have exactly two
+  # non-option arguments.
+  # We also disable the conf hint since it would otherwise show twice as the
+  # config files get parsed by both processes.
+  var subArgs = @["--compileOnly", "--hint[Conf]:off"]
+  var projectFileAdded = false
+  var commandAdded = false
+  for a in os.commandLineParams():
+    if a.len == 0:
+      continue
+
+    if a notin ["-r", "--run"]:
+      subArgs.add a
+
+    if a[0] != '-':
+      if commandAdded:
+        projectFileAdded = true
+        break
+      else:
+        commandAdded = true
+
+  doAssert projectFileAdded, "Could not find project file in command line, bug?"
+
+  # Spawn subprocess - the subprocess generates C files + JSON build instructions
+  let nimExe = getAppFilename()
+  try:
+    let p = startProcess(nimExe, args = subArgs, options = {poParentStreams})
+    let exitCode = p.waitForExit()
+    p.close()
+    if exitCode != 0:
+      # We assume the internal compiler has printed its own messages - the test
+      # suite depends on nothing being printed here
+      inc conf.errorCounter
+      return
+  except CatchableError as e:
+    rawMessage(conf, errGenerated, "execution of codegen failed: '$1'" %
+      [e.msg])
+    return
+
+  runJsonBuildInstructions(conf, conf.jsonBuildInstructionsFile)
 
 proc genMappingFiles(conf: ConfigRef; list: CfileList): Rope =
   result = ""

@@ -12,14 +12,19 @@
 when defined(nimPreviewSlimSystem):
   import std/assertions
 
-proc c_memcpy(a, b: pointer, size: csize_t): pointer {.importc: "memcpy", header: "<string.h>", discardable.}
+from system/ansi_c import c_memcpy
 
 proc addCstringN(result: var string, buf: cstring; buflen: int) =
   # no nimvm support needed, so it doesn't need to be fast here either
   let oldLen = result.len
   let newLen = oldLen + buflen
-  result.setLen newLen
-  c_memcpy(result[oldLen].addr, buf, buflen.csize_t)
+  {.cast(noSideEffect).}:
+    when declared(beginStore):
+      c_memcpy(beginStore(result, newLen, oldLen), buf, buflen.csize_t)
+      endStore(result)
+    else:
+      result.setLen newLen
+      discard c_memcpy(result[oldLen].addr, buf, buflen.csize_t)
 
 import std/private/[dragonbox, schubfach]
 
@@ -110,6 +115,10 @@ when defined(js):
       }
       if (Number.isSafeInteger(`a`))
         `result` = `a` === 0 && 1 / `a` < 0 ? "-0.0" : `a`+".0";
+      else if (isNaN(`a`)) // Number.isNaN is since ES6
+        `result` = "nan";  // or it'll be "NaN"
+      else if (!isFinite(`a`)) // Number.isFinite newer but unnecessary here
+        `result` = `a` > 0 ? "inf" : "-inf";  // or it'll be [-]Infinity
       else {
         `result` = `a`+"";
         if(nimOnlyDigitsOrMinus(`result`)){

@@ -87,8 +87,9 @@ proc getMagic*(op: PNode): TMagic =
   if op == nil: return mNone
   case op.kind
   of nkCallKinds:
-    case op[0].kind
-    of nkSym: result = op[0].sym.magic
+    let callee = op.firstSon
+    case callee.kind
+    of nkSym: result = callee.sym.magic
     else: result = mNone
   else: result = mNone
 
@@ -107,10 +108,11 @@ proc isDeepConstExpr*(n: PNode; preventInheritance = false): bool =
   of nkCharLit..nkNilLit:
     result = true
   of nkExprEqExpr, nkExprColonExpr, nkHiddenStdConv, nkHiddenSubConv:
-    result = isDeepConstExpr(n[1], preventInheritance)
+    result = isDeepConstExpr(n.secondSon, preventInheritance)
   of nkCurly, nkBracket, nkPar, nkTupleConstr, nkObjConstr, nkClosure, nkRange:
-    for i in ord(n.kind == nkObjConstr)..<n.len:
-      if not isDeepConstExpr(n[i], preventInheritance): return false
+    # `nkObjConstr` carries its TYPE as child 0 and its fields from 1.
+    for it in sonsFrom(n, ord(n.kind == nkObjConstr)):
+      if not isDeepConstExpr(it, preventInheritance): return false
     if n.typ.isNil: result = true
     else:
       let t = n.typ.skipTypes({tyGenericInst, tyDistinct, tyAlias, tySink, tyOwned})
@@ -131,8 +133,8 @@ proc isRange*(n: PNode): bool {.inline.} =
     let callee = n[0]
     if (callee.kind == nkIdent and callee.ident.id == ord(wDotDot)) or
        (callee.kind == nkSym and callee.sym.name.id == ord(wDotDot)) or
-       (callee.kind in {nkClosedSymChoice, nkOpenSymChoice} and
-        callee[1].sym.name.id == ord(wDotDot)):
+       (callee.kind in {nkClosedSymChoice, nkOpenSymChoice, nkOpenSym} and
+        callee[0].sym.name.id == ord(wDotDot)):
       result = true
     else:
       result = false
@@ -140,16 +142,16 @@ proc isRange*(n: PNode): bool {.inline.} =
     result = false
 
 proc whichPragma*(n: PNode): TSpecialWord =
-  let key = if n.kind in nkPragmaCallKinds and n.len > 0: n[0] else: n
+  let key = if n.kind in nkPragmaCallKinds and n.hasSons: n.firstSon else: n
   case key.kind
   of nkIdent: result = whichKeyword(key.ident)
   of nkSym: result = whichKeyword(key.sym.name)
   of nkCast: return wCast
-  of nkClosedSymChoice, nkOpenSymChoice:
-    return whichPragma(key[0])
+  of nkClosedSymChoice, nkOpenSymChoice, nkOpenSym:
+    return whichPragma(key.firstSon)
   of nkBracketExpr:
     if n.kind notin nkPragmaCallKinds: return wInvalid
-    result = whichPragma(key[0])
+    result = whichPragma(key.firstSon)
     if result notin {wHint, wHintAsError, wWarning, wWarningAsError}:
       # note bracket pragmas, see processNote
       result = wInvalid
@@ -217,13 +219,24 @@ proc getRoot*(n: PNode): PSym =
       result = nil
   of nkDotExpr, nkBracketExpr, nkHiddenDeref, nkDerefExpr,
       nkObjUpConv, nkObjDownConv, nkCheckedFieldExpr, nkHiddenAddr, nkAddr:
-    result = getRoot(n[0])
+    result = getRoot(n.firstSon)
   of nkHiddenStdConv, nkHiddenSubConv, nkConv:
-    result = getRoot(n[1])
+    result = getRoot(n.secondSon)
   of nkCallKinds:
-    if getMagic(n) == mSlice: result = getRoot(n[1])
+    if getMagic(n) == mSlice: result = getRoot(n.secondSon)
     else: result = nil
   else: result = nil
+
+proc isCursor*(n: PNode): bool =
+  case n.kind
+  of nkSym:
+    sfCursor in n.sym.flags
+  of nkDotExpr:
+    isCursor(n[1])
+  of nkCheckedFieldExpr:
+    isCursor(n[0])
+  else:
+    false
 
 proc stupidStmtListExpr*(n: PNode): bool =
   for i in 0..<n.len-1:
@@ -242,4 +255,33 @@ proc isRunnableExamples*(n: PNode): bool =
     n.kind == nkIdent and n.ident.id == ord(wRunnableExamples)
 
 proc skipAddr*(n: PNode): PNode {.inline.} =
-  result = if n.kind in {nkAddr, nkHiddenAddr}: n[0] else: n
+  result = if n.kind in {nkAddr, nkHiddenAddr}: n.firstSon else: n
+
+proc getPotentialWrites*(n: PNode; mutate: bool; result: var seq[PNode]) =
+  case n.kind:
+  of nkLiterals, nkIdent, nkFormalParams: discard
+  of nkSym:
+    if mutate: result.add n
+  of nkAsgn, nkFastAsgn, nkSinkAsgn:
+    getPotentialWrites(n[0], true, result)
+    getPotentialWrites(n[1], mutate, result)
+  of nkAddr, nkHiddenAddr:
+    getPotentialWrites(n[0], true, result)
+  of nkBracketExpr, nkDotExpr, nkCheckedFieldExpr:
+    getPotentialWrites(n[0], mutate, result)
+  of nkCallKinds:
+    case n.getMagic:
+    of mIncl, mExcl, mInc, mDec, mAppendStrCh, mAppendStrStr, mAppendSeqElem,
+        mAddr, mNew, mNewFinalize, mWasMoved, mDestroy:
+      getPotentialWrites(n[1], true, result)
+      for i in 2..<n.len:
+        getPotentialWrites(n[i], mutate, result)
+    of mSwap, mMove:
+      for i in 1..<n.len:
+        getPotentialWrites(n[i], true, result)
+    else:
+      for i in 1..<n.len:
+        getPotentialWrites(n[i], mutate, result)
+  else:
+    for s in n:
+      getPotentialWrites(s, mutate, result)

@@ -30,28 +30,30 @@ a working NodeJS on `PATH`.
 Commands
 ========
 
+==========================  ==========================
 p|pat|pattern <glob>        run all the tests matching the given pattern
 all                         run all tests inside of category folders
 c|cat|category <category>   run all the tests of a certain category
 r|run <test>                run single test file
 html                        generate testresults.html from the database
+==========================  ==========================
 
 
 Options
 =======
 
---print                   print results to the console
---verbose                 print commands (compiling and running tests)
---simulate                see what tests would be run but don't run them (for debugging)
---failing                 only show failing/ignored tests
---targets:"c cpp js objc" run tests for specified targets (default: c)
---nim:path                use a particular nim executable (default: $PATH/nim)
---directory:dir           Change to directory dir before reading the tests or doing anything else.
---colors:on|off           Turn messages coloring on|off.
---backendLogging:on|off   Disable or enable backend logging. By default turned on.
---megatest:on|off         Enable or disable megatest. Default is on.
---valgrind:on|off         Enable or disable valgrind support. Default is on.
---skipFrom:file           Read tests to skip from `file` - one test per line, # comments ignored
+--print                    print results to the console
+--verbose                  print commands (compiling and running tests)
+--simulate                 see what tests would be run but don't run them (for debugging)
+--failing                  only show failing/ignored tests
+--targets:"c cpp js objc"  run tests for specified targets (default: c)
+--nim:path                 use a particular nim executable (default: $PATH/nim)
+--directory:dir            Change to directory dir before reading the tests or doing anything else.
+--colors:on|off            Turn messages coloring on|off.
+--backendLogging:on|off    Disable or enable backend logging. By default turned on.
+--megatest:on|off          Enable or disable megatest. Default is on.
+--valgrind:on|off          Enable or disable valgrind support. Default is on.
+--skipFrom:file            Read tests to skip from `file` - one test per line, # comments ignored
 
 
 Running a single test
@@ -201,7 +203,7 @@ Example "template" **to edit** and write a Testament unittest:
     disabled: "win"
     disabled: "32bit" # ...or architectures
     disabled: "i386"
-    disabled: "azure" # ...or pipeline runners
+    disabled: "github" # ...or pipeline runners
     disabled: true    # ...or can disable the test entirely
 
   """
@@ -216,7 +218,7 @@ Example "template" **to edit** and write a Testament unittest:
   see parseSpec()](https://github.com/nim-lang/Nim/blob/devel/testament/specs.nim#L317).
 * Nim itself uses Testament, so [there are plenty of test examples](
   https://github.com/nim-lang/Nim/tree/devel/tests).
-* Has some built-in CI compatibility, like Azure Pipelines, etc.
+* Has some built-in CI compatibility, like GitHub Actions, etc.
 
 
 Inline hints, warnings and errors (notes)

@@ -54,7 +54,10 @@ import
 
 when not defined(nimCustomAst):
   import ast
-else:
+when defined(nimCustomAst):
+  # NOTE: explicit negated `when` rather than `else:` — nifler's dep scanner
+  # guards `when`/`elif` imports with their condition but emits `else:` imports
+  # unconditionally, which would wrongly schedule this module under `nim ic`.
   import plugins / customast
 
 import std/strutils
@@ -638,8 +641,9 @@ proc semiStmtList(p: var Parser, result: PNode) =
         getTok(p)
       if p.tok.tokType == tkParRi:
         break
-      elif not (sameInd(p) or realInd(p)):
-        parMessage(p, errInvalidIndentation)
+      # ignore indent:
+      #elif not (sameOrNoInd(p) or realInd(p)):
+      #  parMessage(p, errInvalidIndentation)
       let a = complexOrSimpleStmt(p)
       if a.kind == nkEmpty:
         parMessage(p, errExprExpected, p.tok)
@@ -699,10 +703,12 @@ proc parsePar(p: var Parser): PNode =
       asgn.add b
       result.add(asgn)
       if p.tok.tokType == tkSemiColon:
+        getTok(p)
         semiStmtList(p, result)
     elif p.tok.tokType == tkSemiColon:
       # stmt context:
       result.add(a)
+      getTok(p)
       semiStmtList(p, result)
     else:
       a = colonOrEquals(p, a)
@@ -1153,7 +1159,10 @@ proc parseParamList(p: var Parser, retColon = true): PNode =
         parMessage(p, errGenerated, "the syntax is 'parameter: var T', not 'var parameter: T'")
         break
       else:
-        parMessage(p, "expected closing ')'")
+        if p.tok.tokType in tokKeywordLow..tokKeywordHigh:
+          parMessage(p, errGenerated, "'" & $p.tok.ident.s & "' is a keyword and cannot be used as a parameter name")
+        else:
+          parMessage(p, "expected closing ')'")
         break
       result.add(a)
       if p.tok.tokType notin {tkComma, tkSemiColon}: break
@@ -2107,12 +2116,28 @@ proc parseObjectCase(p: var Parser): PNode =
   #| objectBranches = objectBranch (IND{=} objectBranch)*
   #|                       (IND{=} 'elif' expr colcom objectPart)*
   #|                       (IND{=} 'else' colcom objectPart)?
-  #| objectCase = 'case' declColonEquals ':'? COMMENT?
+  #| objectCase = 'case' (declColonEquals / pragma)? ':'? COMMENT?
   #|             (IND{>} objectBranches DED
   #|             | IND{=} objectBranches)
   result = newNodeP(nkRecCase, p)
-  getTokNoInd(p)
-  var a = parseIdentColonEquals(p, {withPragma})
+  getTok(p)
+  if p.tok.tokType != tkOf:
+    # of case will be handled later
+    if p.tok.indent >= 0: parMessage(p, errInvalidIndentation)
+  var a: PNode
+  if p.tok.tokType in {tkSymbol, tkAccent}:
+    a = parseIdentColonEquals(p, {withPragma})
+  else:
+    a = newNodeP(nkIdentDefs, p)
+    if p.tok.tokType == tkCurlyDotLe:
+      var prag = newNodeP(nkPragmaExpr, p)
+      prag.add(p.emptyNode)
+      prag.add(parsePragma(p))
+      a.add(prag)
+    else:
+      a.add(p.emptyNode)
+    a.add(p.emptyNode)
+    a.add(p.emptyNode)
   result.add(a)
   if p.tok.tokType == tkColon: getTok(p)
   flexComment(p, result)
@@ -2219,14 +2244,17 @@ proc parseTypeClassParam(p: var Parser): PNode =
 
 proc parseTypeClass(p: var Parser): PNode =
   #| conceptParam = ('var' | 'out' | 'ptr' | 'ref' | 'static' | 'type')? symbol
-  #| conceptDecl = 'concept' conceptParam ^* ',' (pragma)? ('of' typeDesc ^* ',')?
+  #| conceptDecl = 'concept' (conceptParam ^* ',' (pragma)?)? ('of' typeDesc ^* ',')?
   #|               &IND{>} stmt
   result = newNodeP(nkTypeClassTy, p)
   getTok(p)
   if p.tok.tokType == tkComment:
     skipComment(p, result)
 
-  if p.tok.indent < 0:
+  if p.tok.tokType == tkOf and p.tok.indent < 0:
+    # new-styled `concept of A, B` on the same line as `concept`
+    result.add(p.emptyNode)
+  elif p.tok.indent < 0:
     var args = newNodeP(nkArgList, p)
     result.add(args)
     args.add(p.parseTypeClassParam)
@@ -2252,9 +2280,10 @@ proc parseTypeClass(p: var Parser): PNode =
     result.add(p.emptyNode)
   if p.tok.tokType == tkComment:
     skipComment(p, result)
-  # an initial IND{>} HAS to follow:
+  # an initial IND{>} HAS to follow, unless this concept inherits requirements:
   if not realInd(p):
-    if result.isNewStyleConcept:
+    let hasParents = result[2].kind != nkEmpty
+    if result.isNewStyleConcept and not hasParents:
       parMessage(p, "routine expected, but found '$1' (empty new-styled concepts are not allowed)", p.tok)
     result.add(p.emptyNode)
   else:

@@ -439,8 +439,8 @@ proc gen(c: var Con; n: PNode) =
     genUse(c, n)
   of nkIfStmt, nkIfExpr: genIf(c, n)
   of nkWhenStmt:
-    # This is "when nimvm" node. Chose the first branch.
-    gen(c, n[0][1])
+    # This is "when nimvm" node. Chose the second branch.
+    gen(c, n[1][0])
   of nkCaseStmt: genCase(c, n)
   of nkWhileStmt: genWhile(c, n)
   of nkBlockExpr, nkBlockStmt: genBlock(c, n)
@@ -454,7 +454,7 @@ proc gen(c: var Con; n: PNode) =
   of nkPragmaBlock: gen(c, n.lastSon)
   of nkDiscardStmt, nkObjDownConv, nkObjUpConv, nkStringToCString, nkCStringToString:
     gen(c, n[0])
-  of nkConv, nkExprColonExpr, nkExprEqExpr, nkCast, PathKinds1:
+  of nkConv, nkExprColonExpr, nkExprEqExpr, PathKinds1:
     gen(c, n[1])
   of nkVarSection, nkLetSection: genVarSection(c, n)
   of nkDefer: raiseAssert "dfa construction pass requires the elimination of 'defer'"
@@ -483,7 +483,7 @@ proc constructCfg*(s: PSym; body: PNode; root: PSym): ControlFlowGraph =
     gen(c, body)
     if root.kind == skResult:
       genImplicitReturn(c)
-  when defined(gcArc) or defined(gcOrc) or defined(gcAtomicArc):
+  when defined(gcArc) or defined(gcOrc) or defined(gcAtomicArc) or defined(gcYrc):
     result = c.code # will move
   else:
     shallowCopy(result, c.code)

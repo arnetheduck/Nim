@@ -68,8 +68,6 @@ template mdbg*: bool {.deprecated.} =
 # ---------------------------------------------------------------------------
 
 proc lookupInRecord*(n: PNode, field: PIdent): PSym
-proc mustRehash*(length, counter: int): bool
-proc nextTry*(h, maxHash: Hash): Hash {.inline.}
 
 # ------------- table[int, int] ---------------------------------------------
 const
@@ -215,10 +213,6 @@ proc getNamedParamFromList*(list: PNode, ident: PIdent): PSym =
 
 proc hashNode(p: RootRef): Hash =
   result = hash(cast[pointer](p))
-
-proc mustRehash(length, counter: int): bool =
-  assert(length > counter)
-  result = (length * 2 < counter * 3) or (length - counter < 4)
 
 import std/tables
 
@@ -484,12 +478,6 @@ proc debug(n: PNode; conf: ConfigRef) =
   this.value(n)
   echo($this.res)
 
-proc nextTry(h, maxHash: Hash): Hash {.inline.} =
-  result = ((5 * h) + 1) and maxHash
-  # For any initial h in range(maxHash), repeating that maxHash times
-  # generates each int in range(maxHash) exactly once (see any text on
-  # random-number generation for proof).
-
 proc objectSetContains*(t: TObjectSet, obj: RootRef): bool =
   # returns true whether n is in t
   var h: Hash = hashNode(obj) and high(t.data) # start with real hash value
@@ -537,151 +525,51 @@ proc objectSetContainsOrIncl*(t: var TObjectSet, obj: RootRef): bool =
   inc(t.counter)
   result = false
 
-proc strTableContains*(t: TStrTable, n: PSym): bool =
-  var h: Hash = n.name.h and high(t.data) # start with real hash value
-  while t.data[h] != nil:
-    if (t.data[h] == n):
-      return true
-    h = nextTry(h, high(t.data))
-  result = false
-
-proc strTableRawInsert(data: var seq[PSym], n: PSym) =
-  var h: Hash = n.name.h and high(data)
-  while data[h] != nil:
-    if data[h] == n:
-      # allowed for 'export' feature:
-      #InternalError(n.info, "StrTableRawInsert: " & n.name.s)
-      return
-    h = nextTry(h, high(data))
-  assert(data[h] == nil)
-  data[h] = n
-
-proc symTabReplaceRaw(data: var seq[PSym], prevSym: PSym, newSym: PSym) =
-  assert prevSym.name.h == newSym.name.h
-  var h: Hash = prevSym.name.h and high(data)
-  while data[h] != nil:
-    if data[h] == prevSym:
-      data[h] = newSym
-      return
-    h = nextTry(h, high(data))
-  assert false
-
-proc symTabReplace*(t: var TStrTable, prevSym: PSym, newSym: PSym) =
-  symTabReplaceRaw(t.data, prevSym, newSym)
-
-proc strTableEnlarge(t: var TStrTable) =
-  var n: seq[PSym]
-  newSeq(n, t.data.len * GrowthFactor)
-  for i in 0..high(t.data):
-    if t.data[i] != nil: strTableRawInsert(n, t.data[i])
-  swap(t.data, n)
-
-proc strTableAdd*(t: var TStrTable, n: PSym) =
-  if mustRehash(t.data.len, t.counter): strTableEnlarge(t)
-  strTableRawInsert(t.data, n)
-  inc(t.counter)
-
-proc strTableInclReportConflict*(t: var TStrTable, n: PSym;
-                                 onConflictKeepOld = false): PSym =
-  # if `t` has a conflicting symbol (same identifier as `n`), return it
-  # otherwise return `nil`. Incl `n` to `t` unless `onConflictKeepOld = true`
-  # and a conflict was found.
-  assert n.name != nil
-  var h: Hash = n.name.h and high(t.data)
-  var replaceSlot = -1
-  while true:
-    var it = t.data[h]
-    if it == nil: break
-    # Semantic checking can happen multiple times thanks to templates
-    # and overloading: (var x=@[]; x).mapIt(it).
-    # So it is possible the very same sym is added multiple
-    # times to the symbol table which we allow here with the 'it == n' check.
-    if it.name.id == n.name.id:
-      if it == n: return nil
-      replaceSlot = h
-    h = nextTry(h, high(t.data))
-  if replaceSlot >= 0:
-    result = t.data[replaceSlot] # found it
-    if not onConflictKeepOld:
-      t.data[replaceSlot] = n # overwrite it with newer definition!
-    return result # but return the old one
-  elif mustRehash(t.data.len, t.counter):
-    strTableEnlarge(t)
-    strTableRawInsert(t.data, n)
-  else:
-    assert(t.data[h] == nil)
-    t.data[h] = n
-  inc(t.counter)
-  result = nil
-
-proc strTableIncl*(t: var TStrTable, n: PSym;
-                   onConflictKeepOld = false): bool {.discardable.} =
-  result = strTableInclReportConflict(t, n, onConflictKeepOld) != nil
-
-proc strTableGet*(t: TStrTable, name: PIdent): PSym =
-  var h: Hash = name.h and high(t.data)
-  while true:
-    result = t.data[h]
-    if result == nil: break
-    if result.name.id == name.id: break
-    h = nextTry(h, high(t.data))
-
 
 type
   TIdentIter* = object # iterator over all syms with same identifier
-    h*: Hash           # current hash
-    name*: PIdent
+    next*: int32       # 1 + index of the symbol to yield next, 0 = exhausted
+    name* {.cursor.}: PIdent
 
+# The symbols of one name form a chain through `tab.next` that is in insertion
+# order, so iterating is a chain walk with no name comparison and no dependency
+# on the hash values.
+{.push boundChecks: off.}
 proc nextIdentIter*(ti: var TIdentIter, tab: TStrTable): PSym =
   # hot spots
-  var h = ti.h and high(tab.data)
-  var start = h
-  var p {.cursor.} = tab.data[h]
-  while p != nil:
-    if p.name.id == ti.name.id: break
-    h = nextTry(h, high(tab.data))
-    if h == start:
-      p = nil
-      break
-    p = tab.data[h]
-  if p != nil:
-    result = p # increase the count
-  else:
+  if ti.next == 0:
     result = nil
-  ti.h = nextTry(h, high(tab.data))
+  else:
+    let i = ti.next-1
+    result = tab.data[i]
+    ti.next = tab.next[i]
+{.pop.}
 
 proc initIdentIter*(ti: var TIdentIter, tab: TStrTable, s: PIdent): PSym =
-  ti.h = s.h
   ti.name = s
-  if tab.counter == 0: result = nil
-  else: result = nextIdentIter(ti, tab)
+  ti.next = strTableFirstOfName(tab, s)
+  result = nextIdentIter(ti, tab)
 
 proc nextIdentExcluding*(ti: var TIdentIter, tab: TStrTable,
                          excluding: IntSet): PSym =
-  var h: Hash = ti.h and high(tab.data)
-  var start = h
-  result = tab.data[h]
-  while result != nil:
-    if result.name.id == ti.name.id and not contains(excluding, result.id):
+  result = nil
+  while ti.next != 0:
+    let i = ti.next-1
+    let s = tab.data[i]
+    ti.next = tab.next[i]
+    if not contains(excluding, s.id):
+      result = s
       break
-    h = nextTry(h, high(tab.data))
-    if h == start:
-      result = nil
-      break
-    result = tab.data[h]
-  ti.h = nextTry(h, high(tab.data))
-  if result != nil and contains(excluding, result.id): result = nil
 
 proc firstIdentExcluding*(ti: var TIdentIter, tab: TStrTable, s: PIdent,
                           excluding: IntSet): PSym =
-  ti.h = s.h
   ti.name = s
-  if tab.counter == 0: result = nil
-  else: result = nextIdentExcluding(ti, tab, excluding)
+  ti.next = strTableFirstOfName(tab, s)
+  result = nextIdentExcluding(ti, tab, excluding)
 
 type
   TTabIter* = object
-    h: Hash
+    pos: int
 
 proc nextIter*(ti: var TTabIter, tab: TStrTable): PSym =
   # usage:
@@ -693,25 +581,91 @@ proc nextIter*(ti: var TTabIter, tab: TStrTable): PSym =
   #   ...
   #   s = NextIter(i, table)
   #
-  result = nil
-  while (ti.h <= high(tab.data)):
-    result = tab.data[ti.h]
-    inc(ti.h)                 # ... and increment by one always
-    if result != nil: break
+  if ti.pos < tab.data.len:
+    result = tab.data[ti.pos]
+    inc ti.pos
+  else:
+    result = nil
 
 proc initTabIter*(ti: var TTabIter, tab: TStrTable): PSym =
-  ti.h = 0
-  if tab.counter == 0:
-    result = nil
-  else:
-    result = nextIter(ti, tab)
+  ti.pos = 0
+  result = nextIter(ti, tab)
 
 iterator items*(tab: TStrTable): PSym =
-  var it: TTabIter = default(TTabIter)
-  var s = initTabIter(it, tab)
-  while s != nil:
-    yield s
-    s = nextIter(it, tab)
+  ## in insertion order
+  for s in tab.data: yield s
+
+proc isNil(x: ItemId): bool {.inline.} =
+  x.module == 0 and x.item == 0
+
+proc hasEmptySlot[T](data: TIdPairSeq[T]): bool =
+  for h in 0..high(data):
+    if isNil(data[h].key):
+      return true
+  result = false
+
+proc idTableRawGet[T](t: TIdTable[T], key: int): int =
+  var h: Hash
+  h = key and high(t.data)    # start with real hash value
+  while not isNil(t.data[h].key):
+    if toId(t.data[h].key) == key:
+      return h
+    h = nextTry(h, high(t.data))
+  result = - 1
+
+proc getOrDefault*[T](t: TIdTable[T], key: ItemId): T =
+  var index = idTableRawGet(t, toId(key))
+  if index >= 0: result = t.data[index].val
+  else: result = default(T)
+
+template idTableGet*[T](t: TIdTable[T], key: PSym): T =
+  getOrDefault(t, key.itemId)
+
+template idTableGet*[T](t: TIdTable[T], key: PType): T =
+  ## Type-keyed tables are BINDING tables: an `exactReplica` must find what its
+  ## original bound, hence `bindingId` and not the type's own identity.
+  getOrDefault(t, key.bindingId)
+
+proc idTableRawInsert[T](data: var TIdPairSeq[T], key: ItemId, val: T) =
+  var h: Hash
+  let keyId = toId(key)
+  h = keyId and high(data)
+  while not isNil(data[h].key):
+    assert(toId(data[h].key) != keyId)
+    h = nextTry(h, high(data))
+  assert(isNil(data[h].key))
+  data[h].key = key
+  data[h].val = val
+
+proc `[]=`*[T](t: var TIdTable[T], key: ItemId, val: T) =
+  var
+    index: int
+    n: TIdPairSeq[T]
+  index = idTableRawGet(t, toId(key))
+  if index >= 0:
+    assert(not isNil(t.data[index].key))
+    t.data[index].val = val
+  else:
+    if mustRehash(t.data.len, t.counter):
+      newSeq(n, t.data.len * GrowthFactor)
+      for i in 0..high(t.data):
+        if not isNil(t.data[i].key):
+          idTableRawInsert(n, t.data[i].key, t.data[i].val)
+      assert(hasEmptySlot(n))
+      swap(t.data, n)
+    idTableRawInsert(t.data, key, val)
+    inc(t.counter)
+
+template idTablePut*[T](t: var TIdTable[T], key: PSym, val: T) =
+  t[key.itemId] = val
+
+template idTablePut*[T](t: var TIdTable[T], key: PType, val: T) =
+  t[key.bindingId] = val
+
+iterator idTablePairs*[T](t: TIdTable[T]): tuple[key: ItemId, val: T] =
+  for i in 0..high(t.data):
+    if not isNil(t.data[i].key):
+      yield (t.data[i].key, t.data[i].val)
 
 proc initIITable(x: var TIITable) =
   x.counter = 0
@@ -766,6 +720,6 @@ proc listSymbolNames*(symbols: openArray[PSym]): string =
     result.add sym.name.s
 
 proc isDiscriminantField*(n: PNode): bool =
-  if n.kind == nkCheckedFieldExpr: sfDiscriminant in n[0][1].sym.flags
-  elif n.kind == nkDotExpr: sfDiscriminant in n[1].sym.flags
+  if n.kind == nkCheckedFieldExpr: sfDiscriminant in n.firstSon.secondSon.sym.flags
+  elif n.kind == nkDotExpr: sfDiscriminant in n.secondSon.sym.flags
   else: false
