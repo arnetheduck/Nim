@@ -1,6 +1,6 @@
 # <img src="https://raw.githubusercontent.com/nim-lang/assets/master/Art/logo-crown.png" height="28px"/> Nim
 
-[![Build Status](https://dev.azure.com/nim-lang/Nim/_apis/build/status/nim-lang.Nim?branchName=devel)](https://dev.azure.com/nim-lang/Nim/_build/latest?definitionId=1&branchName=devel)
+[![Build Status](https://github.com/nim-lang/Nim/actions/workflows/ci_main.yml/badge.svg?branch=devel)](https://github.com/nim-lang/Nim/actions/workflows/ci_main.yml?query=branch%3Adevel)
 
 This repository contains the Nim compiler, Nim's stdlib, tools, and documentation.
 For more information about Nim, including downloads and documentation for
@@ -39,7 +39,7 @@ architecture combinations:
 |--------------------------------|----------------------------------------|
 | Windows (Windows XP or greater) | x86 and x86_64                             |
 | Linux (most distributions)     | x86, x86_64, ppc64, and armv6l             |
-| Mac OS X (10.04 or greater)    | x86, x86_64, ppc64, and Apple Silicon (ARM64) |
+| Mac OS X (10.4 or greater)     | x86, x86_64, ppc64, and Apple Silicon (ARM64) |
 
 More platforms are supported, however, they are not tested regularly and they
 may not be as stable as the above-listed platforms.
@@ -202,7 +202,7 @@ Nim. You are explicitly permitted to develop commercial applications using Nim.
 
 Please read the [copying.txt](copying.txt) file for more details.
 
-Copyright © 2006-2025 Andreas Rumpf, all rights reserved.
+Copyright © 2006-2026 Andreas Rumpf, all rights reserved.
 
 [nim-site]: https://nim-lang.org
 [nim-forum]: https://forum.nim-lang.org

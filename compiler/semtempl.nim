@@ -581,7 +581,7 @@ proc semTemplBody(c: var TemplCtx, n: PNode): PNode =
         result.add newIdentNode(getIdent(c.c.cache, "[]="), n.info)
         for i in 0..<a.len: result.add(a[i])
         result.add(b)
-      let a0 = semTemplBody(c, a[0])
+      discard semTemplBody(c, a[0])
       result = semTemplBodySons(c, result)
     of nkCurlyExpr:
       if a.typ == nil:
@@ -925,4 +925,4 @@ proc semPattern(c: PContext, n: PNode; s: PSym): PNode =
     elif result.len == 0:
       localError(c.config, n.info, "a pattern cannot be empty")
   closeScope(c)
-  addPattern(c, LazySym(sym: s))
+  addPattern(c, s)
