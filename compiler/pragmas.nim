@@ -327,8 +327,11 @@ proc getLib(c: PContext, kind: TLibKind, path: PNode): PLib =
   result = newLib(kind)
   result.path = path
   c.libs.add result
-  if path.kind in {nkStrLit..nkTripleStrLit}:
-    result.isOverridden = options.isDynlibOverride(c.config, path.strVal)
+  # NOTE: whether this library is linked directly instead of dlopen'd (a
+  # command-line ``--dynliboverride`` or a ``{.clib.}`` pragma) is NOT decided
+  # here: it is resolved at the end of compilation, once every module has been
+  # observed, so a later ``{.clib.}`` still wins over an earlier
+  # ``{.dynlib.}``. See ``cgen.finalizeDynLibs``.
 
 proc expectDynlibNode(c: PContext, n: PNode): PNode =
   if n.kind notin nkPragmaCallKinds or n.len != 2:
@@ -349,9 +352,15 @@ proc processCLib(c: PContext, n: PNode, sym: PSym) =
   ## ``{.clib: "lib".}``: like ``{.dynlib: "lib".}`` but the library is linked
   ## directly with ``-llib`` instead of dlopen'd. No ``lfDynamicLib`` is set
   ## here: the symbols stay plain ``importc`` (resolved by the linker via
-  ## ``-llib``).
+  ## ``-llib``). If some module also uses ``{.dynlib: "lib".}`` for the same
+  ## library, this ``{.clib.}`` wins and the dlopen codegen for those symbols
+  ## is disabled at the end of compilation (see ``cgen.finalizeDynLibs``).
   let lib = getLib(c, libDynamic, expectDynlibNode(c, n))
   let name = lib.path.strVal
+  # Record that this library is linked directly. Resolved at the end of
+  # compilation (once every module has been observed), not now, so a later
+  # ``{.clib.}`` in another module still overrides an earlier ``{.dynlib.}``.
+  inclClibOverride(c.config, name)
   # Link the library directly with -l<name>.
   if name notin c.config.cLinkedLibs:
     c.config.cLinkedLibs.add name
@@ -360,14 +369,15 @@ proc processCLib(c: PContext, n: PNode, sym: PSym) =
 proc processDynLib(c: PContext, n: PNode, sym: PSym) =
   if (sym == nil) or (sym.kind == skModule):
     let lib = getLib(c, libDynamic, expectDynlibNode(c, n))
-    if not lib.isOverridden:
-      c.optionStack[^1].dynlib = lib
+    # Whether the library ends up dlopen'd or linked directly is decided at
+    # the end of compilation (``cgen.finalizeDynLibs``); a matching
+    # ``{.clib.}`` or ``--dynliboverride`` disables the dlopen codegen there.
+    c.optionStack[^1].dynlib = lib
   else:
     if n.kind in nkPragmaCallKinds:
       var lib = getLib(c, libDynamic, expectDynlibNode(c, n))
-      if not lib.isOverridden:
-        addToLib(lib, sym)
-        sym.incl(lfDynamicLib)
+      addToLib(lib, sym)
+      sym.incl(lfDynamicLib)
     else:
       # Bare ``{.dynlib.}`` (no library name): the symbol belongs to a
       # dynamic library. Combined with ``importc`` it is declared

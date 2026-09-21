@@ -123,6 +123,20 @@ type
     useAliveDataFromDce # use the `alive: IntSet` field instead of
                         # computing alive data on our own.
 
+  TDynLibPending* = object
+    ## A dynlib symbol whose dlopen init is deferred to
+    ## ``cgen.finalizeDynLibs`` (end of compilation). At demand time the
+    ## ``Dl_*`` name change and the ``Dl_*`` var decl are emitted (call sites
+    ## already reference ``Dl_*``); only the init (``nimGetProcAddr`` and the
+    ## ``dlopen``) is held back until it is known whether the library is linked
+    ## directly (``{.clib.}``/``--dynliboverride``) or dlopen'd.
+    sym*: PSym
+    lib*: PLib
+    extname*: Rope    # the real external name, captured before the ``Dl_`` rename
+    module*: BModule # the TU the ``Dl_*`` decl was emitted into (the definer)
+    isVar*: bool     # a dynlib var (pointer) rather than a proc
+    isCall*: bool    # the ``{.dynlib: getProcAddr(...).}`` form
+
   BModuleList* = ref object of RootObj
     mainModProcs*, mainModInit*, otherModsInit*, mainDatInit*: Builder
     icExtensionLoaders*: array['0'..'9', seq[string]]
@@ -130,6 +144,14 @@ type
     mods*: seq[BModule]     # list of all compiled modules
     modulesClosed*: seq[BModule] # list of the same compiled modules, but in the order they were closed
     forwardedProcs*: seq[PSym] # procs that did not yet have a body
+    dynLibPending*: seq[TDynLibPending]
+      ## Dynlib symbols whose dlopen init was deferred to
+      ## ``cgen.finalizeDynLibs`` (end of compilation). The ``Dl_*`` name change
+      ## and ``Dl_*`` var decl were already emitted at demand time (call sites
+      ## reference ``Dl_*``), but the init (``nimGetProcAddr``/``dlopen``) is
+      ## held back until it is known whether the library is linked directly
+      ## (``{.clib.}``/``--dynliboverride``) or dlopen'd.
+      ## See ``TDynLibPending``.
     generatedHeader*: BModule
     typeInfoMarker*: TypeCacheWithOwner
     typeInfoMarkerV2*: TypeCacheWithOwner

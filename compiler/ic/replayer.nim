@@ -103,7 +103,9 @@ proc applyBackendActions*(g: ModuleGraph; cfile: string) =
     of "passl":
       if f.len == 2: extccomp.addLinkOption(g.config, f[1])
     of "clib":
-      if f.len == 2: g.config.cLinkedLibs.add f[1]
+      if f.len == 2:
+        options.inclClibOverride(g.config, f[1])
+        g.config.cLinkedLibs.add f[1]
     of "passc":
       if f.len == 2: extccomp.addCompileOption(g.config, f[1])
     of "localpassc":
@@ -143,6 +145,7 @@ proc replayStateChanges*(module: PSym; g: ModuleGraph; list: PNode) =
       of "passl":
         extccomp.addLinkOption(g.config, n[1].strVal)
       of "clib":
+        options.inclClibOverride(g.config, n[1].strVal)
         g.config.cLinkedLibs.add n[1].strVal
       of "passc":
         extccomp.addCompileOption(g.config, n[1].strVal)
@@ -213,6 +216,7 @@ proc replayBackendActions*(g: ModuleGraph; module: PSym; list: PNode) =
       of "passl":
         extccomp.addLinkOption(g.config, n[1].strVal)
       of "clib":
+        options.inclClibOverride(g.config, n[1].strVal)
         g.config.cLinkedLibs.add n[1].strVal
       of "passc":
         extccomp.addCompileOption(g.config, n[1].strVal)

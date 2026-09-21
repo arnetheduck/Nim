@@ -1349,7 +1349,10 @@ proc symInDynamicLib(m: BModule, sym: PSym) =
   var lib = sym.annex
   let isCall = isGetProcAddr(lib)
   var extname = sym.loc.snippet
-  if not isCall: loadDynamicLib(m, lib)
+  # The dlopen init is NOT emitted here: it is deferred to `finalizeDynLibs`
+  # (end of compilation), so a later `{.clib.}` can still link this library
+  # directly instead of dlopen'ing it. The `Dl_*` name change and var decl
+  # happen now (call sites already reference `Dl_*`).
   var tmp = mangleDynLibProc(m, sym)
   let deferredIc = m.config.cmd == cmdNifC and isDeferredDynlib(sym)
   backendEnsureMutable sym
@@ -1357,6 +1360,8 @@ proc symInDynamicLib(m: BModule, sym: PSym) =
   sym.typ.sym = nil           # generate a new name
   inc(m.labels, 2)
   if isCall:
+    # The getProcAddr-call form (OpenGL wrapper): no dlopen is involved, so
+    # nothing to defer — emit the init now.
     let n = lib.path
     var a: TLoc = initLocExpr(m.initProc, n.firstSon)
     let callee = rdLoc(a)
@@ -1390,14 +1395,12 @@ proc symInDynamicLib(m: BModule, sym: PSym) =
     else:
       internalError(m.config, sym.info, "wrong index: " & idx)
   else:
-    # cgsym has side effects, do it first:
-    let fn = cgsymValue(m, "nimGetProcAddr")
-    m.s[cfsDynLibInit].add('\t')
-    m.s[cfsDynLibInit].addAssignment(tmp,
-      cCast(getTypeDesc(m, sym.typ, dkVar),
-        cCall(fn,
-          lib.name,
-          makeCString($extname))))
+    # Defer the dlopen + getProcAddr init to `finalizeDynLibs` (end of
+    # compilation): a later `{.clib.}` may link this library directly, in which
+    # case the init points at the extern symbol instead.
+    m.g.dynLibPending.add TDynLibPending(
+      sym: sym, lib: lib, extname: extname, module: m,
+      isVar: false, isCall: false)
   let typ = getTypeDesc(m, sym.loc.t, dkVar)
   if deferredIc:
     let name = stripCnifMarks(tmp)
@@ -1412,21 +1415,71 @@ proc symInDynamicLib(m: BModule, sym: PSym) =
 proc varInDynamicLib(m: BModule, sym: PSym) =
   var lib = sym.annex
   var extname = sym.loc.snippet
-  loadDynamicLib(m, lib)
   incl(sym, lfIndirect)
   var tmp = mangleDynLibProc(m, sym)
   backendEnsureMutable sym
   sym.locImpl.snippet = tmp             # from now on we only need the internal name
   inc(m.labels, 2)
   let t = ptrType(getTypeDesc(m, sym.typ, dkVar))
-  # cgsym has side effects, do it first:
-  let fn = cgsymValue(m, "nimGetProcAddr")
-  m.s[cfsDynLibInit].addAssignment(tmp,
-    cCast(t,
-      cCall(fn,
-        lib.name,
-        makeCString($extname))))
+  # Defer the dlopen + getProcAddr init to `finalizeDynLibs` (end of
+  # compilation): a later `{.clib.}` may link this library directly, in which
+  # case the init points at the address of the extern symbol instead.
+  m.g.dynLibPending.add TDynLibPending(
+    sym: sym, lib: lib, extname: extname, module: m,
+    isVar: true, isCall: false)
   addDynLibVar(m, sym, t)
+
+proc finalizeDynLibs(g: BModuleList) =
+  ## End-of-compilation resolution of dynamic libraries. For each dynlib symbol
+  ## whose dlopen init was deferred (see `symInDynamicLib`/`varInDynamicLib`),
+  ## decide whether its library is linked directly (`{.clib.}` or
+  ## `--dynliboverride`) or dlopen'd, and emit the matching init. Must run
+  ## after every module has been observed (so a later `{.clib.}` still wins
+  ## over an earlier `{.dynlib.}`) and before the `cfsDynLibInit` sections are
+  ## assembled into the final C (`genDatInitCode`).
+  for p in items(g.dynLibPending):
+    let m = p.module
+    let libName = p.lib.path.strVal
+    let dlName = p.sym.loc.snippet   # the `Dl_*` name (set at demand time)
+    if options.isDynlibFinalized(m.config, libName):
+      # Linked directly: declare the real symbol `extern` and point the `Dl_*`
+      # indirection at it, so the linker resolves it via `-l<lib>`.
+      if p.isVar:
+        let t = getTypeDesc(m, p.sym.typ, dkVar)
+        m.s[cfsVars].addDeclWithVisibility(Extern):
+          m.s[cfsVars].addVar(name = p.extname, typ = t)
+        m.s[cfsDynLibInit].addAssignment(dlName,
+          cCast(ptrType(t), cAddr($p.extname)))
+      else:
+        # `extern` prototype of the real name. `genProcHeader` reads the C name
+        # from `sym.loc`, which now holds the `Dl_*` name, so swap in the real
+        # name for the call and restore afterwards.
+        var savedLoc = p.sym.loc
+        p.sym.locImpl.snippet = p.extname
+        var header = newBuilder("")
+        var visibility: DeclVisibility = None
+        genProcHeader(m, p.sym, header, visibility,
+                      asPtr = false, addAttributes = false)
+        p.sym.loc = savedLoc
+        m.s[cfsProcHeaders].addDeclWithVisibility(Extern):
+          m.s[cfsProcHeaders].add(extract(header))
+          m.s[cfsProcHeaders].finishProcHeaderAsProto()
+        m.s[cfsDynLibInit].addAssignment(dlName,
+          cCast(getTypeDesc(m, p.sym.loc.t, dkVar), $p.extname))
+    else:
+      # dlopen'd: emit the dlopen + getProcAddr init as before.
+      if not p.isCall: loadDynamicLib(m, p.lib)
+      let fn = cgsymValue(m, "nimGetProcAddr")
+      if p.isVar:
+        let t = ptrType(getTypeDesc(m, p.sym.typ, dkVar))
+        m.s[cfsDynLibInit].addAssignment(dlName,
+          cCast(t,
+            cCall(fn, p.lib.name, makeCString($p.extname))))
+      else:
+        m.s[cfsDynLibInit].add('\t')
+        m.s[cfsDynLibInit].addAssignment(dlName,
+          cCast(getTypeDesc(m, p.sym.loc.t, dkVar),
+            cCall(fn, p.lib.name, makeCString($p.extname))))
 
 proc symInDynamicLibPartial(m: BModule, sym: PSym) =
   backendEnsureMutable sym
@@ -3431,6 +3484,12 @@ proc cgenWriteModules*(backend: RootRef, config: ConfigRef) =
   # deps are allowed (and the system module is processed in the wrong
   # order anyway)
   genForwardedProcs(g)
+
+  # Every module has now been observed (and `genForwardedProcs` may have
+  # demanded a few more dynlib symbols): resolve which dynamic libraries are
+  # linked directly (`{.clib.}`/`--dynliboverride`) vs. dlopen'd and emit the
+  # deferred inits. Must run before any `writeModule` assembles `cfsDynLibInit`.
+  finalizeDynLibs(g)
 
   if config.cmd == cmdNifC and not isDefined(config, "icNoCDce"):
     # Two-phase write: produce every module's marked text and artifact

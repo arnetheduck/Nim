@@ -544,6 +544,9 @@ type
     jsonBuildFile*: AbsoluteFile
     prefixDir*, libpath*, nimcacheDir*: AbsoluteDir
     dllOverrides*, moduleOverrides*, cfileSpecificOptions*: StringTableRef
+    clibOverrides*: StringTableRef   # libs marked `{.clib: "X".}`: linked with
+                                     # `-lX` instead of dlopen'd; takes
+                                     # precedence over a matching `{.dynlib.}`
     projectName*: string # holds a name like 'nim'
     projectPath*: AbsoluteDir # holds a path like /home/alice/projects/nim/compiler/
     projectFull*: AbsoluteFile # projectPath/projectName
@@ -727,6 +730,7 @@ proc newConfigRef*(): ConfigRef =
     prefixDir: AbsoluteDir"",
     libpath: AbsoluteDir"", nimcacheDir: AbsoluteDir"",
     dllOverrides: newStringTable(modeCaseInsensitive),
+    clibOverrides: newStringTable(modeCaseInsensitive),
     moduleOverrides: newStringTable(modeStyleInsensitive),
     cfileSpecificOptions: newStringTable(modeCaseSensitive),
     projectName: "", # holds a name like 'nim'
@@ -1246,6 +1250,23 @@ proc inclDynlibOverride*(conf: ConfigRef; lib: string) =
 proc isDynlibOverride*(conf: ConfigRef; lib: string): bool =
   result = optDynlibOverrideAll in conf.globalOptions or
      conf.dllOverrides.hasKey(lib.canonDynlibName)
+
+proc inclClibOverride*(conf: ConfigRef; lib: string) =
+  ## Records that `lib` was marked with a `{.clib: "lib".}` pragma: it is
+  ## linked directly with `-llib` and must NOT be dlopen'd, even if some
+  ## module also uses `{.dynlib: "lib".}` for it. Resolved at the end of
+  ## compilation (see `cgen.finalizeDynLibs`), not when the pragma is seen.
+  conf.clibOverrides[lib.canonDynlibName] = "true"
+
+proc isClibOverride*(conf: ConfigRef; lib: string): bool =
+  conf.clibOverrides.hasKey(lib.canonDynlibName)
+
+proc isDynlibFinalized*(conf: ConfigRef; lib: string): bool =
+  ## Whether a dynamic library must be linked directly (no dlopen codegen):
+  ## either overridden on the command line or marked `{.clib.}`. Evaluated at
+  ## the end of compilation, once every module has been observed, so a later
+  ## `{.clib.}` still wins over an earlier `{.dynlib.}`.
+  result = isDynlibOverride(conf, lib) or isClibOverride(conf, lib)
 
 proc showNonExportedFields*(conf: ConfigRef) =
   incl(conf.globalOptions, optShowNonExportedFields)
