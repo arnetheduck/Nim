@@ -73,7 +73,14 @@ elif defined(nogc):
 
 else:
   when not defined(gcRegions):
-    include "system/alloc"
+    # gcmalloc makes assumptions about malloc that only work well on 64-bit
+    # platforms
+    when defined(useMalloc) and sizeof(int) == 8:
+      include "system/gcmalloc"
+    else:
+      when defined(useMalloc):
+        {.warning "useMalloc not supported, falling back to normal allocator".}
+      include "system/alloc"
 
     when not usesDestructors:
       include "system/cellsets"

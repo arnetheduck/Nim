@@ -126,6 +126,7 @@ proc gcTests(r: var TResults, cat: Category, options: string) =
   # and orc (debug + release). This is the coverage we actually rely on today.
   template test(filename: untyped) =
     run filename, " --mm:refc"
+    run filename, " -d:release -d:useMalloc --mm:refc"
     run filename, " -d:release -d:useRealtimeGC --mm:refc"
     run filename, " --gc:orc"
     run filename, " --gc:orc -d:release"
