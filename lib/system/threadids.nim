@@ -11,13 +11,12 @@
 var threadId {.threadvar.}: int
 
 when defined(windows):
-  proc getCurrentThreadId(): int32 {.
-    stdcall, dynlib: "kernel32", importc: "GetCurrentThreadId".}
+  import system/private/win32/processthreadsapi
 
   proc getThreadId*(): int =
     ## Gets the ID of the currently running thread.
     if threadId == 0:
-      threadId = int(getCurrentThreadId())
+      threadId = cast[int](uint(GetCurrentThreadId()))
     result = threadId
 
 elif defined(linux):
